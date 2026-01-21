@@ -229,13 +229,13 @@ workspace/
 - [AGENTS.md](docs/AGENTS.md) - Detailed agent documentation
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration reference
 
-### Specification (V5.1)
+### Specification
 
 The theoretical specification is maintained in a separate repository for academic citation:
 
 **[USD Cognitive Substrate](https://github.com/joe002/usd-cognitive-substrate)** - Full specification
 
-- [USD_COGNITIVE_SUBSTRATE.md](https://github.com/joe002/usd-cognitive-substrate/blob/main/USD_COGNITIVE_SUBSTRATE.md) - Full V5.1 specification with LIVRPS, Mycelium, formal proofs
+- [USD_COGNITIVE_SUBSTRATE.md](https://github.com/joe002/usd-cognitive-substrate/blob/main/USD_COGNITIVE_SUBSTRATE.md) - Full specification with LIVRPS, Mycelium, formal proofs
 - [PERSISTENT_STATE_HYPOTHESIS.md](https://github.com/joe002/usd-cognitive-substrate/blob/main/PERSISTENT_STATE_HYPOTHESIS.md) - Theoretical foundation
 - [DETERMINISM.md](https://github.com/joe002/usd-cognitive-substrate/blob/main/DETERMINISM.md) - Batch-invariance and reproducibility analysis
 
