@@ -1,7 +1,7 @@
 # Release Notes: Framework Orchestrator v1.0.0
 
 **Release Date**: 2026-01-21
-**Frontier Score**: 9.1/10
+**Status**: Production Ready
 
 ---
 
@@ -26,12 +26,14 @@ Framework Orchestrator v1.0.0 is the production implementation of the USD Cognit
 | Document | Description |
 |----------|-------------|
 | `README.md` | User guide and quick start |
-| `FRONTIER_SCORES.md` | Comprehensive scoring analysis |
-| `docs/USD_COGNITIVE_SUBSTRATE_V5.md` | Full V5 specification |
+| `spec/USD_COGNITIVE_SUBSTRATE_V5.1.md` | Full V5.1 specification |
+| `spec/PERSISTENT_STATE_HYPOTHESIS.md` | Theoretical foundation |
+| `spec/DETERMINISM.md` | Determinism analysis |
 | `docs/AGENTS.md` | Agent documentation |
 | `docs/ARCHITECTURE.md` | System design |
-| `docs/DETERMINISM.md` | Determinism analysis |
-| `docs/PERSISTENT_STATE_HYPOTHESIS.md` | Theoretical foundation |
+| `docs/CONFIGURATION.md` | Configuration reference |
+
+**Note**: Specification documents are also maintained in the dedicated [usd-cognitive-substrate](https://github.com/joe002/usd-cognitive-substrate) repository for academic citation.
 
 ### Examples
 
@@ -168,19 +170,19 @@ framework-orchestrator/
 ├── framework_orchestrator.py    # Main implementation (78KB)
 ├── cogroute_bench.py            # Benchmark suite (26KB)
 ├── README.md                    # User documentation
-├── FRONTIER_SCORES.md           # Scoring analysis
 ├── RELEASE_NOTES.md             # This file
 ├── LICENSE                      # MIT License
 ├── setup.py                     # Package setup
 ├── requirements.txt             # Dependencies
 ├── .gitignore                   # Git ignore rules
+├── spec/                        # V5.1 Specification (local copy)
+│   ├── USD_COGNITIVE_SUBSTRATE_V5.1.md
+│   ├── PERSISTENT_STATE_HYPOTHESIS.md
+│   └── DETERMINISM.md
 ├── docs/
-│   ├── USD_COGNITIVE_SUBSTRATE_V5.md
 │   ├── AGENTS.md
 │   ├── ARCHITECTURE.md
-│   ├── CONFIGURATION.md
-│   ├── DETERMINISM.md
-│   └── PERSISTENT_STATE_HYPOTHESIS.md
+│   └── CONFIGURATION.md
 ├── examples/
 │   └── domains/
 │       ├── example_domain.json
@@ -190,20 +192,6 @@ framework-orchestrator/
     ├── conftest.py
     └── test_orchestrator.py
 ```
-
----
-
-## Frontier Score Breakdown
-
-| Criteria | Score | Notes |
-|----------|-------|-------|
-| Novelty | 8.5/10 | Implements V5 + CogRoute-Bench contribution |
-| Theoretical Rigor | 8.5/10 | Quantified 94.6% accuracy, 100% determinism |
-| Practical Applicability | 9.5/10 | Working code, tests, explainability |
-| Composability | 9.0/10 | Pluggable domains, Mycelium integration |
-| Production Readiness | 9.0/10 | Benchmark + context restoration |
-| Future Relevance | 9.0/10 | Hebbian learning ready |
-| **TOTAL** | **9.1/10** | 53.5/60 points |
 
 ---
 
