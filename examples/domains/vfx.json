@@ -1,0 +1,54 @@
+{
+  "name": "VFX",
+  "description": "Visual effects production - Houdini, Nuke, USD, Karma, Maya",
+  "version": "1.0",
+  "specialists": {
+    "pyro": {
+      "keywords": ["fire", "smoke", "explosion", "pyro", "volume", "ember", "combustion", "burn"],
+      "tools": ["Houdini Pyro", "Karma Volume", "Arnold Volume"],
+      "analysis_focus": ["voxel_count", "simulation_substeps", "memory_usage", "upres_factor"]
+    },
+    "flip": {
+      "keywords": ["water", "fluid", "ocean", "splash", "flip", "liquid", "wave", "foam", "spray", "mist"],
+      "tools": ["Houdini FLIP", "Ocean Spectrum", "Whitewater"],
+      "analysis_focus": ["particle_count", "substeps", "surface_tension", "viscosity", "boundary_layer"]
+    },
+    "rbd": {
+      "keywords": ["destruction", "fracture", "rigid", "rbd", "collision", "debris", "shatter", "break", "crumble"],
+      "tools": ["Houdini RBD", "Bullet", "Vellum Grains"],
+      "analysis_focus": ["piece_count", "constraint_network", "collision_geometry", "glue_strength"]
+    },
+    "cloth": {
+      "keywords": ["cloth", "fabric", "vellum", "drape", "softbody", "garment", "dress", "cape"],
+      "tools": ["Vellum", "nCloth", "Marvelous Designer"],
+      "analysis_focus": ["vertex_count", "constraint_iterations", "collision_passes", "bend_stiffness"]
+    },
+    "hair": {
+      "keywords": ["hair", "fur", "groom", "guide", "strand", "fiber", "feather"],
+      "tools": ["Houdini Hair", "XGen", "Yeti"],
+      "analysis_focus": ["guide_count", "hair_density", "simulation_method", "clumping"]
+    },
+    "lighting": {
+      "keywords": ["light", "render", "karma", "arnold", "hdri", "exposure", "gi", "bounce", "sample"],
+      "tools": ["Karma", "Arnold", "RenderMan", "V-Ray"],
+      "analysis_focus": ["sample_count", "ray_depth", "render_time", "noise_threshold", "aov_setup"]
+    },
+    "comp": {
+      "keywords": ["composite", "nuke", "roto", "key", "grade", "merge", "despill", "denoise"],
+      "tools": ["Nuke", "Fusion", "After Effects"],
+      "analysis_focus": ["node_complexity", "memory_usage", "color_pipeline", "plate_resolution"]
+    },
+    "usd": {
+      "keywords": ["usd", "usda", "usdc", "usdz", "stage", "prim", "layer", "sublayer", "reference", "payload"],
+      "tools": ["Houdini SOLARIS", "USD Toolset", "Omniverse"],
+      "analysis_focus": ["layer_composition", "payload_efficiency", "variant_selection", "instancing"]
+    },
+    "crowd": {
+      "keywords": ["crowd", "agent", "ragdoll", "mocap", "animation", "clip", "transition"],
+      "tools": ["Houdini Crowd", "Golaem", "Massive"],
+      "analysis_focus": ["agent_count", "clip_variation", "lod_transitions", "state_machine"]
+    }
+  },
+  "routing_keywords": ["shot", "render", "vfx", "houdini", "nuke", "maya", "usd", "karma", "arnold", "sim", "simulation", "fx", "effects", "comp", "lighting"],
+  "prism_perspectives": ["causal", "optimization", "hierarchical", "temporal", "risk", "opportunity"]
+}
