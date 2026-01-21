@@ -1,9 +1,8 @@
 # USD Cognitive Substrate: A Deterministic Architecture for Adaptive AI State Management
 
-**Version:** 5.1.0
 **Date:** 2026-01-21
-**Status:** Academic Pre-Publication Draft (Enhanced)
-**Authors:** [To be determined]
+**Status:** Academic Pre-Publication Draft
+**Authors:** Joseph O. Ibrahim
 
 ---
 
@@ -1079,6 +1078,5 @@ Benchmark results: 94.6% routing accuracy, 100% determinism, 0.13ms average late
 
 ---
 
-*Document Version: 5.1.0*
-*Generated: 2026-01-21*
+*Date: 2026-01-21*
 *Classification: Academic Pre-Publication Draft*
