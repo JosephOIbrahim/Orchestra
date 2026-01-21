@@ -116,6 +116,10 @@ Routes tasks to intervention experts using a 5-phase process with enforced safet
 | 6 | **Guide** | Discovery facilitation | 0% | exploring, what_if, curious, learn, understand |
 | 7 | **Executor** | Direct task execution | 0% | implement, code, do, execute, build, create |
 
+![V5 Expert Routing](images/v5-routing.png)
+
+*Figure: V5 expert configuration showing priority order, safety floors, and trigger patterns. Safety-critical experts (Protector, Decomposer, Restorer) maintain hard minimum floors that cannot be violated.*
+
 **5-Phase Routing**:
 1. **ACTIVATE** - Signal detection → activation vector (trigger matching)
 2. **WEIGHT** - Apply expert weights (from Mycelium learning)

@@ -83,6 +83,22 @@ expert_index = int(hashlib.md5(task.encode()).hexdigest(), 16) % len(experts)
 
 ## Architecture
 
+![7-Agent Architecture](docs/images/architecture.png)
+
+*Figure: USD Cognitive Substrate architecture showing the central 5-phase routing system connected to seven specialized experts. Each expert has a safety floor (minimum activation weight) to ensure critical capabilities remain available.*
+
+**Experts and Safety Floors:**
+- **Protector** (10% floor): Handles frustration, overwhelm, safety concerns
+- **Decomposer** (5% floor): Breaks down complex tasks, handles "stuck" states
+- **Restorer** (5% floor): Manages depletion, burnout, recovery
+- **Redirector** (0% floor): Redirects tangents and off-topic behavior
+- **Acknowledger** (0% floor): Recognizes completion and milestones
+- **Guide** (0% floor): Facilitates exploration and curiosity
+- **Executor** (0% floor): Implements code and executes tasks
+
+<details>
+<summary>ASCII Architecture (text fallback)</summary>
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Framework Orchestrator                        │
@@ -106,6 +122,7 @@ expert_index = int(hashlib.md5(task.encode()).hexdigest(), 16) % len(experts)
 │  └──────────────┘                                               │
 └─────────────────────────────────────────────────────────────────┘
 ```
+</details>
 
 ## Installation
 
@@ -303,6 +320,10 @@ See the [USD Cognitive Substrate specification](https://github.com/JosephOIbrahi
 - Falsifiability criteria and research roadmap
 
 ## CogRoute-Bench Results
+
+![CogRoute-Bench Results](docs/images/benchmark.png)
+
+*Performance metrics from CogRoute-Bench evaluation showing 94.6% routing accuracy, 100% determinism, and 95.1% explainability.*
 
 ```
 Overall Metrics:

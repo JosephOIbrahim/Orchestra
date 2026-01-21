@@ -48,6 +48,13 @@ Same input → Same routing → Same output.
 
 ## System Architecture
 
+![7-Agent Architecture](images/architecture.png)
+
+*Figure: USD Cognitive Substrate architecture showing the central 5-phase routing system connected to seven specialized experts. Each expert has a safety floor (minimum activation weight) to ensure critical capabilities remain available.*
+
+<details>
+<summary>ASCII Architecture (text fallback)</summary>
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                         Framework Orchestrator                           │
@@ -82,6 +89,7 @@ Same input → Same routing → Same output.
 │                                                                          │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
+</details>
 
 ## Data Flow
 
@@ -96,6 +104,13 @@ Same input → Same routing → Same output.
 ```
 
 ### Task Processing Pipeline
+
+![Task Processing Pipeline](images/pipeline.png)
+
+*Figure: End-to-end task processing pipeline showing six stages from user input to response. The 5-phase routing system determines expert selection, which then processes the task with appropriate context and tools. Average routing latency: 0.13ms per decision.*
+
+<details>
+<summary>ASCII Pipeline (text fallback)</summary>
 
 ```
 Input Task
@@ -128,10 +143,23 @@ Input Task
     ▼
 Output
 ```
+</details>
 
 ## Memory Architecture (ECHO Curator)
 
 ### LIVRPS Memory Layers
+
+![LIVRPS Memory Layers](images/livrps-layers.png)
+
+*Figure: LIVRPS memory hierarchy showing six layers from highest to lowest priority. LOCAL (session state) has highest priority, while SPECIALIZES (principles) has lowest priority but is immutable. Compression policies vary by layer to optimize context usage.*
+
+**Layer Policies:**
+- **LOCAL** (Session state): Compress aggressively, reset between sessions
+- **INHERITS** (Parent context): Compress, inherit from higher layers
+- **VARIANTSETS** (Memory modes): Protected, switch between named modes
+- **REFERENCES** (Calibration): Protected, external reference data
+- **PAYLOADS** (Domain knowledge): Can be unloaded for memory management
+- **SPECIALIZES** (Principles): **NEVER** compressed or modified (immutable)
 
 ```python
 memory_layers = {
