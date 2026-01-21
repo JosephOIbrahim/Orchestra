@@ -1056,10 +1056,10 @@ The author thanks Pixar Animation Studios for creating and open-sourcing Univers
 The specification and reference implementation are available under the MIT License:
 
 **Specification Repository:**
-https://github.com/joe002/usd-cognitive-substrate
+https://github.com/josephoibrahim/usd-cognitive-substrate
 
 **Reference Implementation:**
-https://github.com/joe002/framework-orchestrator
+https://github.com/josephoibrahim/framework-orchestrator
 
 The reference implementation includes:
 - `framework_orchestrator.py` — 7-agent async orchestration system (78KB, ~2000 LOC)
