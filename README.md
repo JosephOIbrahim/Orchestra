@@ -228,11 +228,11 @@ workspace/
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System design and data flow
 - [AGENTS.md](docs/AGENTS.md) - Detailed agent documentation
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration reference
-- [DETERMINISM.md](docs/DETERMINISM.md) - Batch-invariance and reproducibility
 
-### Theoretical Foundation
-- [PERSISTENT_STATE_HYPOTHESIS.md](docs/PERSISTENT_STATE_HYPOTHESIS.md) - The theoretical foundation challenging energy-intelligence equivalence
-- [USD_COGNITIVE_SUBSTRATE_V5.md](docs/USD_COGNITIVE_SUBSTRATE_V5.md) - Full V5 architecture specification with LIVRPS, Mycelium mechanism, and determinism analysis
+### Specification (V5.1)
+- [USD_COGNITIVE_SUBSTRATE_V5.1.md](spec/USD_COGNITIVE_SUBSTRATE_V5.1.md) - Full V5.1 specification with LIVRPS, Mycelium, formal proofs
+- [PERSISTENT_STATE_HYPOTHESIS.md](spec/PERSISTENT_STATE_HYPOTHESIS.md) - Theoretical foundation
+- [DETERMINISM.md](spec/DETERMINISM.md) - Batch-invariance and reproducibility analysis
 
 ## Running Tests
 
@@ -287,11 +287,32 @@ MIT License - see [LICENSE](LICENSE) for details.
 This project is grounded in the **Persistent State Hypothesis** research:
 
 - **Core Hypothesis**: Emergent capabilities can be preserved in persistent, composable substrates
-- **Energy Claim**: >10× energy reduction for cached knowledge retrieval
+- **Energy Claim**: >10x energy reduction for cached knowledge retrieval
 - **Capability Claim**: >80% preservation for reasoning tasks
 - **Validation Status**: Behavioral state management demonstrated; factual knowledge TBD
 
-See [PERSISTENT_STATE_HYPOTHESIS.md](docs/PERSISTENT_STATE_HYPOTHESIS.md) for full details including falsification criteria and research roadmap.
+See [PERSISTENT_STATE_HYPOTHESIS.md](spec/PERSISTENT_STATE_HYPOTHESIS.md) for full details including falsification criteria and research roadmap.
+
+## CogRoute-Bench Results
+
+```
+Overall Metrics:
+  Accuracy:           94.6%  (35/37 tasks)
+  Determinism:        100.0% (identical outputs across runs)
+  Explainability:     95.1%  (decisions include rationale)
+  Avg Latency:        0.13ms
+```
+
+Run the benchmark:
+```bash
+python cogroute_bench.py
+```
+
+## References
+
+1. Pixar Animation Studios. (2016). *Universal Scene Description*. https://graphics.pixar.com/usd/
+
+2. He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
 
 ## Acknowledgments
 

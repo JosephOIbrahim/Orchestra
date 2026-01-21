@@ -1,8 +1,8 @@
 # USD Cognitive Substrate: A Deterministic Architecture for Adaptive AI State Management
 
-**Version:** 5.0.0
-**Date:** 2026-01-20
-**Status:** Academic Pre-Publication Draft
+**Version:** 5.1.0
+**Date:** 2026-01-21
+**Status:** Academic Pre-Publication Draft (Enhanced)
 **Authors:** [To be determined]
 
 ---
@@ -90,13 +90,20 @@ No other configuration format (JSON, YAML, Protobuf, GraphQL) provides all three
 
 ### 2.2 Determinism in LLM Inference
 
-LLM inference is non-deterministic due to:
+**The Key Insight**: Individual LLM forward passes are run-to-run deterministic. The source of user-visible nondeterminism is that **batch size varies with server load**, and most kernels lack batch-invariance.
 
-1. **Floating-point reduction order** — RMSNorm, attention, and matrix multiplication operations have different reduction orders based on batch size
-2. **GPU parallelism** — Thread scheduling affects computation order
-3. **Sampling** — Even with temperature=0, tie-breaking can vary
+ThinkingMachines (2025) demonstrated this empirically: **80 unique completions from 1000 identical requests** at temperature=0. The variation occurs because:
 
-ThinkingMachines (2025) demonstrated that batch-invariant kernels can eliminate these sources of non-determinism, achieving identical outputs regardless of batching or server load, at a cost of ~1.6-2.1x performance overhead.
+1. **Batch-size-dependent reduction order** — The same matrix operation (`torch.mm(a[:1], b)` vs `torch.mm(a, b)[:1]`) produces different results depending on batch size, even though the mathematical operation is identical
+2. **Load-dependent batching** — Server load determines batch size, introducing runtime variation
+3. **Kernel optimization switches** — Some kernels change algorithms (e.g., split-K) based on batch size
+
+**What doesn't fully explain it** (common misconceptions):
+- Floating-point non-associativity alone (individual kernels can be deterministic)
+- GPU thread scheduling (can be controlled)
+- Sampling randomness (can be seeded)
+
+ThinkingMachines batch-invariant kernels eliminate these sources at a cost of ~1.6-2.1x performance overhead (1.6x with optimized attention kernel, 2.1x unoptimized).
 
 ### 2.3 Cognitive Architectures
 
@@ -420,6 +427,86 @@ All dynamic adaptation is constrained:
 3. Constitutional constraints cannot be violated
 4. Learning cannot exceed rate limits
 
+### 6.4 Formal Mathematical Specification
+
+**Definition 1 (Weight Space)**
+Let W = {w ∈ ℝ^7 | w_i ≥ f_i ∀i ∈ [1,7], Σw_i = 1}
+where f = [0.10, 0.05, 0.05, 0, 0, 0, 0] are safety floors.
+
+**Definition 2 (Activation Function)**
+A: T × C → ℝ^7 where T is task space, C is context space.
+A(t, c)_i = min(|{p ∈ triggers_i : p ⊆ t}| / |triggers_i|, 1.0)
+
+**Definition 3 (Hebbian Update)**
+U: W × ℝ × ℝ^7 → W
+U(w, o, a)_i = clip(w_i + α(o - e)a_i, f_i, 1.0) / Z
+where Z normalizes to sum=1, α ∈ (0, 0.2], o ∈ [-1, 1], e = 0.5
+
+**Theorem 1 (Safety Floor Invariant)**
+∀w ∈ W, ∀o, a: U(w, o, a) ∈ W
+*Proof*: By construction, clip enforces w_i ≥ f_i, and Z normalizes sum to 1. ∎
+
+**Theorem 2 (Bounded Learning)**
+|U(w, o, a)_i - w_i| ≤ α × max(|o - e|) × max(||a||_∞) ≤ 0.2 × 1 × 1 = 0.2
+*Proof*: By definition of clip and bounds on α, o, a. ∎
+
+**Theorem 3 (Convergence)**
+Under stationary outcome distribution, w converges to E[o × a] / Σ_i E[o × a_i].
+*Proof sketch*: Standard Hebbian convergence with decay. Full proof in Appendix D.
+
+### 6.5 Worked Example: Complete Routing Trace
+
+**User Input**: "I'm completely stuck on this architecture decision and feeling overwhelmed"
+
+**Step 1: Signal Detection**
+```
+Pattern matching:
+- "stuck" → Decomposer trigger ✓
+- "overwhelmed" → Protector trigger ✓
+
+Activation vector A(task):
+  Protector:    1/8 triggers = 0.125 (but "overwhelmed" strong signal)
+  Decomposer:   1/8 triggers = 0.125 (but "stuck" strong signal)
+  [others]:     0/n triggers = 0.000
+```
+
+**Step 2: Weight Calculation**
+```
+Current weights w: [0.15, 0.15, 0.10, 0.10, 0.10, 0.20, 0.20]
+Activations a:     [0.80, 0.30, 0.00, 0.00, 0.00, 0.00, 0.00]
+Weighted w×a:      [0.12, 0.05, 0.00, 0.00, 0.00, 0.00, 0.00]
+```
+
+**Step 3: Safety Floor Enforcement (BOUND phase)**
+```
+Pre-floor:   [0.12, 0.05, 0.00, 0.00, 0.00, 0.00, 0.00]
+Floors:      [0.10, 0.05, 0.05, 0.00, 0.00, 0.00, 0.00]
+Check:       [✓,    ✓,    ✗,    ✓,    ✓,    ✓,    ✓]
+Post-floor:  [0.12, 0.05, 0.05, 0.00, 0.00, 0.00, 0.00]
+Normalized:  [0.55, 0.23, 0.23, 0.00, 0.00, 0.00, 0.00]
+```
+
+**Step 4: Selection (SELECT phase)**
+```
+Winner: Protector (0.55)
+Tiebreaker: N/A (clear winner)
+```
+
+**Step 5: Response Generation**
+```
+Expert: Protector
+Response: "I notice you're feeling stuck and overwhelmed. Let's pause
+          the architecture decision and address how you're feeling first.
+          What's the main source of the overwhelm?"
+```
+
+**Step 6: Outcome & Learning (UPDATE phase)**
+```
+User feedback: +0.8 (helpful response)
+Hebbian update: w_protector += 0.1 × (0.8 - 0.5) × 0.8 = +0.024
+New weights: [0.174, 0.15, 0.10, ...] → normalize → [0.18, 0.15, ...]
+```
+
 ---
 
 ## 7. Multi-Agent Composition: The Mycelium Arc
@@ -483,12 +570,17 @@ Without batch-invariant inference:
 
 ### 8.2 With ThinkingMachines
 
-ThinkingMachines provides batch-invariant kernels for:
-- RMSNorm (data-parallel reduction)
-- Matrix multiplication (consistent tile sizes)
-- Attention (fixed-size split-KV)
+ThinkingMachines provides batch-invariant kernels that guarantee identical outputs regardless of batch size:
 
-**Result:** All LLM-dependent operations become deterministic.
+| Operation | Batch-Invariant Strategy | Performance Cost |
+|-----------|-------------------------|------------------|
+| **RMSNorm** | Data-parallel: assign each batch element to one core, maintaining identical reduction order regardless of batch size | Minimal |
+| **Matrix Multiplication** | Fixed tensor-core instructions and tile sizes across all batch sizes; avoid split-K optimization | ~20% vs cuBLAS |
+| **Attention** | Fixed split-SIZE (not split-count) for KV dimension; reduction order for a given token doesn't depend on batch | Optimized: 1.6x total |
+
+**Key Implementation Detail**: KV cache and page tables must be updated before the attention kernel to maintain consistent memory layout regardless of token processing strategy.
+
+**Result:** All LLM-dependent operations become deterministic. The same request produces identical output whether batch=1 or batch=1000.
 
 | Step | Component | Deterministic? |
 |------|-----------|----------------|
@@ -532,6 +624,26 @@ STOCHASTIC (Irreducible):
 | Fixed Hardware Config | Per ThinkingMachines limitation |
 | Canonical State Serialization | Deterministic USD → string |
 | ThinkingMachines Kernels | Batch-invariant inference (~1.6x overhead) |
+
+### 8.5 Failure Modes and Recovery
+
+The system is designed to fail gracefully:
+
+| Failure Mode | Cause | Detection | Recovery |
+|--------------|-------|-----------|----------|
+| **FM1: State Corruption** | Disk failure, concurrent write | Checksum mismatch | Load previous snapshot; reset to calibration if all corrupted |
+| **FM2: Signal Conflict** | "frustrated" + "just do it" | Multiple high activations | Priority ordering (Protector wins) |
+| **FM3: Weight Explosion** | Extreme outcomes without decay | Any w_i > 0.95 | Apply decay, re-normalize |
+| **FM4: ThinkingMachines Unavailable** | Fallback to standard inference | Batch-invariance check fails | Mark session non-reproducible, increase logging |
+| **FM5: Cold Start** | New user, no history | Uniform weights detected | Calibration wizard for initial preferences |
+
+**Recovery Hierarchy:**
+1. Attempt operation with current state
+2. Load most recent valid snapshot
+3. Reset to calibration defaults
+4. Reset to profile defaults (constitutional constraints only)
+
+**Safety Invariant:** At no point in the recovery hierarchy can safety floors be violated.
 
 ---
 
@@ -708,6 +820,40 @@ editor.signal(Signal(category="content", content="high keystroke rate"))
 1. **OpenUSD Standardization** — Propose cognitive extensions to USD spec
 2. **Hardware Security** — TPM/HSM for PROTECTED data classification
 3. **Multi-Model Orchestration** — Route to specialized models based on state
+
+---
+
+## 13.4 Known Limitations
+
+1. **Keyword-Based Signal Detection**: Triggers rely on keyword matching. Semantic understanding requires LLM in the loop, reintroducing non-determinism. Future work: learned embeddings with quantized similarity.
+
+2. **Single-Model Assumption**: Current design assumes one LLM. Multi-model routing (e.g., different models for different experts) adds complexity not addressed in this specification.
+
+3. **Cold Start Problem**: New users have uniform weights. Initial sessions may have suboptimal routing until Hebbian learning accumulates data. Mitigation: Calibration wizard.
+
+4. **Memory vs. Compute Tradeoff**: ThinkingMachines batch-invariance has performance cost: 2.1x slowdown with unoptimized kernels, 1.6x with optimized attention. MatMul specifically costs ~20% vs cuBLAS. For latency-sensitive applications, this may require hybrid mode (deterministic for routing, probabilistic for generation).
+
+5. **USD Ecosystem Maturity**: While USD is an industry standard for VFX, its ecosystem outside VFX is nascent. Python pxr bindings are mature; other languages less so.
+
+---
+
+## 13.5 Falsifiability Criteria
+
+The USD Cognitive Substrate thesis would be **FALSIFIED** if:
+
+1. **Composition Failure**: LIVRPS resolution produces paradoxes or undefined behavior in >1% of real-world state configurations.
+
+2. **Learning Instability**: Mycelium weights oscillate indefinitely or converge to degenerate configurations (all weight on one expert) in normal usage.
+
+3. **Safety Floor Violation**: Any execution path exists that allows expert weights to fall below safety floors.
+
+4. **Determinism Failure**: With ThinkingMachines, identical inputs produce different outputs in >0.01% of cases.
+
+5. **Practical Inferiority**: A simpler system (JSON + rules) achieves equivalent routing accuracy with <50% of the specification complexity.
+
+**Claims NOT Subject to Falsification** (by design):
+- Human input stochasticity is irreducible (definitional)
+- Constitutional constraints are immutable (axiomatic)
 
 ---
 

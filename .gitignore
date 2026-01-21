@@ -26,13 +26,6 @@ ENV/
 env/
 .venv/
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
-
 # Testing
 .pytest_cache/
 .coverage
@@ -40,25 +33,26 @@ htmlcov/
 .tox/
 .nox/
 
-# Workspace (runtime state)
-orchestrator_workspace/
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
+# Project-specific
 *.log
-
-# Local config (user-specific)
-.framework-orchestrator/
-
-# Temporary Claude files
 tmpclaude-*
+.ralph-state.json
+orchestrator_workspace/results/
+test_workspace/
 
-# Windows shortcuts and icons (local only)
-*.bat
-*.ps1
-icons/
-*.ico
-*.lnk
+# Jupyter
+.ipynb_checkpoints/
+
+# MyPy
+.mypy_cache/

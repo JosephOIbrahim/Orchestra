@@ -6,21 +6,27 @@ Framework Orchestrator
 Run with: python framework_orchestrator.py
 
 Agents:
-1. ECHO Curator         - 4-tier context memory
-2. Domain Intelligence  - Multi-domain analysis (Phoenix + PRISM) [GENERALIZED]
-3. MoE Router           - Expert selection (CSQMF-R1 + ATLAS)
+1. ECHO Curator         - 4-tier context memory (LIVRPS composition)
+2. Domain Intelligence  - Multi-domain analysis (Phoenix + PRISM)
+3. MoE Router           - Expert selection (V5 Intervention Archetypes)
 4. World Modeler        - Causal inference (CORTEX)
 5. Code Generator       - Evolutionary code (MAX 3 + MNO v3)
-6. Determinism Guard    - Reproducibility (ThinkingMachines)
+6. Determinism Guard    - Reproducibility (ThinkingMachines [He2025])
 7. Self Reflector       - Constitutional reasoning (RESONANCE + MCAW)
 
-Domain configs loaded from: ~/.framework-orchestrator/domains/
-  - vfx.json        (Visual effects - Houdini, Nuke, USD)
-  - webdev.json     (Web development - React, Next.js, APIs)
-  - ai_research.json (AI/ML - models, agents, training)
-  - general.json    (Fallback for unmatched tasks)
+Domain Configuration:
+  - Domains are loaded dynamically from: ~/.framework-orchestrator/domains/
+  - Each domain is a JSON file defining specialists, keywords, and perspectives
+  - Fallback to general-purpose analysis when no domain matches
+  - Users add domain configs as needed for their specific workflows
 
+Design: General-purpose orchestration. Domain-specific only when domain payloads are loaded.
 Pattern: Ralph v3 - Filesystem IS the state
+
+References:
+  [He2025] He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism
+           in LLM Inference." Thinking Machines Lab: Connectionism, September 2025.
+           https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
 
 Author: Framework Ecosystem Integration
 """
@@ -577,59 +583,894 @@ class DomainIntelligenceAgent(BaseAgent):
         }
 
 
-class MoERouterAgent(BaseAgent):
-    """CSQMF-R1 + ATLAS: Expert routing with thinking budgets."""
+class LearningMode(Enum):
+    """Mycelium learning mode configuration.
 
+    STATIC: Default. No automatic weight updates. Full determinism.
+    HEBBIAN: Bounded Hebbian learning. Weights update based on outcomes.
+             Determinism is conditional on outcome sequence.
+
+    Warning: Only STATIC mode guarantees ThinkingMachines [He2025] compliance.
+    """
+    STATIC = "static"
+    HEBBIAN = "hebbian"
+
+
+class Mycelium:
+    """V5 Weight storage for expert routing with optional learning modes.
+
+    Learning Modes:
+    - STATIC (default): No automatic weight updates. Full determinism.
+    - HEBBIAN: Bounded Hebbian learning with safety floor enforcement.
+
+    Design Principles:
+    - Determinism by default (STATIC mode)
+    - Opt-in learning (must explicitly enable HEBBIAN)
+    - Safety floors are ALWAYS enforced regardless of learning mode
+    - ThinkingMachines [He2025] compliant in STATIC mode
+
+    This class provides:
+    - Static weight storage (always)
+    - Optional Hebbian learning (when enabled)
+    - Weight-based loading strategy calculation
+    - Persistence for cross-session calibration
+    - Outcome logging (for analysis and optional learning)
+    """
+
+    # Safety floors (HARD minimums - enforced regardless of learning mode)
+    SAFETY_FLOORS = {
+        "protector": 0.10,
+        "decomposer": 0.05,
+        "restorer": 0.05,
+        "redirector": 0.00,
+        "acknowledger": 0.00,
+        "guide": 0.00,
+        "executor": 0.00
+    }
+
+    # Persistence path (REFERENCES layer in LIVRPS)
+    PERSISTENCE_PATH = Path.home() / ".framework-orchestrator" / "mycelium_weights.json"
+
+    def __init__(self, num_experts: int = 7, load_persisted: bool = True,
+                 learning_mode: LearningMode = LearningMode.STATIC,
+                 learning_rate: float = 0.1):
+        self.num_experts = num_experts
+        self.learning_mode = learning_mode
+        self.learning_rate = learning_rate if learning_mode != LearningMode.STATIC else 0.0
+        self.baseline = 0.5  # Neutral outcome expectation
+        self.outcomes: List[Dict[str, Any]] = []
+        self.logger = logging.getLogger("Mycelium")
+
+        if learning_mode != LearningMode.STATIC:
+            self.logger.warning(
+                f"Mycelium initialized with {learning_mode.value} mode. "
+                "Determinism is NOT guaranteed. Use STATIC mode for reproducibility."
+            )
+
+        # Initialize with uniform weights
+        self.expert_weights = {
+            "protector": 1/num_experts,
+            "decomposer": 1/num_experts,
+            "restorer": 1/num_experts,
+            "redirector": 1/num_experts,
+            "acknowledger": 1/num_experts,
+            "guide": 1/num_experts,
+            "executor": 1/num_experts
+        }
+
+        # Load calibrated weights if available
+        if load_persisted:
+            self._load_weights()
+
+    def _load_weights(self) -> None:
+        """Load calibrated weights from REFERENCES layer."""
+        if self.PERSISTENCE_PATH.exists():
+            try:
+                state = json.loads(self.PERSISTENCE_PATH.read_text(encoding='utf-8'))
+                loaded_weights = state.get("weights", {})
+                for expert in self.expert_weights:
+                    if expert in loaded_weights:
+                        self.expert_weights[expert] = loaded_weights[expert]
+                self.logger.info(f"Loaded calibrated weights from {self.PERSISTENCE_PATH}")
+            except Exception as e:
+                self.logger.warning(f"Failed to load weights: {e}")
+
+    def save_weights(self) -> None:
+        """Persist calibrated weights to REFERENCES layer."""
+        self.PERSISTENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        state = {
+            "weights": self.expert_weights,
+            "calibration_type": "manual",
+            "last_updated": time.time(),
+            "version": "v5_static"
+        }
+        self.PERSISTENCE_PATH.write_text(json.dumps(state, indent=2))
+        self.logger.info(f"Saved weights to {self.PERSISTENCE_PATH}")
+
+    def set_weight(self, expert: str, weight: float) -> None:
+        """Manually set weight for an expert (explicit calibration).
+
+        Args:
+            expert: Expert name
+            weight: New weight (will be bounded by safety floor)
+        """
+        if expert not in self.expert_weights:
+            raise ValueError(f"Unknown expert: {expert}")
+
+        floor = self.SAFETY_FLOORS.get(expert, 0.0)
+        self.expert_weights[expert] = max(floor, min(1.0, weight))
+        self._normalize_weights()
+
+    def _normalize_weights(self) -> None:
+        """Normalize weights to sum to 1.0 while respecting safety floors."""
+        total = sum(self.expert_weights.values())
+        if total > 0:
+            for expert in self.expert_weights:
+                self.expert_weights[expert] /= total
+
+            # Re-enforce safety floors
+            for expert, floor in self.SAFETY_FLOORS.items():
+                if self.expert_weights.get(expert, 0) < floor:
+                    self.expert_weights[expert] = floor
+
+    def record_outcome(self, expert: str, outcome: float, task_hash: str,
+                       activation: float = 1.0) -> None:
+        """Log outcome and optionally apply learning.
+
+        In STATIC mode: Logs only (no weight updates).
+        In HEBBIAN mode: Applies bounded Hebbian learning after logging.
+
+        Args:
+            expert: The expert that was selected
+            outcome: Success metric (0.0 = failure, 1.0 = success)
+            task_hash: Hash of the task
+            activation: How strongly this expert was used (0.0-1.0)
+        """
+        self.outcomes.append({
+            "expert": expert,
+            "outcome": outcome,
+            "task_hash": task_hash,
+            "activation": activation,
+            "timestamp": time.time(),
+            "learning_mode": self.learning_mode.value
+        })
+
+        if self.learning_mode == LearningMode.STATIC:
+            self.logger.info(f"Logged outcome: {expert} = {outcome} (weights unchanged - static mode)")
+            return
+
+        if self.learning_mode == LearningMode.HEBBIAN:
+            self._hebbian_update(expert, outcome, activation)
+            self.logger.info(f"Hebbian update: {expert} = {outcome}, activation={activation}")
+
+    def _hebbian_update(self, expert: str, outcome: float, activation: float) -> None:
+        """Apply bounded Hebbian learning.
+
+        Formula: w_new = w_old + α(outcome - expected) × activation
+
+        Where:
+        - α = learning_rate (from __init__)
+        - outcome = measured result [0.0, 1.0]
+        - expected = baseline expectation (0.5 = neutral)
+        - activation = how strongly this expert was used [0.0, 1.0]
+
+        Bounds:
+        - Safety floors are ALWAYS enforced (HARD minimums)
+        - Ceiling of 0.5 prevents any single expert from dominating
+        """
+        if expert not in self.expert_weights:
+            self.logger.warning(f"Unknown expert for Hebbian update: {expert}")
+            return
+
+        # Calculate weight delta
+        delta = self.learning_rate * (outcome - self.baseline) * activation
+
+        # Apply with bounds
+        new_weight = self.expert_weights[expert] + delta
+        floor = self.SAFETY_FLOORS.get(expert, 0.0)
+        ceiling = 0.5  # Prevent domination
+
+        self.expert_weights[expert] = max(floor, min(ceiling, new_weight))
+
+        # Re-normalize to maintain sum = 1.0
+        self._normalize_weights()
+
+    def get_loading_strategy(self, task: str = None) -> Dict[str, Any]:
+        """Calculate loading strategy based on current weights.
+
+        Returns which experts to prioritize for payload loading:
+        - FAST: High weight concentration, load only top expert
+        - WEIGHTED: Medium distribution, load top-3
+        - THOROUGH: Uniform weights, load all
+        """
+        sorted_experts = sorted(
+            self.expert_weights.items(),
+            key=lambda x: -x[1]
+        )
+        top_expert, top_weight = sorted_experts[0]
+
+        if top_weight > 0.35:
+            return {
+                "strategy": "fast",
+                "load_experts": [top_expert],
+                "reason": f"High weight ({top_weight:.2f}) on {top_expert}",
+                "estimated_latency_ms": 100
+            }
+        elif top_weight > 0.20:
+            return {
+                "strategy": "weighted",
+                "load_experts": [e[0] for e in sorted_experts[:3]],
+                "reason": "Moderate weight distribution, loading top-3",
+                "estimated_latency_ms": 200
+            }
+        else:
+            return {
+                "strategy": "thorough",
+                "load_experts": list(self.expert_weights.keys()),
+                "reason": "Uniform weights, comprehensive analysis",
+                "estimated_latency_ms": 400
+            }
+
+    def get_weights(self) -> Dict[str, float]:
+        """Get current expert weights for routing."""
+        return self.expert_weights.copy()
+
+    def get_state(self) -> Dict[str, Any]:
+        """Get current Mycelium state for inspection."""
+        sorted_experts = sorted(
+            self.expert_weights.items(),
+            key=lambda x: -x[1]
+        )
+        return {
+            "weights": self.expert_weights.copy(),
+            "ranked_experts": [e[0] for e in sorted_experts],
+            "top_expert": sorted_experts[0][0],
+            "top_weight": sorted_experts[0][1],
+            "outcomes_logged": len(self.outcomes),
+            "loading_strategy": self.get_loading_strategy(),
+            "learning_mode": self.learning_mode.value,
+            "learning_rate": self.learning_rate,
+            "self_improvement_enabled": self.learning_mode != LearningMode.STATIC,
+            "determinism_guaranteed": self.learning_mode == LearningMode.STATIC,
+            "calibration_type": "hebbian" if self.learning_mode == LearningMode.HEBBIAN else "manual"
+        }
+
+
+class ContextRestorer:
+    """V5-aligned context restoration with 5-level staleness detection.
+
+    Implements the Persistent State Hypothesis context restoration system
+    from USD Cognitive Substrate V5 Section 5.6.
+
+    Staleness Levels:
+    - MICRO    (<15 min):  Silent refocus - no user interaction needed
+    - SESSION  (15m-4h):   Rebuild momentum - offer environment restore
+    - DAY      (4h-16h):   Morning restoration - validate relevance
+    - WEEK     (3d-10d):   Require validation - describe environment changes
+    - DEEP     (>10d):     May be obsolete - offer fresh start
+
+    Design Principles:
+    - Staleness detection is deterministic (time-based)
+    - Restoration protocols are context-appropriate
+    - Snapshots are immutable once created
+    - User agency is preserved (suggestions, not mandates)
+    """
+
+    # Staleness level thresholds (in seconds)
+    STALENESS_LEVELS = {
+        "MICRO": (0, 15 * 60),                    # 0-15 minutes
+        "SESSION": (15 * 60, 4 * 3600),           # 15 min - 4 hours
+        "DAY": (4 * 3600, 16 * 3600),             # 4-16 hours
+        "WEEK": (16 * 3600, 10 * 24 * 3600),      # 16 hours - 10 days
+        "DEEP": (10 * 24 * 3600, float('inf'))    # >10 days
+    }
+
+    # Restoration protocols per staleness level
+    RESTORATION_PROTOCOLS = {
+        "MICRO": {
+            "action": "silent_refocus",
+            "user_prompt": None,  # No prompt needed
+            "restore_full": True,
+            "validate_required": False
+        },
+        "SESSION": {
+            "action": "rebuild_momentum",
+            "user_prompt": "Welcome back! You were working on: {task_summary}. Continue?",
+            "restore_full": True,
+            "validate_required": False
+        },
+        "DAY": {
+            "action": "validate_relevance",
+            "user_prompt": "Good morning! Yesterday you were: {task_summary}. Is this still relevant?",
+            "restore_full": False,  # Restore on confirmation
+            "validate_required": True
+        },
+        "WEEK": {
+            "action": "require_validation",
+            "user_prompt": "It's been {days} days. Your context was: {task_summary}. Environment may have changed. Restore?",
+            "restore_full": False,
+            "validate_required": True
+        },
+        "DEEP": {
+            "action": "offer_fresh_start",
+            "user_prompt": "It's been {days} days. Context may be obsolete. Start fresh or attempt restore?",
+            "restore_full": False,
+            "validate_required": True
+        }
+    }
+
+    # Snapshot storage path
+    SNAPSHOTS_PATH = Path.home() / ".framework-orchestrator" / "snapshots"
+
+    def __init__(self):
+        self.logger = logging.getLogger("ContextRestorer")
+        self.SNAPSHOTS_PATH.mkdir(parents=True, exist_ok=True)
+
+    def detect_staleness(self, last_active: float) -> str:
+        """Detect staleness level based on time since last activity.
+
+        Args:
+            last_active: Unix timestamp of last activity
+
+        Returns:
+            Staleness level: MICRO, SESSION, DAY, WEEK, or DEEP
+        """
+        elapsed = time.time() - last_active
+
+        for level, (min_seconds, max_seconds) in self.STALENESS_LEVELS.items():
+            if min_seconds <= elapsed < max_seconds:
+                return level
+
+        return "DEEP"  # Fallback
+
+    def create_snapshot(self, session_id: str, state: Dict[str, Any]) -> str:
+        """Create immutable snapshot of current session state.
+
+        Args:
+            session_id: Unique session identifier
+            state: Current session state to snapshot
+
+        Returns:
+            Snapshot ID (filename)
+        """
+        snapshot_id = f"{session_id}_{int(time.time())}"
+        snapshot = {
+            "snapshot_id": snapshot_id,
+            "session_id": session_id,
+            "created_at": time.time(),
+            "state": state,
+            "checksum": hashlib.sha256(
+                json.dumps(state, sort_keys=True, default=str).encode()
+            ).hexdigest()[:16]
+        }
+
+        snapshot_path = self.SNAPSHOTS_PATH / f"{snapshot_id}.json"
+        snapshot_path.write_text(json.dumps(snapshot, indent=2, default=str))
+        self.logger.info(f"Created snapshot: {snapshot_id}")
+
+        return snapshot_id
+
+    def load_snapshot(self, snapshot_id: str) -> Optional[Dict[str, Any]]:
+        """Load a snapshot by ID.
+
+        Args:
+            snapshot_id: Snapshot identifier
+
+        Returns:
+            Snapshot data or None if not found
+        """
+        snapshot_path = self.SNAPSHOTS_PATH / f"{snapshot_id}.json"
+        if not snapshot_path.exists():
+            self.logger.warning(f"Snapshot not found: {snapshot_id}")
+            return None
+
+        try:
+            snapshot = json.loads(snapshot_path.read_text())
+            # Verify checksum
+            state_checksum = hashlib.sha256(
+                json.dumps(snapshot["state"], sort_keys=True, default=str).encode()
+            ).hexdigest()[:16]
+            if state_checksum != snapshot["checksum"]:
+                self.logger.error(f"Snapshot checksum mismatch: {snapshot_id}")
+                return None
+            return snapshot
+        except Exception as e:
+            self.logger.error(f"Failed to load snapshot: {e}")
+            return None
+
+    def get_latest_snapshot(self, session_id: str = None) -> Optional[Dict[str, Any]]:
+        """Get the most recent snapshot, optionally filtered by session.
+
+        Args:
+            session_id: Optional session filter
+
+        Returns:
+            Most recent snapshot or None
+        """
+        snapshots = list(self.SNAPSHOTS_PATH.glob("*.json"))
+        if not snapshots:
+            return None
+
+        # Sort by modification time (most recent first)
+        snapshots.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+
+        for snapshot_path in snapshots:
+            try:
+                snapshot = json.loads(snapshot_path.read_text())
+                if session_id is None or snapshot.get("session_id") == session_id:
+                    return snapshot
+            except Exception:
+                continue
+
+        return None
+
+    def restore_context(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply staleness-appropriate restoration protocol.
+
+        Args:
+            snapshot: Snapshot to restore from
+
+        Returns:
+            Restoration result with protocol details
+        """
+        created_at = snapshot.get("created_at", 0)
+        staleness = self.detect_staleness(created_at)
+        protocol = self.RESTORATION_PROTOCOLS[staleness]
+
+        # Calculate human-readable time delta
+        elapsed_seconds = time.time() - created_at
+        if elapsed_seconds < 3600:
+            time_desc = f"{int(elapsed_seconds / 60)} minutes"
+        elif elapsed_seconds < 86400:
+            time_desc = f"{elapsed_seconds / 3600:.1f} hours"
+        else:
+            time_desc = f"{elapsed_seconds / 86400:.1f} days"
+
+        # Build task summary from state
+        state = snapshot.get("state", {})
+        task_summary = state.get("current_task", state.get("task", "unknown task"))
+        if len(task_summary) > 100:
+            task_summary = task_summary[:100] + "..."
+
+        # Format user prompt
+        user_prompt = None
+        if protocol["user_prompt"]:
+            user_prompt = protocol["user_prompt"].format(
+                task_summary=task_summary,
+                days=int(elapsed_seconds / 86400)
+            )
+
+        result = {
+            "staleness_level": staleness,
+            "staleness_thresholds": self.STALENESS_LEVELS[staleness],
+            "time_elapsed": elapsed_seconds,
+            "time_elapsed_human": time_desc,
+            "protocol": protocol["action"],
+            "user_prompt": user_prompt,
+            "restore_full": protocol["restore_full"],
+            "validate_required": protocol["validate_required"],
+            "snapshot_id": snapshot.get("snapshot_id"),
+            "snapshot_checksum": snapshot.get("checksum"),
+            "state": snapshot.get("state") if protocol["restore_full"] else None,
+            "state_summary": {
+                "task": task_summary,
+                "keys": list(state.keys()) if state else []
+            }
+        }
+
+        self.logger.info(
+            f"Restoration protocol: {staleness} -> {protocol['action']} "
+            f"(elapsed: {time_desc})"
+        )
+
+        return result
+
+    def prune_old_snapshots(self, max_age_days: int = 30, max_count: int = 50) -> int:
+        """Remove old snapshots to manage storage.
+
+        Args:
+            max_age_days: Maximum age in days
+            max_count: Maximum number of snapshots to keep
+
+        Returns:
+            Number of snapshots pruned
+        """
+        snapshots = list(self.SNAPSHOTS_PATH.glob("*.json"))
+        if not snapshots:
+            return 0
+
+        # Sort by age (oldest first)
+        snapshots.sort(key=lambda p: p.stat().st_mtime)
+
+        pruned = 0
+        cutoff = time.time() - (max_age_days * 86400)
+
+        for snapshot_path in snapshots:
+            # Prune if too old or too many
+            if snapshot_path.stat().st_mtime < cutoff or len(snapshots) - pruned > max_count:
+                try:
+                    snapshot_path.unlink()
+                    pruned += 1
+                except Exception as e:
+                    self.logger.warning(f"Failed to prune {snapshot_path}: {e}")
+
+        if pruned > 0:
+            self.logger.info(f"Pruned {pruned} old snapshots")
+
+        return pruned
+
+    def get_state(self) -> Dict[str, Any]:
+        """Get current ContextRestorer state for inspection."""
+        snapshots = list(self.SNAPSHOTS_PATH.glob("*.json"))
+        latest = self.get_latest_snapshot()
+
+        return {
+            "snapshots_count": len(snapshots),
+            "snapshots_path": str(self.SNAPSHOTS_PATH),
+            "staleness_levels": list(self.STALENESS_LEVELS.keys()),
+            "latest_snapshot": latest.get("snapshot_id") if latest else None,
+            "latest_staleness": self.detect_staleness(latest["created_at"]) if latest else None
+        }
+
+
+class MoERouterAgent(BaseAgent):
+    """V5 Intervention Experts with Safety Floors.
+
+    Implements 5-phase routing: ACTIVATE → WEIGHT → BOUND → SELECT → UPDATE
+
+    Key V5 constraints:
+    - Safety floors are HARD minimums (Protector never < 10%)
+    - Priority-based tiebreaking (lower priority number wins)
+    - Homeostatic normalization (weights sum to 1.0)
+
+    ThinkingMachines Batch-Invariance Compliance [He2025]:
+    - Fixed iteration order (dict order deterministic in Python 3.7+)
+    - No dynamic algorithm switching based on input
+    - Consistent data layout across all invocations
+    """
+
+    # V5 Expert Archetypes (ordered by priority - lower = higher priority)
     EXPERTS = {
-        "accuracy": {"temperature": 0.1, "priority": "precision"},
-        "ethics": {"temperature": 0.3, "priority": "safety"},
-        "creativity": {"temperature": 0.8, "priority": "novelty"},
-        "compression": {"temperature": 0.2, "priority": "efficiency"}
+        "protector": {"priority": 1, "triggers": ["frustrated", "overwhelmed", "safety", "caps", "help", "broken", "failing", "angry"], "temperature": 0.3},
+        "decomposer": {"priority": 2, "triggers": ["stuck", "complex", "too_many", "break_down", "simplify", "start", "begin", "huge"], "temperature": 0.4},
+        "restorer": {"priority": 3, "triggers": ["depleted", "burnout", "tired", "rest", "exhausted", "mush", "fried", "drained"], "temperature": 0.5},
+        "redirector": {"priority": 4, "triggers": ["tangent", "distracted", "off_topic", "sidetrack", "refocus", "back_on_track"], "temperature": 0.4},
+        "acknowledger": {"priority": 5, "triggers": ["done", "complete", "milestone", "win", "finished"], "temperature": 0.6},
+        "guide": {"priority": 6, "triggers": ["exploring", "what_if", "curious", "learn", "understand"], "temperature": 0.8},
+        "executor": {"priority": 7, "triggers": ["implement", "code", "execute", "build", "create", "write", "make", "run"], "temperature": 0.2}
+    }
+
+    # V5 Safety Floors (HARD minimums - NEVER violated)
+    SAFETY_FLOORS = {
+        "protector": 0.10,   # Safety-first: always 10% minimum
+        "decomposer": 0.05,  # Complexity management: 5% minimum
+        "restorer": 0.05,    # Recovery support: 5% minimum
+        "redirector": 0.00,
+        "acknowledger": 0.00,
+        "guide": 0.00,
+        "executor": 0.00
+    }
+
+    # Human-friendly display names for UI/documentation (non-programmer friendly)
+    DISPLAY_NAMES = {
+        "protector": "Safety Guardian",
+        "decomposer": "Complexity Simplifier",
+        "restorer": "Energy Recharger",
+        "redirector": "Focus Redirector",
+        "acknowledger": "Progress Celebrator",
+        "guide": "Discovery Guide",
+        "executor": "Task Builder"
     }
 
     def __init__(self):
         super().__init__(
             name="moe_router",
-            framework="CSQMF-R1 + ATLAS",
-            ces_alignment="Multi-model agents"
+            framework="V5 Intervention Experts",
+            ces_alignment="Safety-floor bounded routing"
         )
+        # Instance-level weights for Mycelium integration
+        self.expert_weights = {e: 1.0 / len(self.EXPERTS) for e in self.EXPERTS}
+
+    def _activate(self, task: str, context: Dict[str, Any]) -> tuple:
+        """Phase 1: ACTIVATE - Signal detection → activation vector.
+
+        Scans task for trigger words and produces activation scores.
+        Returns tuple of (activation_vector, matched_triggers_by_expert).
+
+        Uses word boundary matching to avoid false positives like
+        "do" matching in "don't" or "complete" in "completely".
+
+        Supports:
+        - Word suffixes: "sidetrack" matches "sidetracked", "sidetracking"
+        - Underscore normalization: underscores in task treated as spaces
+
+        Note: Only -ed, -ing, -s suffixes allowed (preserves meaning).
+        Excluded -er, -ly which change meaning (e.g., "completely" != "complete").
+        """
+        import re
+        # Normalize: treat underscores as spaces for matching
+        task_normalized = task.lower().replace("_", " ")
+        activation = {}
+        matched_triggers = {}
+
+        for expert, config in self.EXPERTS.items():
+            triggers = config["triggers"]
+            expert_matches = []
+
+            for trigger in triggers:
+                # For multi-word triggers (with _), split and check each word
+                if "_" in trigger:
+                    # Multi-word trigger: "break_down" -> check for "break" AND "down"
+                    words = trigger.split("_")
+                    # Allow safe suffixes on each word (-ed, -ing, -s only)
+                    if all(re.search(rf'\b{re.escape(w)}(?:ed|ing|s)?\b', task_normalized) for w in words):
+                        expert_matches.append(trigger)
+                else:
+                    # Single word: allow safe suffixes (-ed, -ing, -s preserve meaning)
+                    if re.search(rf'\b{re.escape(trigger)}(?:ed|ing|s)?\b', task_normalized):
+                        expert_matches.append(trigger)
+
+            matched_triggers[expert] = expert_matches
+            # Normalize to 0-1 range based on trigger density
+            activation[expert] = min(len(expert_matches) / max(len(triggers), 1), 1.0)
+
+        return activation, matched_triggers
+
+    def _generate_explanation(self, task: str, selected: str, bounded: Dict[str, float],
+                              matched_triggers: Dict[str, List[str]],
+                              safety_intervention: bool, raw_winner: str) -> Dict[str, Any]:
+        """Generate human-readable explanation of routing decision.
+
+        Provides full transparency into WHY an expert was selected.
+        """
+        # Get runner-ups (sorted by score, excluding winner)
+        runner_ups = []
+        sorted_by_score = sorted(
+            [(e, s) for e, s in bounded.items() if e != selected],
+            key=lambda x: -x[1]
+        )
+        for expert, score in sorted_by_score[:3]:  # Top 3 runner-ups
+            triggers = matched_triggers.get(expert, [])
+            if triggers:
+                reason = f"Had triggers [{', '.join(triggers)}] but lower score"
+            elif score == self.SAFETY_FLOORS.get(expert, 0):
+                reason = "Only safety floor, no trigger matches"
+            else:
+                reason = "Lower weighted score"
+            runner_ups.append({
+                "expert": expert,
+                "display_name": self.DISPLAY_NAMES.get(expert, expert),
+                "score": round(score, 4),
+                "lost_because": reason
+            })
+
+        # Build selection rationale
+        winner_triggers = matched_triggers.get(selected, [])
+        if safety_intervention:
+            rationale = (
+                f"Safety intervention: {self.DISPLAY_NAMES.get(selected, selected)} selected "
+                f"due to safety floor (minimum {self.SAFETY_FLOORS.get(selected, 0):.0%}), "
+                f"overriding {self.DISPLAY_NAMES.get(raw_winner, raw_winner)} which had higher raw score."
+            )
+        elif winner_triggers:
+            rationale = (
+                f"{self.DISPLAY_NAMES.get(selected, selected)} selected because task contains "
+                f"trigger(s): [{', '.join(winner_triggers)}] "
+                f"({len(winner_triggers)} match{'es' if len(winner_triggers) > 1 else ''})."
+            )
+        else:
+            rationale = (
+                f"{self.DISPLAY_NAMES.get(selected, selected)} selected as default "
+                f"(no specific triggers matched, using safety floor baseline)."
+            )
+
+        # Human-friendly one-liner
+        if safety_intervention:
+            explain_human = f"I prioritized your wellbeing ({self.DISPLAY_NAMES.get(selected, selected)}) over task execution."
+        elif selected == "protector":
+            explain_human = "I noticed signs of frustration or overwhelm - let's address that first."
+        elif selected == "decomposer":
+            explain_human = "This seems complex - let me help break it down into manageable pieces."
+        elif selected == "restorer":
+            explain_human = "You might need a break - recovery is part of productivity."
+        elif selected == "redirector":
+            explain_human = "Let's refocus on the main goal."
+        elif selected == "acknowledger":
+            explain_human = "Great progress! Let's recognize what you've accomplished."
+        elif selected == "guide":
+            explain_human = "I see you're exploring - let me help you discover."
+        elif selected == "executor":
+            explain_human = "Task execution mode - let's build this."
+        else:
+            explain_human = f"Routing to {self.DISPLAY_NAMES.get(selected, selected)}."
+
+        return {
+            "matched_triggers": matched_triggers,
+            "winner_triggers": winner_triggers,
+            "selection_rationale": rationale,
+            "runner_ups": runner_ups,
+            "explain_human": explain_human
+        }
+
+    def _weight(self, activation: Dict[str, float], context: Dict[str, Any]) -> Dict[str, float]:
+        """Phase 2: WEIGHT - Apply expert weights to activation.
+
+        Combines activation with learned weights (from Mycelium if available).
+        """
+        # Get weights from context (Mycelium) or use instance defaults
+        weights = context.get("mycelium_weights", self.expert_weights)
+
+        weighted = {}
+        for expert in self.EXPERTS:
+            weighted[expert] = activation.get(expert, 0.0) * weights.get(expert, 1.0 / len(self.EXPERTS))
+
+        return weighted
+
+    def _bound(self, weighted: Dict[str, float]) -> Dict[str, float]:
+        """Phase 3: BOUND - Enforce safety floors + homeostatic normalization.
+
+        CRITICAL: Safety floors are HARD constraints. Protector NEVER drops below 10%.
+
+        Strategy (V5.1 Fix):
+        1. First normalize weighted scores to sum to 1.0
+        2. Then enforce floors as POST-normalization guarantees
+        3. Re-normalize only the non-floor portion to maintain sum=1
+
+        This ensures floors are minimum guarantees without dominating
+        when other experts have strong activation signals.
+        """
+        # Step 1: Normalize weighted scores first
+        total_weighted = sum(weighted.values())
+        if total_weighted > 0:
+            normalized = {k: v / total_weighted for k, v in weighted.items()}
+        else:
+            # No activation at all - use uniform distribution
+            normalized = {k: 1.0 / len(weighted) for k in weighted}
+
+        # Step 2: Check which experts need floor boosting
+        floor_deficit = {}
+        for expert, score in normalized.items():
+            floor = self.SAFETY_FLOORS.get(expert, 0.0)
+            if score < floor:
+                floor_deficit[expert] = floor - score
+
+        # Step 3: If floors need boosting, redistribute from non-floor experts
+        if floor_deficit:
+            total_deficit = sum(floor_deficit.values())
+            # Take from experts that are above their floor, proportionally
+            non_floor_experts = {k: v for k, v in normalized.items()
+                                if k not in floor_deficit and v > self.SAFETY_FLOORS.get(k, 0.0)}
+            non_floor_total = sum(non_floor_experts.values())
+
+            bounded = {}
+            for expert, score in normalized.items():
+                if expert in floor_deficit:
+                    # Boost to floor
+                    bounded[expert] = self.SAFETY_FLOORS[expert]
+                elif non_floor_total > 0 and total_deficit > 0:
+                    # Reduce proportionally to cover deficit
+                    reduction = (score / non_floor_total) * total_deficit
+                    bounded[expert] = max(score - reduction, self.SAFETY_FLOORS.get(expert, 0.0))
+                else:
+                    bounded[expert] = score
+        else:
+            bounded = normalized
+
+        # Step 4: Final normalization to ensure sum = 1.0 (fixes any floating point drift)
+        total = sum(bounded.values())
+        if total > 0 and abs(total - 1.0) > 0.0001:
+            bounded = {k: v / total for k, v in bounded.items()}
+
+        return bounded
+
+    def _select(self, bounded: Dict[str, float]) -> str:
+        """Phase 4: SELECT - Choose expert via argmax with priority tiebreaker.
+
+        Selection rule: highest bounded score wins.
+        Tiebreaker: lower priority number wins (Protector > Decomposer > ... > Executor)
+        """
+        # Sort by score DESC, then by priority ASC (lower priority = wins ties)
+        sorted_experts = sorted(
+            bounded.items(),
+            key=lambda x: (-x[1], self.EXPERTS[x[0]]["priority"])
+        )
+        return sorted_experts[0][0]
+
+    def _prepare_update(self, selected: str, task: str, bounded: Dict[str, float]) -> Dict[str, Any]:
+        """Phase 5: UPDATE - Prepare context for Hebbian learning.
+
+        Stores selection outcome for future Mycelium weight updates.
+        """
+        return {
+            "selected_expert": selected,
+            "task_hash": hashlib.md5(task.encode()).hexdigest()[:8],
+            "bounded_scores": bounded,
+            "awaiting_outcome": True,
+            "hebbian_ready": True
+        }
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        self.logger.info("Routing to experts with deterministic selection...")
+        """Execute 5-phase V5 routing: ACTIVATE → WEIGHT → BOUND → SELECT → UPDATE."""
+        self.logger.info("V5 5-phase routing: ACTIVATE → WEIGHT → BOUND → SELECT → UPDATE")
 
         seed = context.get("seed", 42)
 
-        # DETERMINISTIC hash-based routing (ThinkingMachines fix)
+        # PHASE 1: ACTIVATE - Signal detection → activation vector + matched triggers
+        activation, matched_triggers = self._activate(task, context)
+
+        # PHASE 2: WEIGHT - Apply expert weights
+        weighted = self._weight(activation, context)
+
+        # PHASE 3: BOUND - Enforce safety floors + normalize
+        bounded = self._bound(weighted)
+
+        # PHASE 4: SELECT - argmax with priority tiebreaker
+        selected = self._select(bounded)
+
+        # Compute who would have won WITHOUT safety floors (for transparency)
+        raw_winner = max(weighted.items(), key=lambda x: (x[1], -self.EXPERTS[x[0]]["priority"]))[0] if any(weighted.values()) else "protector"
+        safety_intervention = (selected != raw_winner) and (weighted.get(raw_winner, 0) > weighted.get(selected, 0))
+
+        # Generate human-readable explanation (EXPLAINABILITY)
+        explanation = self._generate_explanation(
+            task, selected, bounded, matched_triggers, safety_intervention, raw_winner
+        )
+
+        # PHASE 5: UPDATE - Prepare for Hebbian learning
+        update_context = self._prepare_update(selected, task, bounded)
+
+        # Get config for selected expert
+        selected_config = self.EXPERTS[selected]
+
+        # Compute deterministic hash for reproducibility verification
         routing_input = f"{task}:{seed}"
-        query_hash = hashlib.sha256(routing_input.encode()).hexdigest()
-
-        # Score experts from hash segments
-        expert_scores = {}
-        for i, expert in enumerate(self.EXPERTS.keys()):
-            segment = query_hash[i*8:(i+1)*8]
-            score = int(segment, 16) / (16**8)
-            expert_scores[expert] = round(score, 4)
-
-        # Select top 2 experts (deterministic sort)
-        sorted_experts = sorted(expert_scores.items(), key=lambda x: (-x[1], x[0]))
-        selected = sorted_experts[:2]
-
-        # ATLAS thinking budget
-        thinking_budget = {
-            "max_latency_ms": 2000,
-            "quality_threshold": 0.7,
-            "allow_early_exit": True
-        }
+        expert_hash = hashlib.sha256(routing_input.encode()).hexdigest()[:16]
 
         return {
-            "routing_hash": query_hash[:16],
+            # V5 Routing metadata
+            "routing_version": "v5",
+            "routing_phases": ["activate", "weight", "bound", "select", "update"],
+
+            # Phase outputs
+            "activation_vector": activation,
+            "weighted_scores": weighted,
+            "bounded_scores": bounded,
+
+            # Selection result
+            "selected_expert": selected,
+            "selected_display_name": self.DISPLAY_NAMES.get(selected, selected),
+            "selected_config": selected_config,
+            "expert_hash": expert_hash,
+
+            # Safety transparency (ThinkingMachines auditability)
+            "raw_winner": raw_winner,
+            "safety_intervention": safety_intervention,
+            "safety_intervention_reason": f"Safety floor elevated {selected} over {raw_winner}" if safety_intervention else None,
+
+            # Safety floor verification
+            "safety_floors_applied": True,
+            "safety_floors": self.SAFETY_FLOORS,
+            "protector_floor_met": bounded.get("protector", 0) >= self.SAFETY_FLOORS["protector"],
+
+            # Hebbian learning context
+            "update_context": update_context,
+
+            # Determinism
             "seed": seed,
-            "all_expert_scores": expert_scores,
-            "selected_experts": [e[0] for e in selected],
-            "selected_configs": {e[0]: self.EXPERTS[e[0]] for e in selected},
-            "routing_method": "deterministic_hash",
-            "thinking_budget": thinking_budget,
-            "reproducible": True
+            "reproducible": True,
+
+            # Gating weights for compatibility
+            "gating_weights": bounded,
+            "routing_type": "v5_5phase",
+
+            # EXPLAINABILITY - Human-readable routing explanation
+            "explainability": {
+                "matched_triggers": explanation["matched_triggers"],
+                "winner_triggers": explanation["winner_triggers"],
+                "selection_rationale": explanation["selection_rationale"],
+                "runner_ups": explanation["runner_ups"],
+                "explain_human": explanation["explain_human"]
+            }
         }
 
 

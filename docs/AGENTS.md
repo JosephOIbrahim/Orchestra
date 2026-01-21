@@ -71,11 +71,11 @@ Routes tasks to domain-specific specialists based on keyword matching.
 **Domain Loading**:
 ```
 ~/.framework-orchestrator/domains/
-├── vfx.json         # VFX specialists (pyro, flip, lighting, etc.)
-├── webdev.json      # Web specialists (frontend, backend, etc.)
-├── ai_research.json # AI specialists (training, inference, etc.)
-└── general.json     # Fallback specialists
+├── <your_domain>.json  # User-defined domain specialists
+└── general.json        # Fallback specialists (auto-created if missing)
 ```
+
+Domains are loaded dynamically. Users add domain configs as needed for their workflows.
 
 **Key Features**:
 - Dynamic domain loading from JSON configs
@@ -86,10 +86,10 @@ Routes tasks to domain-specific specialists based on keyword matching.
 **Output Example**:
 ```json
 {
-  "detected_domains": ["vfx", "ai_research"],
-  "primary_domain": "vfx",
-  "detected_specialists": ["vfx.pyro", "vfx.lighting"],
-  "primary_specialist": "vfx.pyro",
+  "detected_domains": ["my_domain"],
+  "primary_domain": "my_domain",
+  "detected_specialists": ["my_domain.analysis", "my_domain.optimization"],
+  "primary_specialist": "my_domain.analysis",
   "prism_perspectives_applied": ["causal", "optimization", "risk"],
   "domain_task_detected": true
 }
@@ -97,38 +97,76 @@ Routes tasks to domain-specific specialists based on keyword matching.
 
 ---
 
-### 3. MoE Router
+### 3. MoE Router (V5 Intervention Experts)
 
-**Framework**: Mixture of Experts (Shazeer)
-**Purpose**: Deterministic expert selection
+**Framework**: V5 Intervention Experts with Safety Floors
+**Purpose**: 5-phase deterministic expert routing with safety guarantees
 
-Selects the appropriate expert using hash-based routing for reproducibility.
+Routes tasks to intervention experts using a 5-phase process with enforced safety floors.
 
-**Available Experts**:
-- `systems_architect` - Architecture and design
-- `code_implementer` - Implementation and fixes
-- `debug_detective` - Error analysis
-- `researcher` - Deep exploration
-- `optimizer` - Performance tuning
+**V5 Expert Archetypes** (ordered by priority):
 
-**Key Features**:
-- Hash-based selection guarantees same input → same expert
-- Top-2 expert selection with gating
-- Context-aware weighting
+| Priority | Expert | Purpose | Safety Floor | Triggers |
+|----------|--------|---------|--------------|----------|
+| 1 | **Protector** | Safety-first, empathy | 10% (HARD) | frustrated, overwhelmed, safety, caps, help |
+| 2 | **Decomposer** | Break down complexity | 5% (HARD) | stuck, complex, too_many, break_down, simplify |
+| 3 | **Restorer** | Recovery facilitation | 5% (HARD) | depleted, burnout, tired, rest, exhausted |
+| 4 | **Redirector** | Attention management | 0% | tangent, distracted, off_topic, sidetrack |
+| 5 | **Acknowledger** | Progress recognition | 0% | done, complete, milestone, win, finished |
+| 6 | **Guide** | Discovery facilitation | 0% | exploring, what_if, curious, learn, understand |
+| 7 | **Executor** | Direct task execution | 0% | implement, code, do, execute, build, create |
+
+**5-Phase Routing**:
+1. **ACTIVATE** - Signal detection → activation vector (trigger matching)
+2. **WEIGHT** - Apply expert weights (from Mycelium learning)
+3. **BOUND** - Enforce safety floors + homeostatic normalization
+4. **SELECT** - argmax with priority tiebreaker
+5. **UPDATE** - Prepare context for Hebbian learning
+
+**Key Constraints**:
+- Safety floors are **HARD minimums** - Protector never drops below 10%
+- Bounded scores always sum to 1.0 (homeostatic regulation)
+- Priority-based tiebreaking (lower priority number wins ties)
 
 **Output Example**:
 ```json
 {
-  "routing_type": "hash_based",
-  "selected_expert": "systems_architect",
-  "expert_hash": "a7b3c2d1",
-  "top_2_experts": ["systems_architect", "researcher"],
-  "gating_weights": {
-    "systems_architect": 0.65,
-    "researcher": 0.35
-  }
+  "routing_version": "v5",
+  "routing_type": "v5_5phase",
+  "routing_phases": ["activate", "weight", "bound", "select", "update"],
+  "selected_expert": "executor",
+  "expert_hash": "a7b3c2d1e5f6",
+  "activation_vector": {
+    "protector": 0.0,
+    "decomposer": 0.0,
+    "executor": 0.6
+  },
+  "bounded_scores": {
+    "protector": 0.10,
+    "decomposer": 0.05,
+    "restorer": 0.05,
+    "executor": 0.80
+  },
+  "safety_floors_applied": true,
+  "protector_floor_met": true
 }
 ```
+
+**Mycelium Integration**:
+The MoE Router can receive learned weights from the Mycelium neuroplasticity mechanism via `context["mycelium_weights"]`. This enables adaptive expert selection based on task outcome history.
+
+**Framework Lineage**:
+
+| V5 Component | Source Framework | Reference |
+|--------------|-----------------|-----------|
+| 7 Expert Archetypes | ADHD Support Framework | Validator, Scaffolder, Restorer, Refocuser, Celebrator, Socratic, Direct |
+| Safety Floors | ADHD Support + ECHO 2.0 | Burnout detection, constitutional field |
+| 5-Phase Routing | NEXUS Framework | DETECT→CASCADE→LOCK→EXECUTE→UPDATE |
+| Hebbian Learning | Cortex_Mycelium Framework | Local connection strengthening, homeostatic plasticity |
+| Convergence Tracking | RC^+xi Framework | Epistemic tension: xi_n = \|\|A_{n+1} - A_n\|\|_2 |
+| Batch-Invariance | ThinkingMachines [He2025] | Fixed iteration order, no dynamic switching |
+
+See `V5_FRAMEWORK_SYNTHESIS.md` for detailed mappings.
 
 ---
 
@@ -148,10 +186,10 @@ Builds a dependency graph of the task context.
 **Output Example**:
 ```json
 {
-  "entities_extracted": ["pyro_sim", "render_settings", "output_path"],
+  "entities_extracted": ["task_config", "system_settings", "output_path"],
   "dependency_graph": {
-    "pyro_sim": ["render_settings"],
-    "render_settings": ["output_path"]
+    "task_config": ["system_settings"],
+    "system_settings": ["output_path"]
   },
   "active_paradigm": "cortex_hierarchical",
   "context_tokens": 2048
@@ -280,6 +318,49 @@ Not all agents run for every task. The orchestrator activates agents based on ta
 | Code generation | - | code_generator, moe_router |
 | Long session | - | self_reflector |
 
+## Supporting Classes
+
+### Mycelium (Neuroplasticity Mechanism)
+
+The `Mycelium` class provides a foundation for adaptive learning across sessions:
+
+**Purpose**: Hebbian learning for expert weight adaptation
+
+**Key Features**:
+- Records task outcomes for each expert selection
+- Provides weights to MoE Router via context
+- Foundation for future temporal aggregation and attractor dynamics
+
+**Current Implementation** (v5 Foundation):
+```python
+from framework_orchestrator import Mycelium
+
+mycelium = Mycelium()
+
+# Get current weights for routing
+weights = mycelium.get_weights()
+result = await moe_router.execute(task, {"mycelium_weights": weights})
+
+# Record outcome after task completion
+mycelium.record_outcome(
+    expert="executor",
+    outcome=1.0,  # 0.0 = failure, 1.0 = success
+    task_hash="abc123"
+)
+
+# Inspect state
+state = mycelium.get_state()
+# Returns: weights, learning_rate, outcomes_recorded, recent_outcomes
+```
+
+**Future Work**:
+- Full Hebbian update: `w_new = w_old + α(outcome - expected) × activation`
+- Temporal aggregation across sessions (persistence)
+- Attractor dynamics for stable expert preferences
+- Homeostatic regulation to prevent runaway specialization
+
+---
+
 ## Adding Custom Agents
 
 1. Extend `BaseAgent`:
@@ -310,3 +391,9 @@ self.agents["my_agent"] = MyAgent()
 if "my_keyword" in task_lower:
     active.append("my_agent")
 ```
+
+---
+
+## References
+
+- [He2025] He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
