@@ -192,6 +192,16 @@ If checksums differ:
 3. Ensure fixed `seed` value
 4. Compare individual agent checksums to isolate the source
 
+## Code Availability
+
+**Specification Repository:**
+https://github.com/joe002/usd-cognitive-substrate
+
+**Reference Implementation:**
+https://github.com/joe002/framework-orchestrator
+
+The determinism mechanisms described in this document are implemented in `framework_orchestrator.py`, with verification via `cogroute_bench.py` (100% determinism across runs).
+
 ## References
 
 1. He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/

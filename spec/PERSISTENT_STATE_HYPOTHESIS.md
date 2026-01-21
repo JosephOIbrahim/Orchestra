@@ -272,6 +272,20 @@ We are attempting invention.
 
 ---
 
+## Code and Data Availability
+
+The USD Cognitive Substrate specification and reference implementation are available under the MIT License:
+
+**Specification Repository:**
+https://github.com/joe002/usd-cognitive-substrate
+
+**Reference Implementation:**
+https://github.com/joe002/framework-orchestrator
+
+The implementation demonstrates LIVRPS composition, selective payload loading, layered opinions, deterministic routing, temporal compilation, and context restoration mechanisms described in Section 6.
+
+---
+
 ## References
 
 1. Hassabis, D. (2026). Interview on CNBC's "The Tech Download" podcast. January 16, 2026.

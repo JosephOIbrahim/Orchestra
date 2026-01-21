@@ -888,6 +888,25 @@ See SDK documentation for complete interface specifications.
 
 ---
 
+## Code and Data Availability
+
+The specification and reference implementation are available under the MIT License:
+
+**Specification Repository:**
+https://github.com/joe002/usd-cognitive-substrate
+
+**Reference Implementation:**
+https://github.com/joe002/framework-orchestrator
+
+The reference implementation includes:
+- `framework_orchestrator.py` — 7-agent async orchestration system (78KB, ~2000 LOC)
+- `cogroute_bench.py` — CogRoute-Bench standardized benchmark suite
+- Complete test suite with 31 unit tests
+
+Benchmark results: 94.6% routing accuracy, 100% determinism, 0.13ms average latency.
+
+---
+
 ## References
 
 1. Pixar Animation Studios. (2016). *Universal Scene Description*. https://graphics.pixar.com/usd/
@@ -902,6 +921,6 @@ See SDK documentation for complete interface specifications.
 
 ---
 
-*Document Version: 5.0.0*
-*Generated: 2026-01-20*
+*Document Version: 5.1.0*
+*Generated: 2026-01-21*
 *Classification: Academic Pre-Publication Draft*
