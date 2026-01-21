@@ -194,14 +194,11 @@ If checksums differ:
 
 ## References
 
-1. **ThinkingMachines (2025)**. Defeating Non-Determinism in LLM Inference.
-   https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
+1. He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
 
-2. **NVIDIA cuDNN Documentation**. Reproducibility section.
-   https://docs.nvidia.com/deeplearning/cudnn/developer-guide/index.html
+2. NVIDIA. (2024). *cuDNN Developer Guide: Reproducibility*. https://docs.nvidia.com/deeplearning/cudnn/developer-guide/index.html
 
-3. **PyTorch Reproducibility**.
-   https://pytorch.org/docs/stable/notes/randomness.html
+3. PyTorch. (2024). *Reproducibility*. https://pytorch.org/docs/stable/notes/randomness.html
 
 ---
 

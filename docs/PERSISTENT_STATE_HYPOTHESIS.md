@@ -51,9 +51,7 @@ However, we distinguish between *training* energy and *inference* energy. The sc
 
 Recent work on defeating nondeterminism in LLM inference provides critical infrastructure. The key insight: LLM inference nondeterminism stems not from "concurrency + floating point" as commonly assumed, but from *batch invariance failures*—the reduction order for each element depends on batch size, which varies with server load.
 
-This finding validates a core premise: **the apparent randomness in LLM outputs is architectural, not fundamental**. Given identical inputs, the forward pass is deterministic; nondeterminism emerges from system-level choices about batching.
-
-**Reference:** [Defeating Non-Determinism in LLM Inference](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/)
+This finding validates a core premise: **the apparent randomness in LLM outputs is architectural, not fundamental**. Given identical inputs, the forward pass is deterministic; nondeterminism emerges from system-level choices about batching (He & Thinking Machines Lab, 2025).
 
 ### 2.3 Universal Scene Description
 
@@ -277,10 +275,16 @@ We are attempting invention.
 ## References
 
 1. Hassabis, D. (2026). Interview on CNBC's "The Tech Download" podcast. January 16, 2026.
-2. He, H. and Thinking Machines Lab (2025). Defeating nondeterminism in LLM inference. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
-3. Pixar Animation Studios (2016). Introduction to USD. https://graphics.pixar.com/usd/docs/index.html
-4. Kaplan, J., et al. (2020). Scaling laws for neural language models. arXiv:2001.08361.
-5. Lewis, P., et al. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. NeurIPS 2020.
+
+2. He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
+
+3. Pixar Animation Studios. (2016). Introduction to USD. https://graphics.pixar.com/usd/docs/index.html
+
+4. Kaplan, J., McCandlish, S., Henighan, T., Brown, T. B., Chess, B., Child, R., Gray, S., Radford, A., Wu, J., and Amodei, D. (2020). "Scaling Laws for Neural Language Models." *arXiv preprint arXiv:2001.08361*.
+
+5. Hoffmann, J., Borgeaud, S., Mensch, A., et al. (2022). "Training Compute-Optimal Large Language Models." *arXiv preprint arXiv:2203.15556*.
+
+6. Lewis, P., Perez, E., Piktus, A., et al. (2020). "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." *Advances in Neural Information Processing Systems*, 33:9459–9474.
 
 ---
 

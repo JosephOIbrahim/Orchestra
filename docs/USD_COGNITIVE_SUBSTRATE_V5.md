@@ -744,15 +744,15 @@ See SDK documentation for complete interface specifications.
 
 ## References
 
-1. Pixar Animation Studios. (2016). Universal Scene Description. https://graphics.pixar.com/usd/
+1. Pixar Animation Studios. (2016). *Universal Scene Description*. https://graphics.pixar.com/usd/
 
-2. ThinkingMachines. (2025). Defeating Non-Determinism in LLM Inference. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
+2. He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
 
-3. Anderson, J. R. (2007). How Can the Human Mind Occur in the Physical Universe? Oxford University Press.
+3. Anderson, J. R. (2007). *How Can the Human Mind Occur in the Physical Universe?* Oxford University Press.
 
-4. Laird, J. E. (2012). The Soar Cognitive Architecture. MIT Press.
+4. Laird, J. E. (2012). *The Soar Cognitive Architecture*. MIT Press.
 
-5. Franklin, S., et al. (2016). LIDA: A Systems-level Architecture for Cognition, Emotion, and Learning. IEEE Transactions on Autonomous Mental Development.
+5. Franklin, S., Madl, T., D'Mello, S., and Snaider, J. (2016). "LIDA: A Systems-level Architecture for Cognition, Emotion, and Learning." *IEEE Transactions on Autonomous Mental Development*, 6(1):19-41.
 
 ---
 
