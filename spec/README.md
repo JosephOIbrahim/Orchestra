@@ -84,7 +84,7 @@ The thesis would be **FALSIFIED** if:
 
 The USD Cognitive Substrate is implemented by **Framework Orchestrator**:
 
-- **Repository**: https://github.com/josephoibrahim/framework-orchestrator
+- **Repository**: https://github.com/JosephOIbrahim/framework-orchestrator
 - **Language**: Python (78KB, ~2000 LOC)
 - **Benchmark**: CogRoute-Bench (94.6% accuracy, 100% determinism)
 - **Tests**: 31 unit tests, 100% pass rate
@@ -100,8 +100,8 @@ The USD Cognitive Substrate is implemented by **Framework Orchestrator**:
   year={2026},
   month={January},
   institution={Independent Research},
-  url={https://github.com/josephoibrahim/usd-cognitive-substrate},
-  note={Pre-publication draft. Reference implementation: https://github.com/josephoibrahim/framework-orchestrator}
+  url={https://github.com/JosephOIbrahim/usd-cognitive-substrate},
+  note={Pre-publication draft. Reference implementation: https://github.com/JosephOIbrahim/framework-orchestrator}
 }
 ```
 
@@ -123,7 +123,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Related Work
 
-- **Framework Orchestrator** (Implementation): https://github.com/josephoibrahim/framework-orchestrator
+- **Framework Orchestrator** (Implementation): https://github.com/JosephOIbrahim/framework-orchestrator
 - **Pixar USD**: https://graphics.pixar.com/usd/
 - **ThinkingMachines**: https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
 

@@ -10,12 +10,12 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 setup(
     name="framework-orchestrator",
     version="1.0.0",
-    author="josephoibrahim",
+    author="Joseph O. Ibrahim",
     author_email="",
     description="USD Composition Semantics for AI Agent Orchestration",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/josephoibrahim/framework-orchestrator",
+    url="https://github.com/JosephOIbrahim/framework-orchestrator",
     py_modules=["framework_orchestrator"],
     python_requires=">=3.8",
     install_requires=[],
@@ -48,7 +48,7 @@ setup(
     ],
     keywords="ai agents orchestration usd cognitive llm async",
     project_urls={
-        "Bug Reports": "https://github.com/josephoibrahim/framework-orchestrator/issues",
-        "Source": "https://github.com/josephoibrahim/framework-orchestrator",
+        "Bug Reports": "https://github.com/JosephOIbrahim/framework-orchestrator/issues",
+        "Source": "https://github.com/JosephOIbrahim/framework-orchestrator",
     },
 )

@@ -33,7 +33,7 @@ Framework Orchestrator v1.0.0 is the production implementation of the USD Cognit
 | `docs/ARCHITECTURE.md` | System design |
 | `docs/CONFIGURATION.md` | Configuration reference |
 
-**Note**: Specification documents are also maintained in the dedicated [usd-cognitive-substrate](https://github.com/josephoibrahim/usd-cognitive-substrate) repository for academic citation.
+**Note**: Specification documents are also maintained in the dedicated [usd-cognitive-substrate](https://github.com/JosephOIbrahim/usd-cognitive-substrate) repository for academic citation.
 
 ### Examples
 
@@ -116,7 +116,7 @@ By Category:
 
 ```bash
 # Clone the repository
-git clone https://github.com/josephoibrahim/framework-orchestrator.git
+git clone https://github.com/JosephOIbrahim/framework-orchestrator.git
 cd framework-orchestrator
 
 # Install as package

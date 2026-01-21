@@ -321,10 +321,10 @@ The author thanks Pixar Animation Studios for the USD framework that inspired th
 The USD Cognitive Substrate specification and reference implementation are available under the MIT License:
 
 **Specification Repository:**
-https://github.com/josephoibrahim/usd-cognitive-substrate
+https://github.com/JosephOIbrahim/usd-cognitive-substrate
 
 **Reference Implementation:**
-https://github.com/josephoibrahim/framework-orchestrator
+https://github.com/JosephOIbrahim/framework-orchestrator
 
 The implementation demonstrates LIVRPS composition, selective payload loading, layered opinions, deterministic routing, temporal compilation, and context restoration mechanisms described in Section 6.
 
