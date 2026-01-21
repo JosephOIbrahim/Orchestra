@@ -97,6 +97,44 @@ Energy Ratio = O(L·n²d) / O(1) = O(L·n²d)
 
 With typical parameters, this suggests a theoretical maximum speedup of 10¹³ for direct fact retrieval. Our hypothesis of >10× is extremely conservative.
 
+**Figure 1: Energy Comparison by Operation Type**
+
+```
+                    ENERGY COST COMPARISON
+    ════════════════════════════════════════════════════════════════
+
+    DIRECT FACT LOOKUP ("What is the capital of France?")
+    ────────────────────────────────────────────────────────────────
+    Transformer │████████████████████████████████████████│ O(L·n²d)
+                │        ~10¹³ operations                │
+    ────────────────────────────────────────────────────────────────
+    USD         │█                                       │ O(1)
+    Substrate   │  Path traversal                        │
+    ────────────────────────────────────────────────────────────────
+
+    RELATIONSHIP QUERY ("How are X and Y related?")
+    ────────────────────────────────────────────────────────────────
+    Transformer │████████████████████████████████████████│ O(L·n²d)
+    ────────────────────────────────────────────────────────────────
+    USD         │████                                    │ O(e)
+    Substrate   │  e = edge count in graph               │
+    ────────────────────────────────────────────────────────────────
+
+    KNOWLEDGE UPDATE (Learning new fact)
+    ────────────────────────────────────────────────────────────────
+    Transformer │████████████████████████████████████████│ Retraining
+                │  Hours to days                         │
+    ────────────────────────────────────────────────────────────────
+    USD         │█                                       │ O(1)
+    Substrate   │  Opinion insertion                     │
+    ────────────────────────────────────────────────────────────────
+
+    Legend: █ = Relative compute cost (log scale)
+    ════════════════════════════════════════════════════════════════
+```
+
+The key insight: Transformer architectures pay the full inference cost regardless of query complexity. A persistent substrate pays only for what it needs.
+
 ---
 
 ## 4. The Persistent State Hypothesis

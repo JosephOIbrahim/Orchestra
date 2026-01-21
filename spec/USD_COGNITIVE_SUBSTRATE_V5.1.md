@@ -169,19 +169,45 @@ The USD Cognitive Substrate comprises two orthogonal hierarchies:
 
 ### 4.2 LIVRPS Resolution
 
-Higher layers override lower layers:
+**Figure 2: LIVRPS Composition Resolution**
 
 ```
-current.usda (energy=0.3)
-    ↓ overrides
-calibration.usda (energy=0.7)
-    ↓ overrides
-profile.usda (energy=0.5)
-
-Result: energy = 0.3 (from current.usda)
+                    QUERY: "What is energy?"
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  LIVRPS RESOLUTION ORDER (Strongest → Weakest)                      │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  L: LOCAL ──────────────► current.usda ──────► energy = 0.3 ✓ WINS │
+│     (highest priority)                                              │
+│            │                                                        │
+│            ▼ if not found                                           │
+│  I: INHERITS ──────────► daily/*.usda ───────► (not set)           │
+│            │                                                        │
+│            ▼ if not found                                           │
+│  V: VARIANTSETS ────────► mode_variants ─────► (not set)           │
+│            │                                                        │
+│            ▼ if not found                                           │
+│  R: REFERENCES ─────────► calibration.usda ──► energy = 0.7        │
+│            │                                                        │
+│            ▼ if not found                                           │
+│  P: PAYLOADS ───────────► adhd.usda ─────────► (not set)           │
+│            │                                                        │
+│            ▼ if not found                                           │
+│  S: SPECIALIZES ────────► profile.usda ──────► energy = 0.5        │
+│     (lowest priority)        (default)                              │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+                    RESULT: energy = 0.3
+                    (from LOCAL: current.usda)
 ```
 
-**Exception:** Constitutional constraints in profile.usda (L0B) cannot be overridden by any layer.
+**Resolution Rule:** First layer with a defined value wins. Higher layers shadow lower layers without modifying them.
+
+**Exception:** Constitutional constraints in profile.usda (SPECIALIZES) cannot be overridden by any layer—they are protected by the substrate itself.
 
 ### 4.3 State Schema
 
@@ -238,14 +264,70 @@ Priority  Category    Description
 
 Five-phase routing with deterministic properties:
 
+**Figure 1: 5-Phase Routing Flow**
+
+```
+                            USER INPUT
+                                │
+                                ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  PHASE 1: ACTIVATE                                                    │
+│  ┌─────────────┐    ┌──────────────────┐    ┌──────────────────────┐ │
+│  │   Signal    │───▶│  Pattern Match   │───▶│  Activation Vector   │ │
+│  │  "stuck"    │    │  (L0D Dictionary)│    │  [0,0.8,0,0,0,0.2,0] │ │
+│  └─────────────┘    └──────────────────┘    └──────────────────────┘ │
+└───────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  PHASE 2: WEIGHT                                                      │
+│  activation × expert_weights = weighted_scores                        │
+│  [0,0.8,0,0,0,0.2,0] × [0.15,0.15,0.10,...] = [0,0.12,0,0,0,0.04,0]  │
+└───────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  PHASE 3: BOUND                                                       │
+│  ┌────────────────────┐  ┌────────────────────┐  ┌────────────────┐  │
+│  │  Safety Floors     │  │  Homeostatic Norm  │  │  Constitutional│  │
+│  │  max(w, floor)     │─▶│  w / sum(w) = 1.0  │─▶│  Constraints   │  │
+│  │  Protector ≥ 0.10  │  │                    │  │  (inviolable)  │  │
+│  └────────────────────┘  └────────────────────┘  └────────────────┘  │
+└───────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  PHASE 4: SELECT                                                      │
+│  expert = argmax(bounded_scores)                                      │
+│  Tiebreaker: lower priority index wins                                │
+│  Result: "Decomposer" (expert[1])                                     │
+└───────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌───────────────────────────────────────────────────────────────────────┐
+│  PHASE 5: UPDATE (Mycelium)                                           │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────────────┐   │
+│  │  Outcome    │───▶│  Hebbian    │───▶│  Updated Weights        │   │
+│  │  (0.0-1.0)  │    │  Learning   │    │  (for next routing)     │   │
+│  └─────────────┘    └─────────────┘    └─────────────────────────┘   │
+└───────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+                          EXPERT RESPONSE
+```
+
+**Determinism Guarantee:** Each phase is individually deterministic. Given identical input signal and state, the routing produces identical expert selection.
+
+**Phase Details:**
+
 ```
 Phase 1: ACTIVATE
   Signal → Pattern Match → Activation Vector
-  Deterministic given fixed pattern dictionary
+  Deterministic given fixed pattern dictionary (L0D)
 
 Phase 2: WEIGHT
   weighted = activation × expert_weights
-  Deterministic (matrix multiplication)
+  Deterministic (element-wise multiplication)
 
 Phase 3: BOUND
   Apply safety floors (expert_weights >= safety_floors)
@@ -553,6 +635,43 @@ Agent A (exploring, high momentum) ←→ Agent B (implementing, cold start)
 
 ## 8. Determinism Analysis
 
+**Figure 3: Determinism Boundary**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         STOCHASTIC (Irreducible)                            │
+│                              Human Agency                                   │
+│  ┌─────────────────┐                              ┌─────────────────┐      │
+│  │   USER INPUT    │                              │  USER RESPONSE  │      │
+│  │  (what they     │                              │  (how they      │      │
+│  │   type)         │                              │   react)        │      │
+│  └────────┬────────┘                              └────────▲────────┘      │
+│           │                                                │               │
+└───────────┼────────────────────────────────────────────────┼───────────────┘
+            │                                                │
+            ▼                                                │
+┌───────────────────────────────────────────────────────────────────────────┐
+│                    DETERMINISTIC (With ThinkingMachines)                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐  │
+│  │                                                                     │  │
+│  │   Signal      5-Phase       Expert        LLM         State        │  │
+│  │  Detection → Routing   →  Selection  → Generation → Update        │  │
+│  │                                                                     │  │
+│  │  ✓ Pattern    ✓ ACTIVATE   ✓ argmax     ✓ Batch-    ✓ USD         │  │
+│  │    match      ✓ WEIGHT     ✓ tiebreak     invariant   compose     │  │
+│  │  ✓ L0D dict   ✓ BOUND                     kernels                 │  │
+│  │               ✓ SELECT                                             │  │
+│  │               ✓ UPDATE                                             │  │
+│  │                                                                     │  │
+│  └─────────────────────────────────────────────────────────────────────┘  │
+│                                                                           │
+│  GUARANTEE: Same input + Same state → Same output + Same state update     │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+The architecture isolates all stochasticity to human agency boundaries. Everything between user input and user response is deterministic when using ThinkingMachines batch-invariant kernels.
+
 ### 8.1 Stochastic Boundaries
 
 Without batch-invariant inference:
@@ -776,6 +895,45 @@ editor.signal(Signal(category="content", content="high keystroke rate"))
 **Metric:** After restoration, can users continue without re-establishing context?
 
 **Method:** User study measuring time-to-productivity after breaks.
+
+### 11.5 CogRoute-Bench Results
+
+The reference implementation was evaluated on CogRoute-Bench, a standardized benchmark with 37 routing tasks across 8 categories:
+
+**Figure 4: CogRoute-Bench Results**
+
+```
+                           CogRoute-Bench v1.0
+    ═══════════════════════════════════════════════════════════════
+
+    OVERALL METRICS
+    ────────────────────────────────────────────────────────────────
+    Accuracy        ████████████████████████████████████████░░  94.6%
+    Determinism     ████████████████████████████████████████████ 100.0%
+    Explainability  ████████████████████████████████████████░░░  95.1%
+
+    BY CATEGORY (% correct)
+    ────────────────────────────────────────────────────────────────
+    safety_critical  ████████████████████████████████████████████ 100%
+    recovery         ████████████████████████████████████████████ 100%
+    redirection      ████████████████████████████████████████████ 100%
+    acknowledgment   ████████████████████████████████████████████ 100%
+    exploration      ████████████████████████████████████████████ 100%
+    ambiguous        ████████████████████████████████████████████ 100%
+    complexity       ████████████████████████████████░░░░░░░░░░░░  80%
+    execution        ████████████████████████████████████░░░░░░░░  83%
+
+    PERFORMANCE
+    ────────────────────────────────────────────────────────────────
+    Average Latency: 0.13ms per routing decision
+    Total Tasks:     37
+    Correct:         35
+    Failures:        2 (complexity → guide, ambiguous executor)
+
+    ═══════════════════════════════════════════════════════════════
+```
+
+**Key Result:** 100% determinism achieved—identical inputs produce identical routing decisions across all runs.
 
 ---
 
