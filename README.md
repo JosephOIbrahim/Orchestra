@@ -13,7 +13,7 @@ A 7-agent async orchestration system that applies Pixar's USD (Universal Scene D
 
 Pixar invented USD composition semantics (LIVRPS) to resolve conflicting opinions in complex 3D pipelines. We repurpose these semantics for cognitive state management in LLM applications.
 
-This project implements the **[Persistent State Hypothesis](docs/PERSISTENT_STATE_HYPOTHESIS.md)** (Ibrahim, 2026):
+This project implements the **[Persistent State Hypothesis](https://github.com/joe002/usd-cognitive-substrate/blob/main/PERSISTENT_STATE_HYPOTHESIS.md)** (Ibrahim, 2026):
 
 > *"The emergent capabilities of large-scale neural networks can be preserved in a persistent, composable substrate that does not require constant recomputation."*
 
@@ -230,9 +230,14 @@ workspace/
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration reference
 
 ### Specification (V5.1)
-- [USD_COGNITIVE_SUBSTRATE_V5.1.md](spec/USD_COGNITIVE_SUBSTRATE_V5.1.md) - Full V5.1 specification with LIVRPS, Mycelium, formal proofs
-- [PERSISTENT_STATE_HYPOTHESIS.md](spec/PERSISTENT_STATE_HYPOTHESIS.md) - Theoretical foundation
-- [DETERMINISM.md](spec/DETERMINISM.md) - Batch-invariance and reproducibility analysis
+
+The theoretical specification is maintained in a separate repository for academic citation:
+
+**[USD Cognitive Substrate](https://github.com/joe002/usd-cognitive-substrate)** - Full specification
+
+- [USD_COGNITIVE_SUBSTRATE_V5.1.md](https://github.com/joe002/usd-cognitive-substrate/blob/main/USD_COGNITIVE_SUBSTRATE_V5.1.md) - Full V5.1 specification with LIVRPS, Mycelium, formal proofs
+- [PERSISTENT_STATE_HYPOTHESIS.md](https://github.com/joe002/usd-cognitive-substrate/blob/main/PERSISTENT_STATE_HYPOTHESIS.md) - Theoretical foundation
+- [DETERMINISM.md](https://github.com/joe002/usd-cognitive-substrate/blob/main/DETERMINISM.md) - Batch-invariance and reproducibility analysis
 
 ## Running Tests
 
@@ -284,14 +289,18 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Research Foundation
 
-This project is grounded in the **Persistent State Hypothesis** research:
+This project implements the **[USD Cognitive Substrate](https://github.com/joe002/usd-cognitive-substrate)** specification, which is grounded in the **Persistent State Hypothesis** research:
 
 - **Core Hypothesis**: Emergent capabilities can be preserved in persistent, composable substrates
 - **Energy Claim**: >10x energy reduction for cached knowledge retrieval
 - **Capability Claim**: >80% preservation for reasoning tasks
 - **Validation Status**: Behavioral state management demonstrated; factual knowledge TBD
 
-See [PERSISTENT_STATE_HYPOTHESIS.md](spec/PERSISTENT_STATE_HYPOTHESIS.md) for full details including falsification criteria and research roadmap.
+See the [USD Cognitive Substrate specification](https://github.com/joe002/usd-cognitive-substrate) for full details including:
+- Formal mathematical proofs (Theorems 1-3)
+- LIVRPS composition semantics
+- Mycelium neuroplasticity mechanism
+- Falsifiability criteria and research roadmap
 
 ## CogRoute-Bench Results
 
