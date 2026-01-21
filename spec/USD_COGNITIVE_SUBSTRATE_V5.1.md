@@ -1045,6 +1045,12 @@ See SDK documentation for complete interface specifications.
 
 ---
 
+## Acknowledgments
+
+The author thanks Pixar Animation Studios for creating and open-sourcing Universal Scene Description (USD), whose composition semantics inspired this architecture. The author also acknowledges the ThinkingMachines Lab for their foundational work on batch-invariant LLM inference, which enables the determinism guarantees central to this system.
+
+---
+
 ## Code and Data Availability
 
 The specification and reference implementation are available under the MIT License:

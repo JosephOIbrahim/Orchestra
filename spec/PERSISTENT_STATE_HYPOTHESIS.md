@@ -310,6 +310,12 @@ We are attempting invention.
 
 ---
 
+## Acknowledgments
+
+The author thanks Pixar Animation Studios for the USD framework that inspired this architecture, and the ThinkingMachines Lab for demonstrating that LLM determinism is achievable through batch-invariant design.
+
+---
+
 ## Code and Data Availability
 
 The USD Cognitive Substrate specification and reference implementation are available under the MIT License:
