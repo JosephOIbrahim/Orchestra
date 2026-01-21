@@ -11,7 +11,13 @@ A 7-agent async orchestration system that applies Pixar's USD (Universal Scene D
 
 **USD as Universal State Description.**
 
-Pixar invented USD composition semantics (LIVRPS) to resolve conflicting opinions in complex 3D pipelines. We repurpose these semantics for cognitive state management in LLM applications:
+Pixar invented USD composition semantics (LIVRPS) to resolve conflicting opinions in complex 3D pipelines. We repurpose these semantics for cognitive state management in LLM applications.
+
+This project implements the **[Persistent State Hypothesis](docs/PERSISTENT_STATE_HYPOTHESIS.md)** (Ibrahim, 2026):
+
+> *"The emergent capabilities of large-scale neural networks can be preserved in a persistent, composable substrate that does not require constant recomputation."*
+
+The hypothesis challenges the assumption that AI intelligence requires proportional energy consumption, proposing that the energy problem is *architectural*, not fundamental:
 
 | USD Concept | Cognitive Mapping |
 |-------------|-------------------|
@@ -218,9 +224,15 @@ workspace/
 
 ## Documentation
 
+### Core Documentation
 - [ARCHITECTURE.md](docs/ARCHITECTURE.md) - System design and data flow
 - [AGENTS.md](docs/AGENTS.md) - Detailed agent documentation
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration reference
+- [DETERMINISM.md](docs/DETERMINISM.md) - Batch-invariance and reproducibility
+
+### Theoretical Foundation
+- [PERSISTENT_STATE_HYPOTHESIS.md](docs/PERSISTENT_STATE_HYPOTHESIS.md) - The theoretical foundation challenging energy-intelligence equivalence
+- [USD_COGNITIVE_SUBSTRATE_V5.md](docs/USD_COGNITIVE_SUBSTRATE_V5.md) - Full V5 architecture specification with LIVRPS, Mycelium mechanism, and determinism analysis
 
 ## Running Tests
 
@@ -270,7 +282,19 @@ Contributions welcome! Please read the architecture docs first to understand the
 
 MIT License - see [LICENSE](LICENSE) for details.
 
+## Research Foundation
+
+This project is grounded in the **Persistent State Hypothesis** research:
+
+- **Core Hypothesis**: Emergent capabilities can be preserved in persistent, composable substrates
+- **Energy Claim**: >10× energy reduction for cached knowledge retrieval
+- **Capability Claim**: >80% preservation for reasoning tasks
+- **Validation Status**: Behavioral state management demonstrated; factual knowledge TBD
+
+See [PERSISTENT_STATE_HYPOTHESIS.md](docs/PERSISTENT_STATE_HYPOTHESIS.md) for full details including falsification criteria and research roadmap.
+
 ## Acknowledgments
 
 - Pixar's USD team for the composition semantics that inspired this architecture
-- The ThinkingMachines research on batch-invariance for LLM determinism
+- The [ThinkingMachines](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) research on batch-invariance for LLM determinism
+- Claude (Anthropic) for collaborative development of the theoretical framework
