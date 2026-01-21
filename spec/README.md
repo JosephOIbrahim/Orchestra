@@ -21,7 +21,7 @@ The architecture achieves **fully deterministic cognitive behavior** from signal
 
 | Document | Description |
 |----------|-------------|
-| [**USD_COGNITIVE_SUBSTRATE.md**](USD_COGNITIVE_SUBSTRATE_V5.1.md) | Main specification (~900 lines) |
+| [**USD_COGNITIVE_SUBSTRATE.md**](USD_COGNITIVE_SUBSTRATE.md) | Main specification (~900 lines) |
 | [PERSISTENT_STATE_HYPOTHESIS.md](PERSISTENT_STATE_HYPOTHESIS.md) | Theoretical foundation |
 | [DETERMINISM.md](DETERMINISM.md) | Determinism analysis |
 

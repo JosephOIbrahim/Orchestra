@@ -26,7 +26,7 @@ Framework Orchestrator v1.0.0 is the production implementation of the USD Cognit
 | Document | Description |
 |----------|-------------|
 | `README.md` | User guide and quick start |
-| `spec/USD_COGNITIVE_SUBSTRATE_V5.1.md` | Full V5.1 specification |
+| `spec/USD_COGNITIVE_SUBSTRATE.md` | Full V5.1 specification |
 | `spec/PERSISTENT_STATE_HYPOTHESIS.md` | Theoretical foundation |
 | `spec/DETERMINISM.md` | Determinism analysis |
 | `docs/AGENTS.md` | Agent documentation |
@@ -176,7 +176,7 @@ framework-orchestrator/
 ├── requirements.txt             # Dependencies
 ├── .gitignore                   # Git ignore rules
 ├── spec/                        # V5.1 Specification (local copy)
-│   ├── USD_COGNITIVE_SUBSTRATE_V5.1.md
+│   ├── USD_COGNITIVE_SUBSTRATE.md
 │   ├── PERSISTENT_STATE_HYPOTHESIS.md
 │   └── DETERMINISM.md
 ├── docs/
