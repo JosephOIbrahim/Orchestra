@@ -308,7 +308,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Research Foundation
 
-This project implements the **[USD Cognitive Substrate](https://github.com/JosephOIbrahim/usd-cognitive-substrate)** specification (DOI: [10.5281/zenodo.18332346](https://doi.org/10.5281/zenodo.18332346)), which is grounded in the **Persistent State Hypothesis** research:
+This project implements the **[USD Cognitive Substrate](https://github.com/JosephOIbrahim/usd-cognitive-substrate)** specification (DOI: [10.5281/zenodo.18332346](https://doi.org/10.5281/zenodo.18332346)), which tests the **[Persistent State Hypothesis](https://github.com/JosephOIbrahim/persistent-state-hypothesis)**:
 
 - **Core Hypothesis**: Emergent capabilities can be preserved in persistent, composable substrates
 - **Energy Claim**: >10x energy reduction for cached knowledge retrieval
