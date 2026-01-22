@@ -4,8 +4,10 @@
 
 A 7-agent async orchestration system that applies Pixar's USD (Universal Scene Description) composition semantics to cognitive state management. Originally designed for VFX pipelines, now generalized for any domain.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18332346.svg)](https://doi.org/10.5281/zenodo.18332346)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![ORCID](https://img.shields.io/badge/ORCID-0009--0009--2689--4966-green.svg)](https://orcid.org/0009-0009-2689-4966)
 
 ## The Thesis
 
@@ -306,7 +308,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ## Research Foundation
 
-This project implements the **[USD Cognitive Substrate](https://github.com/JosephOIbrahim/usd-cognitive-substrate)** specification, which is grounded in the **Persistent State Hypothesis** research:
+This project implements the **[USD Cognitive Substrate](https://github.com/JosephOIbrahim/usd-cognitive-substrate)** specification (DOI: [10.5281/zenodo.18332346](https://doi.org/10.5281/zenodo.18332346)), which is grounded in the **Persistent State Hypothesis** research:
 
 - **Core Hypothesis**: Emergent capabilities can be preserved in persistent, composable substrates
 - **Energy Claim**: >10x energy reduction for cached knowledge retrieval
