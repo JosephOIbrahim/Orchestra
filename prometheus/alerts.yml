@@ -1,0 +1,213 @@
+# Prometheus Alerting Rules for Framework Orchestrator
+#
+# Deploy with Prometheus AlertManager
+# Reference: https://prometheus.io/docs/alerting/latest/configuration/
+
+groups:
+  - name: framework-orchestrator
+    rules:
+      # =======================================================================
+      # Circuit Breaker Alerts
+      # =======================================================================
+
+      - alert: CircuitBreakerOpen
+        expr: framework_orchestrator_circuit_breaker_state{state="open"} == 1
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuit breaker {{ $labels.agent }} is OPEN"
+          description: "Circuit breaker for agent '{{ $labels.agent }}' has been open for more than 1 minute. This indicates repeated failures."
+          runbook_url: "https://github.com/JosephOIbrahim/framework-orchestrator/blob/main/docs/runbooks/circuit-breaker.md"
+
+      - alert: CircuitBreakerHighFailureRate
+        expr: |
+          rate(framework_orchestrator_circuit_breaker_failures_total[5m])
+          / rate(framework_orchestrator_circuit_breaker_requests_total[5m]) > 0.5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High failure rate on circuit breaker {{ $labels.agent }}"
+          description: "Agent '{{ $labels.agent }}' has >50% failure rate over the last 5 minutes."
+
+      # =======================================================================
+      # Orchestration Health Alerts
+      # =======================================================================
+
+      - alert: OrchestrationHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(framework_orchestrator_orchestration_duration_seconds_bucket[5m])
+          ) > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High orchestration latency detected"
+          description: "95th percentile orchestration latency exceeds 30 seconds."
+
+      - alert: OrchestrationHighErrorRate
+        expr: |
+          rate(framework_orchestrator_orchestration_errors_total[5m])
+          / rate(framework_orchestrator_orchestration_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High orchestration error rate"
+          description: "More than 10% of orchestrations are failing."
+
+      - alert: OrchestrationQueueBacklog
+        expr: framework_orchestrator_pending_tasks > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large orchestration queue backlog"
+          description: "More than 100 tasks pending in orchestration queue."
+
+      # =======================================================================
+      # Agent Health Alerts
+      # =======================================================================
+
+      - alert: AgentHighLatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(framework_orchestrator_agent_duration_seconds_bucket[5m])
+          ) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent {{ $labels.agent }} has high latency"
+          description: "Agent '{{ $labels.agent }}' 95th percentile latency exceeds 10 seconds."
+
+      - alert: AgentConsistentFailures
+        expr: |
+          increase(framework_orchestrator_agent_failures_total[15m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Agent {{ $labels.agent }} failing consistently"
+          description: "Agent '{{ $labels.agent }}' has failed more than 10 times in the last 15 minutes."
+
+      # =======================================================================
+      # Bulkhead Alerts
+      # =======================================================================
+
+      - alert: BulkheadRejections
+        expr: increase(framework_orchestrator_bulkhead_rejections_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bulkhead rejecting requests for {{ $labels.agent }}"
+          description: "Agent '{{ $labels.agent }}' bulkhead has rejected more than 10 requests in 5 minutes. Consider increasing capacity."
+
+      - alert: BulkheadNearCapacity
+        expr: |
+          framework_orchestrator_bulkhead_queue_depth
+          / framework_orchestrator_bulkhead_queue_capacity > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Bulkhead queue near capacity for {{ $labels.agent }}"
+          description: "Agent '{{ $labels.agent }}' bulkhead queue is over 80% capacity."
+
+      # =======================================================================
+      # Rate Limiting Alerts
+      # =======================================================================
+
+      - alert: RateLimitExceeded
+        expr: increase(framework_orchestrator_rate_limit_exceeded_total[5m]) > 50
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Rate limit frequently exceeded"
+          description: "Rate limit exceeded more than 50 times in 5 minutes. Possible abuse or misconfiguration."
+
+      # =======================================================================
+      # Resource Alerts
+      # =======================================================================
+
+      - alert: HighMemoryUsage
+        expr: |
+          process_resident_memory_bytes{job="framework-orchestrator"}
+          / 1024 / 1024 / 1024 > 2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Framework Orchestrator using more than 2GB of memory."
+
+      - alert: TooManyOpenFiles
+        expr: process_open_fds{job="framework-orchestrator"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High file descriptor usage"
+          description: "Framework Orchestrator has more than 1000 open file descriptors."
+
+      # =======================================================================
+      # Health Check Alerts
+      # =======================================================================
+
+      - alert: HealthCheckFailing
+        expr: framework_orchestrator_health_status != 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Health check failing"
+          description: "Framework Orchestrator health check has been failing for more than 2 minutes."
+
+      - alert: ComponentUnhealthy
+        expr: framework_orchestrator_component_health{status="unhealthy"} == 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Component {{ $labels.component }} unhealthy"
+          description: "Component '{{ $labels.component }}' is reporting unhealthy status."
+
+      # =======================================================================
+      # Tracing Alerts
+      # =======================================================================
+
+      - alert: TracingSpanBacklog
+        expr: framework_orchestrator_tracing_pending_spans > 10000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Large tracing span backlog"
+          description: "More than 10,000 spans pending export. Possible export failure."
+
+      # =======================================================================
+      # Checkpoint Alerts
+      # =======================================================================
+
+      - alert: CheckpointFailures
+        expr: increase(framework_orchestrator_checkpoint_failures_total[15m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Checkpoint failures detected"
+          description: "More than 5 checkpoint failures in 15 minutes. Recovery may be impaired."
+
+      - alert: StaleCheckpoints
+        expr: |
+          time() - framework_orchestrator_last_checkpoint_timestamp > 3600
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Stale checkpoints"
+          description: "No checkpoint written in over 1 hour. Verify checkpoint system is working."

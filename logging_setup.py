@@ -6,15 +6,49 @@ Provides:
 - Text formatter for development
 - Configurable handlers (console, file)
 - Context injection (agent name, task hash, etc.)
+- Correlation ID propagation for distributed tracing
 """
 
+import contextvars
 import json
 import logging
 import sys
 import traceback
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+# Context variable for correlation ID (thread-safe, async-safe)
+_correlation_id: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar(
+    'correlation_id', default=None
+)
+
+
+def get_correlation_id() -> Optional[str]:
+    """Get the current correlation ID from context."""
+    return _correlation_id.get()
+
+
+def set_correlation_id(correlation_id: Optional[str] = None) -> str:
+    """
+    Set or generate a correlation ID for the current context.
+
+    Args:
+        correlation_id: Optional ID to set. Generates UUID if None.
+
+    Returns:
+        The correlation ID that was set.
+    """
+    if correlation_id is None:
+        correlation_id = str(uuid.uuid4())[:8]  # Short form for readability
+    _correlation_id.set(correlation_id)
+    return correlation_id
+
+
+def clear_correlation_id() -> None:
+    """Clear the correlation ID from context."""
+    _correlation_id.set(None)
 
 
 class JSONFormatter(logging.Formatter):
@@ -39,10 +73,16 @@ class JSONFormatter(logging.Formatter):
             'message': record.getMessage(),
         }
 
+        # Add correlation ID if present (for distributed tracing)
+        correlation_id = get_correlation_id()
+        if correlation_id:
+            log_data['correlation_id'] = correlation_id
+
         # Add extra fields from record
         extra_fields = [
             'agent_name', 'task_hash', 'duration_ms', 'checksum',
-            'iteration', 'phase', 'operation', 'circuit_state'
+            'iteration', 'phase', 'operation', 'circuit_state',
+            'trace_id', 'span_id'  # For tracing integration
         ]
         for field in extra_fields:
             if hasattr(record, field):
@@ -80,6 +120,11 @@ class TextFormatter(logging.Formatter):
         """Format log record as text with context."""
         # Build context prefix
         context_parts = []
+
+        # Add correlation ID first for easy visual tracking
+        correlation_id = get_correlation_id()
+        if correlation_id:
+            context_parts.append(f"cid={correlation_id}")
 
         if hasattr(record, 'agent_name'):
             context_parts.append(f"agent={record.agent_name}")

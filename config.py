@@ -14,25 +14,68 @@ from pathlib import Path
 from typing import Optional
 
 
-def _get_env_int(name: str, default: int) -> int:
-    """Get integer from environment variable with default."""
+class ConfigurationError(Exception):
+    """Raised when configuration is invalid."""
+    pass
+
+
+# Track configuration warnings for startup reporting
+_config_warnings: list[str] = []
+
+
+def _get_env_int(name: str, default: int, strict: bool = False) -> int:
+    """
+    Get integer from environment variable with default.
+
+    Args:
+        name: Environment variable name
+        default: Default value if not set
+        strict: If True, raise ConfigurationError on invalid value
+
+    Returns:
+        Integer value
+
+    Raises:
+        ConfigurationError: If strict=True and value is invalid
+    """
     value = os.environ.get(name)
     if value is None:
         return default
     try:
         return int(value)
     except ValueError:
+        msg = f"Invalid integer for {name}: '{value}' (using default: {default})"
+        if strict:
+            raise ConfigurationError(msg)
+        _config_warnings.append(msg)
         return default
 
 
-def _get_env_float(name: str, default: float) -> float:
-    """Get float from environment variable with default."""
+def _get_env_float(name: str, default: float, strict: bool = False) -> float:
+    """
+    Get float from environment variable with default.
+
+    Args:
+        name: Environment variable name
+        default: Default value if not set
+        strict: If True, raise ConfigurationError on invalid value
+
+    Returns:
+        Float value
+
+    Raises:
+        ConfigurationError: If strict=True and value is invalid
+    """
     value = os.environ.get(name)
     if value is None:
         return default
     try:
         return float(value)
     except ValueError:
+        msg = f"Invalid float for {name}: '{value}' (using default: {default})"
+        if strict:
+            raise ConfigurationError(msg)
+        _config_warnings.append(msg)
         return default
 
 
@@ -118,6 +161,10 @@ class OrchestratorConfig:
 
     shutdown_timeout: float = field(default_factory=lambda: _get_env_float(
         'FO_SHUTDOWN_TIMEOUT', 10.0
+    ))
+
+    shutdown_handler_timeout: float = field(default_factory=lambda: _get_env_float(
+        'FO_SHUTDOWN_HANDLER_TIMEOUT', 5.0
     ))
 
     # === Retry Configuration ===
@@ -374,3 +421,29 @@ def set_config(config: OrchestratorConfig) -> None:
     """Set the global configuration instance (for testing)."""
     global _default_config
     _default_config = config
+
+
+def get_config_warnings() -> list[str]:
+    """Get any configuration warnings that occurred during parsing."""
+    return _config_warnings.copy()
+
+
+def validate_config_strict() -> None:
+    """
+    Validate configuration and raise on any errors.
+
+    Call this at startup to fail fast on misconfiguration.
+
+    Raises:
+        ConfigurationError: If any validation errors exist
+    """
+    config = get_config()
+    errors = config.validate()
+
+    # Also include any parsing warnings as errors in strict mode
+    all_errors = errors + _config_warnings
+
+    if all_errors:
+        raise ConfigurationError(
+            f"Configuration errors:\n" + "\n".join(f"  - {e}" for e in all_errors)
+        )

@@ -4,14 +4,28 @@ Resilience patterns for Framework Orchestrator.
 Implements:
 - Circuit Breaker: Prevents cascading failures by stopping calls to failing services
 - Timeout wrapper: Ensures operations don't hang indefinitely
-- Retry with exponential backoff: Handles transient failures
+- Retry with exponential backoff and jitter: Handles transient failures
 
 These patterns work together to make the orchestrator production-ready.
+
+References:
+    [1] Nygard, M.T. (2007). "Release It! Design and Deploy Production-Ready Software"
+        Pragmatic Bookshelf. ISBN: 978-0978739218
+        - Circuit breaker pattern (Chapter 5: Stability Patterns)
+        - Bulkhead pattern origin
+
+    [2] Fowler, M. (2014). "CircuitBreaker"
+        https://martinfowler.com/bliki/CircuitBreaker.html
+
+    [3] AWS Architecture Blog. (2015). "Exponential Backoff And Jitter"
+        https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+        - Jitter prevents thundering herd in distributed retries
 """
 
 import asyncio
 import functools
 import logging
+import random
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -294,10 +308,14 @@ async def with_retry(
     max_delay: float = 30.0,
     exponential_base: float = 2.0,
     retryable_exceptions: tuple = (Exception,),
-    operation_name: str = "operation"
+    operation_name: str = "operation",
+    jitter: float = 0.1
 ) -> Any:
     """
-    Execute a function with retry and exponential backoff.
+    Execute a function with retry, exponential backoff, and jitter.
+
+    Jitter prevents thundering herd problem when multiple callers retry
+    simultaneously after a shared failure.
 
     Args:
         func: Async function to call (no arguments)
@@ -307,6 +325,7 @@ async def with_retry(
         exponential_base: Base for exponential backoff
         retryable_exceptions: Tuple of exceptions to retry on
         operation_name: Name for logging
+        jitter: Jitter factor (0.0-1.0) - adds random variance to delay
 
     Returns:
         Result of the function
@@ -329,14 +348,20 @@ async def with_retry(
                 raise
 
             # Calculate delay with exponential backoff
-            delay = min(
+            base_calculated = min(
                 base_delay * (exponential_base ** (attempt - 1)),
                 max_delay
             )
 
+            # Add jitter to prevent thundering herd
+            # Jitter range: [delay * (1 - jitter), delay * (1 + jitter)]
+            jitter_amount = base_calculated * jitter
+            delay = base_calculated + random.uniform(-jitter_amount, jitter_amount)
+            delay = max(0.0, delay)  # Ensure non-negative
+
             logger.warning(
                 f"{operation_name} attempt {attempt}/{max_attempts} failed: {e}. "
-                f"Retrying in {delay:.1f}s"
+                f"Retrying in {delay:.2f}s (jitter applied)"
             )
 
             await asyncio.sleep(delay)
@@ -353,6 +378,7 @@ class RetryConfig:
     max_delay: float = 30.0
     exponential_base: float = 2.0
     retryable_exceptions: tuple = (Exception,)
+    jitter: float = 0.1  # 10% jitter by default to prevent thundering herd
 
 
 def with_retry_decorator(

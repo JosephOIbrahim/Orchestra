@@ -1,0 +1,25 @@
+# Kustomize configuration
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: framework-orchestrator
+
+namespace: default
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+
+commonLabels:
+  app.kubernetes.io/name: framework-orchestrator
+  app.kubernetes.io/version: "3.1.0"
+  app.kubernetes.io/component: orchestrator
+  app.kubernetes.io/managed-by: kustomize
+
+# Optional: Image override for different registries
+# images:
+#   - name: framework-orchestrator
+#     newName: your-registry.io/framework-orchestrator
+#     newTag: "3.1.0"

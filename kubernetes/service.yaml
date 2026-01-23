@@ -1,0 +1,33 @@
+# Kubernetes Service for Framework Orchestrator
+apiVersion: v1
+kind: Service
+metadata:
+  name: framework-orchestrator
+  labels:
+    app: framework-orchestrator
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: framework-orchestrator
+---
+# Optional: Headless service for direct pod access
+apiVersion: v1
+kind: Service
+metadata:
+  name: framework-orchestrator-headless
+  labels:
+    app: framework-orchestrator
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app: framework-orchestrator

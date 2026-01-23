@@ -61,14 +61,20 @@ class LifecycleManager:
             return  # Don't start new work
     """
 
-    def __init__(self, shutdown_timeout: float = 10.0):
+    def __init__(
+        self,
+        shutdown_timeout: float = 10.0,
+        handler_timeout: float = 5.0
+    ):
         """
         Initialize lifecycle manager.
 
         Args:
             shutdown_timeout: Maximum time to wait for graceful shutdown
+            handler_timeout: Maximum time for each shutdown handler to complete
         """
         self.shutdown_timeout = shutdown_timeout
+        self.handler_timeout = handler_timeout
         self.state = LifecycleState.STARTING
         self._shutdown_handlers: List[Callable[[ShutdownContext], Coroutine]] = []
         self._sync_shutdown_handlers: List[Callable[[ShutdownContext], None]] = []
@@ -246,7 +252,7 @@ class LifecycleManager:
                 logger.debug(f"Running shutdown handler: {handler.__name__}")
                 await asyncio.wait_for(
                     handler(context),
-                    timeout=5.0  # Per-handler timeout
+                    timeout=self.handler_timeout
                 )
             except asyncio.TimeoutError:
                 logger.warning(f"Shutdown handler {handler.__name__} timed out")
@@ -291,7 +297,8 @@ class LifecycleManager:
 async def run_with_lifecycle(
     main_coro: Coroutine,
     lifecycle: Optional[LifecycleManager] = None,
-    shutdown_timeout: float = 10.0
+    shutdown_timeout: float = 10.0,
+    handler_timeout: float = 5.0
 ) -> Any:
     """
     Run a coroutine with lifecycle management.
@@ -302,11 +309,15 @@ async def run_with_lifecycle(
         main_coro: Main coroutine to run
         lifecycle: LifecycleManager (creates new if None)
         shutdown_timeout: Timeout for graceful shutdown
+        handler_timeout: Timeout for each shutdown handler
 
     Returns:
         Result of main coroutine
     """
-    lifecycle = lifecycle or LifecycleManager(shutdown_timeout=shutdown_timeout)
+    lifecycle = lifecycle or LifecycleManager(
+        shutdown_timeout=shutdown_timeout,
+        handler_timeout=handler_timeout
+    )
 
     # Setup signal handlers
     loop = asyncio.get_event_loop()

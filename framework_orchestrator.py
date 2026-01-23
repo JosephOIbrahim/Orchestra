@@ -1,28 +1,35 @@
 """
 Framework Orchestrator
 ======================
-7-Agent async orchestration system integrating framework ecosystem.
-
-Run with: python framework_orchestrator.py
+7-Agent async orchestration system applying USD composition semantics to cognitive
+state management.
 
 Agents:
-1. ECHO Curator         - 4-tier context memory
-2. Domain Intelligence  - Multi-domain analysis (Phoenix + PRISM) [GENERALIZED]
-3. MoE Router           - Expert selection (CSQMF-R1 + ATLAS)
+1. ECHO Curator         - 4-tier context memory (LIVRPS composition)
+2. Domain Intelligence  - Multi-domain analysis (Phoenix + PRISM)
+3. MoE Router           - Deterministic expert selection
 4. World Modeler        - Causal inference (CORTEX)
 5. Code Generator       - Evolutionary code (MAX 3 + MNO v3)
-6. Determinism Guard    - Reproducibility (ThinkingMachines)
+6. Determinism Guard    - Reproducibility (batch-invariance)
 7. Self Reflector       - Constitutional reasoning (RESONANCE + MCAW)
 
 Domain configs loaded from: ~/.framework-orchestrator/domains/
-  - vfx.json        (Visual effects - Houdini, Nuke, USD)
-  - webdev.json     (Web development - React, Next.js, APIs)
-  - ai_research.json (AI/ML - models, agents, training)
-  - general.json    (Fallback for unmatched tasks)
 
-Pattern: Ralph v3 - Filesystem IS the state
+References:
+    [1] Pixar Animation Studios. (2016). "Universal Scene Description"
+        https://graphics.pixar.com/usd/
+        - LIVRPS composition semantics for cognitive state resolution
 
-Author: Framework Ecosystem Integration
+    [2] He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism
+        in LLM Inference." Thinking Machines Lab: Connectionism.
+        https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
+        - Batch-invariance for reproducible agent execution
+
+    [3] Zhang, S., Kraska, T., & Khattab, O. (2025). "Recursive Language Models."
+        arXiv:2512.24601. https://arxiv.org/abs/2512.24601
+        - Program-environment paradigm for large context navigation
+
+See CITATIONS.md for complete attribution.
 """
 
 import asyncio
@@ -341,6 +348,24 @@ class ECHOCuratorAgent(BaseAgent):
         }
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute memory management with LIVRPS composition semantics.
+
+        Manages cognitive memory using USD-inspired layer hierarchy where
+        higher layers override lower layers during resolution.
+
+        Args:
+            task: The task string to process and store in memory
+            context: Execution context including agent_results, burnout_level, etc.
+
+        Returns:
+            Dict containing:
+                - memory_architecture: "LIVRPS"
+                - active_mode: Current memory mode (focused/exploratory/recovery)
+                - resolution: Resolved memory state from all layers
+                - compression_state: Current compression status of layers
+                - principles_layer: Constitutional principles check result
+        """
         self.logger.info("Managing memory with LIVRPS composition...")
 
         # Detect appropriate memory mode
@@ -502,6 +527,24 @@ class DomainIntelligenceAgent(BaseAgent):
         return list(set(keywords))
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute multi-domain task analysis with keyword-based specialist routing.
+
+        Analyzes the task against all loaded domain configurations to identify
+        relevant specialists and build an analysis focus.
+
+        Args:
+            task: The task string to analyze for domain keywords
+            context: Execution context (unused but required for interface)
+
+        Returns:
+            Dict containing:
+                - domains_detected: List of detected domain names
+                - primary_domain: Highest-scoring domain
+                - specialists_activated: Dict of activated specialists
+                - analysis_focus: Set of analysis priorities
+                - domain_count: Number of domains checked
+        """
         self.logger.info(f"Analyzing task with multi-domain detection ({len(self.domains)} domains loaded)...")
 
         task_lower = task.lower()
@@ -806,7 +849,25 @@ class MoERouterAgent(BaseAgent):
         }
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute 5-phase V5 routing: ACTIVATE → WEIGHT → BOUND → SELECT → UPDATE."""
+        """
+        Execute 5-phase V5 routing: ACTIVATE -> WEIGHT -> BOUND -> SELECT -> UPDATE.
+
+        Routes tasks to intervention experts using a deterministic 5-phase pipeline
+        with safety floors to ensure critical experts remain available.
+
+        Args:
+            task: The task string to route
+            context: Execution context with seed for reproducibility
+
+        Returns:
+            Dict containing:
+                - selected_expert: Name of the selected expert
+                - activation_vector: Raw signal detection scores
+                - weighted_scores: After expert weight application
+                - bounded_scores: After safety floor enforcement
+                - safety_intervention: Whether safety floors changed the outcome
+                - expert_hash: Deterministic hash for reproducibility verification
+        """
         self.logger.info("V5 5-phase routing: ACTIVATE → WEIGHT → BOUND → SELECT → UPDATE")
 
         seed = context.get("seed", 42)
@@ -888,6 +949,23 @@ class WorldModelerAgent(BaseAgent):
         self.world_state = {}
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Build a world model with causal inference from task entities.
+
+        Extracts entities from the task and builds causal chains to model
+        relationships. Uses CORTEX-style energy state tracking.
+
+        Args:
+            task: The task string to extract entities from
+            context: Execution context (unused but required for interface)
+
+        Returns:
+            Dict containing:
+                - entities_detected: List of extracted entity names
+                - causal_chains: List of cause-effect relationships
+                - energy_state: Dict of quality metrics
+                - composite_energy: Aggregate energy score
+        """
         self.logger.info("Building world model with causal inference...")
 
         # Extract entities from task (simplified)
@@ -935,6 +1013,25 @@ class CodeGeneratorAgent(BaseAgent):
         self.generation_count = 0
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Generate code using evolutionary MNO proposer/solver pattern.
+
+        Simulates evolutionary code generation with population-based
+        improvement and fitness evaluation.
+
+        Args:
+            task: The task describing code to generate
+            context: Execution context with seed for reproducibility
+
+        Returns:
+            Dict containing:
+                - generation: Current generation number
+                - population_size: Number of candidates
+                - best_fitness: Fitness of best candidate
+                - candidates: List of code candidates with fitness
+                - proposer_active: Whether proposer generated new candidates
+                - solver_verified: Whether solver validated solutions
+        """
         self.logger.info("Generating code with evolutionary approach...")
 
         # Simulate evolutionary generation cycle
@@ -980,6 +1077,24 @@ class DeterminismGuardAgent(BaseAgent):
         )
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Enforce determinism constraints per ThinkingMachines batch-invariance.
+
+        Validates and configures determinism settings to ensure reproducible
+        outputs across runs with the same inputs.
+
+        Args:
+            task: The task string (used for logging)
+            context: Execution context with seed and agent_results to validate
+
+        Returns:
+            Dict containing:
+                - determinism_config: Required settings for reproducibility
+                - batch_invariance_enforced: Always True
+                - seed_locked: The locked seed value
+                - validation_results: Per-agent reproducibility validation
+                - reproducibility_guaranteed: Whether all checks passed
+        """
         self.logger.info("Enforcing determinism constraints...")
 
         seed = context.get("seed", 42)
@@ -1032,6 +1147,24 @@ class SelfReflectorAgent(BaseAgent):
         self.reflection_history = []
 
     async def execute(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Perform self-reflection and constitutional principle checking.
+
+        Evaluates the current state against constitutional principles using
+        RESONANCE ancestral wisdom and MCAW constitutional evaluation.
+
+        Args:
+            task: The task string to evaluate for principle alignment
+            context: Execution context with agent_results to review
+
+        Returns:
+            Dict containing:
+                - ancestral_check: RESONANCE wisdom consultation result
+                - constitutional_scores: Per-principle alignment scores
+                - overall_constitutional_score: Aggregate alignment
+                - reflection_depth: Number of reflection iterations
+                - improvements_suggested: List of suggested improvements
+        """
         self.logger.info("Performing self-reflection and constitutional check...")
 
         # RESONANCE ancestral wisdom check

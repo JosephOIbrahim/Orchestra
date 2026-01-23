@@ -9,6 +9,12 @@ Implements resource isolation to prevent one agent from starving others:
 The bulkhead pattern is named after ship bulkheads that prevent water
 from flooding the entire ship if one compartment is breached.
 
+References:
+    [1] Nygard, M.T. (2007). "Release It! Design and Deploy Production-Ready Software"
+        Pragmatic Bookshelf. ISBN: 978-0978739218
+        - Bulkhead pattern (Chapter 5: Stability Patterns)
+        - Named after ship compartmentalization to prevent cascading failures
+
 Usage:
     bulkhead = BulkheadExecutor(max_concurrent=3, queue_size_per_agent=10)
 

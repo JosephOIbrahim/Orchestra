@@ -1,0 +1,48 @@
+# Kubernetes ConfigMap for Framework Orchestrator
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: framework-orchestrator-config
+  labels:
+    app: framework-orchestrator
+data:
+  # Logging
+  log_level: "INFO"
+  log_format: "json"
+
+  # Timeouts (seconds)
+  agent_timeout: "30"
+  orchestration_timeout: "120"
+  shutdown_timeout: "10"
+
+  # Retry configuration
+  max_retries: "3"
+  retry_base_delay: "1.0"
+
+  # Circuit breaker
+  circuit_breaker_threshold: "5"
+  circuit_breaker_reset_timeout: "60"
+
+  # Bulkhead
+  max_concurrent_agents: "3"
+  agent_queue_size: "10"
+---
+# ConfigMap for domain configurations (example)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: framework-orchestrator-domains
+  labels:
+    app: framework-orchestrator
+data:
+  general.json: |
+    {
+      "name": "General",
+      "description": "General-purpose domain for any task type",
+      "specialists": {
+        "general": {
+          "keywords": ["task", "help", "assist"],
+          "analysis_focus": ["task_decomposition", "resource_estimation"]
+        }
+      }
+    }

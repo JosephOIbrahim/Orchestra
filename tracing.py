@@ -7,6 +7,18 @@ Implements OpenTelemetry-compatible tracing with:
 - Attribute recording for debugging
 - Export to Jaeger/Zipkin format
 
+References:
+    [1] OpenTelemetry Authors. (2019-2025). "OpenTelemetry Specification"
+        Cloud Native Computing Foundation (CNCF).
+        https://opentelemetry.io/
+        - W3C Trace Context propagation format
+        - Span hierarchy and attribute conventions
+
+    [2] Jaeger Authors. (2016-2025). "Jaeger: Open-Source Distributed Tracing"
+        Cloud Native Computing Foundation (CNCF).
+        https://www.jaegertracing.io/
+        - Trace export format compatibility
+
 Usage:
     tracer = DistributedTracer()
 

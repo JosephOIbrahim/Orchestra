@@ -8,6 +8,10 @@ A 7-agent async orchestration system that applies Pixar's USD (Universal Scene D
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![ORCID](https://img.shields.io/badge/ORCID-0009--0009--2689--4966-green.svg)](https://orcid.org/0009-0009-2689-4966)
+[![Tests](https://img.shields.io/badge/tests-180%2B%20passing-brightgreen.svg)](tests/)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)
+[![Helm](https://img.shields.io/badge/helm-ready-blue.svg)](helm/)
+[![Security](https://img.shields.io/badge/security-audited-green.svg)](SECURITY.md)
 
 ## The Thesis
 
@@ -83,6 +87,29 @@ Hash-based expert selection guarantees reproducibility:
 expert_index = int(hashlib.md5(task.encode()).hexdigest(), 16) % len(experts)
 ```
 
+### 5. v3.1.0 Production Hardening
+
+**Container-Ready Deployment:**
+- Multi-stage Dockerfile with non-root user
+- Docker Compose with Prometheus monitoring
+- Kubernetes manifests with probes and ConfigMaps
+
+**Operational HTTP API:**
+```bash
+# Health, readiness, liveness, and metrics endpoints
+curl http://localhost:8080/health   # Full health check
+curl http://localhost:8080/ready    # Kubernetes readiness
+curl http://localhost:8080/live     # Kubernetes liveness
+curl http://localhost:8080/metrics  # Prometheus format
+```
+
+**Resilience Enhancements:**
+- Retry jitter to prevent thundering herd
+- Correlation IDs for distributed tracing
+- Fail-fast environment validation
+
+**Test Coverage:** 180+ tests across 17 test suites covering chaos engineering, contracts, integration, performance, and all production modules.
+
 ## Architecture
 
 ![7-Agent Architecture](docs/images/architecture.png)
@@ -149,7 +176,46 @@ python -c "from framework_orchestrator import FrameworkOrchestrator; print('v3.1
 ### Run Tests
 ```bash
 pytest tests/ -v
-# 128 tests should pass
+# 180+ tests should pass
+```
+
+### Docker
+
+```bash
+# Build and run
+docker build -t framework-orchestrator .
+docker run -p 8080:8080 framework-orchestrator
+
+# With Docker Compose (includes Prometheus)
+docker-compose up -d
+docker-compose --profile monitoring up -d  # With Prometheus
+```
+
+### Kubernetes
+
+```bash
+# Deploy with Kustomize
+kubectl apply -k kubernetes/
+
+# Or individual manifests
+kubectl apply -f kubernetes/configmap.yaml
+kubectl apply -f kubernetes/deployment.yaml
+kubectl apply -f kubernetes/service.yaml
+```
+
+### Helm
+
+```bash
+# Install with Helm
+helm install framework-orchestrator ./helm/framework-orchestrator
+
+# With custom values
+helm install framework-orchestrator ./helm/framework-orchestrator \
+  --set replicaCount=3 \
+  --set config.maxParallelAgents=5
+
+# Upgrade
+helm upgrade framework-orchestrator ./helm/framework-orchestrator
 ```
 
 ## Quick Start
@@ -260,6 +326,12 @@ workspace/
 - [AGENTS.md](docs/AGENTS.md) - Detailed agent documentation
 - [CONFIGURATION.md](docs/CONFIGURATION.md) - Configuration reference
 
+### Operations
+- [SECURITY.md](SECURITY.md) - Security policy and vulnerability reporting
+- [SECURITY_CHECKLIST.md](docs/SECURITY_CHECKLIST.md) - Pre-deployment security checklist
+- [CHANGELOG.md](CHANGELOG.md) - Version history and release notes
+- [CITATIONS.md](CITATIONS.md) - Academic citations and acknowledgments
+
 ### Specification
 
 The theoretical specification is maintained in a separate repository for academic citation:
@@ -354,12 +426,47 @@ python cogroute_bench.py
 
 ## References
 
-1. Pixar Animation Studios. (2016). *Universal Scene Description*. https://graphics.pixar.com/usd/
+### Core Technologies
 
-2. He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
+1. **Pixar Animation Studios.** (2016). *Universal Scene Description*.
+   https://graphics.pixar.com/usd/ | [GitHub](https://github.com/PixarAnimationStudios/USD)
+   - LIVRPS composition semantics for cognitive state resolution
+
+2. **He, Horace and Thinking Machines Lab.** (2025). "Defeating Nondeterminism in LLM Inference."
+   *Thinking Machines Lab: Connectionism*, September 2025.
+   https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
+   - Batch-invariance for reproducible LLM execution
+
+3. **Zhang, S., Kraska, T., & Khattab, O.** (2025). "Recursive Language Models."
+   *arXiv:2512.24601*. https://arxiv.org/abs/2512.24601
+   - Program-environment paradigm for large context navigation
+
+### Resilience Patterns
+
+4. **Nygard, Michael T.** (2007). *Release It! Design and Deploy Production-Ready Software*.
+   Pragmatic Bookshelf. ISBN: 978-0978739218.
+   - Circuit breaker and bulkhead patterns
+
+5. **AWS Architecture Blog.** (2015). "Exponential Backoff And Jitter."
+   https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+   - Thundering herd prevention via jitter
+
+### Standards
+
+6. **OpenTelemetry Authors.** (2019-2025). *OpenTelemetry Specification*.
+   https://opentelemetry.io/
+   - Distributed tracing standards
+
+7. **Prometheus Authors.** (2012-2025). *Prometheus Monitoring System*.
+   https://prometheus.io/
+   - Metrics exposition format
+
+See [CITATIONS.md](CITATIONS.md) for complete attribution and BibTeX citations.
 
 ## Acknowledgments
 
-- Pixar's USD team for the composition semantics that inspired this architecture
-- The [ThinkingMachines](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) research on batch-invariance for LLM determinism
-- Claude (Anthropic) for collaborative development of the theoretical framework
+- **Pixar Animation Studios** - USD composition semantics that elegantly solve multi-source opinion resolution
+- **Thinking Machines Lab** (Horace He) - Rigorous research on LLM determinism enabling reproducible execution
+- **Zhang, Kraska, Khattab** - RLM paradigm for navigating data as external environment
+- **Cloud Native Computing Foundation** - OpenTelemetry, Prometheus, and Kubernetes standards
+- **Anthropic** (Claude) - Collaborative development of the theoretical framework

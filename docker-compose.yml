@@ -1,0 +1,71 @@
+# Docker Compose for Framework Orchestrator
+# Usage: docker-compose up -d
+
+version: '3.8'
+
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: framework-orchestrator
+    ports:
+      - "8080:8080"
+    environment:
+      # Workspace paths
+      - FO_WORKSPACE=/app/workspace
+      - FO_DOMAINS=/app/workspace/domains
+      # Logging
+      - FO_LOG_LEVEL=INFO
+      - FO_LOG_FORMAT=json
+      # Features
+      - FO_METRICS_ENABLED=true
+      - FO_TRACING_ENABLED=true
+      - FO_ENABLE_HEALTH_CHECK=true
+      - FO_ENABLE_CIRCUIT_BREAKER=true
+      - FO_ENABLE_BULKHEAD=true
+      # Timeouts
+      - FO_AGENT_TIMEOUT=30
+      - FO_ORCHESTRATION_TIMEOUT=120
+      - FO_SHUTDOWN_TIMEOUT=10
+    volumes:
+      # Persist workspace data
+      - orchestrator-workspace:/app/workspace
+      # Mount local domain configs (optional)
+      # - ./examples/domains:/app/workspace/domains:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/live')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - orchestrator-network
+
+  # Optional: Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: orchestrator-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    depends_on:
+      - orchestrator
+    networks:
+      - orchestrator-network
+    profiles:
+      - monitoring
+
+volumes:
+  orchestrator-workspace:
+  prometheus-data:
+
+networks:
+  orchestrator-network:
+    driver: bridge

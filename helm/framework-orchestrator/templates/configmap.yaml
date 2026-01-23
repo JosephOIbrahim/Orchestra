@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "framework-orchestrator.fullname" . }}-env
+  labels:
+    {{- include "framework-orchestrator.labels" . | nindent 4 }}
+data:
+  LOG_LEVEL: {{ .Values.config.logLevel | quote }}
+  LOG_FORMAT: {{ .Values.config.logFormat | quote }}
+  MAX_PARALLEL_AGENTS: {{ .Values.config.maxParallelAgents | quote }}
+  DEFAULT_TIMEOUT: {{ .Values.config.defaultTimeout | quote }}
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: {{ .Values.config.circuitBreakerFailureThreshold | quote }}
+  CIRCUIT_BREAKER_RESET_TIMEOUT: {{ .Values.config.circuitBreakerResetTimeout | quote }}
+  RETRY_MAX_ATTEMPTS: {{ .Values.config.retryMaxAttempts | quote }}
+  RETRY_BASE_DELAY: {{ .Values.config.retryBaseDelay | quote }}
+  RETRY_JITTER: {{ .Values.config.retryJitter | quote }}
+  RATE_LIMIT_REQUESTS: {{ .Values.config.rateLimitRequests | quote }}
+  RATE_LIMIT_WINDOW: {{ .Values.config.rateLimitWindow | quote }}
+  BULKHEAD_MAX_CONCURRENT: {{ .Values.config.bulkheadMaxConcurrent | quote }}
+  BULKHEAD_QUEUE_SIZE: {{ .Values.config.bulkheadQueueSize | quote }}
+  ENABLE_CHECKPOINTS: {{ .Values.config.enableCheckpoints | quote }}
+  CHECKPOINT_DIR: {{ .Values.config.checkpointDir | quote }}
+  DOMAINS_PATH: {{ .Values.config.domainsPath | quote }}
+  {{- if .Values.opentelemetry.enabled }}
+  OTEL_ENABLED: "true"
+  OTEL_ENDPOINT: {{ .Values.opentelemetry.endpoint | quote }}
+  {{- end }}
+---
+{{- if .Values.domainConfigs.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "framework-orchestrator.fullname" . }}-config
+  labels:
+    {{- include "framework-orchestrator.labels" . | nindent 4 }}
+data:
+  {{- range $name, $config := .Values.domainConfigs.configs }}
+  {{ $name }}.json: |
+    {{ $config | toJson }}
+  {{- end }}
+{{- end }}

@@ -56,7 +56,7 @@ Environment Variables:
     FO_ENABLE_IDEMPOTENCY - Enable safe retries
 """
 
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 __author__ = "Framework Ecosystem Integration"
 
 # Core orchestrator

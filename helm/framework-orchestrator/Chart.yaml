@@ -1,0 +1,45 @@
+apiVersion: v2
+name: framework-orchestrator
+description: USD Composition Semantics for AI Agent Orchestration - Helm Chart
+
+# Chart type: application (deployable) vs library (reusable)
+type: application
+
+# Chart version - increment on chart changes
+version: 1.0.0
+
+# Application version - matches Framework Orchestrator release
+appVersion: "3.1.0"
+
+# Kubernetes version compatibility
+kubeVersion: ">=1.23.0-0"
+
+# Chart metadata
+home: https://github.com/JosephOIbrahim/framework-orchestrator
+sources:
+  - https://github.com/JosephOIbrahim/framework-orchestrator
+
+maintainers:
+  - name: Joseph O. Ibrahim
+    url: https://github.com/JosephOIbrahim
+
+keywords:
+  - ai
+  - agents
+  - orchestration
+  - usd
+  - llm
+  - cognitive
+
+# Optional dependencies
+dependencies: []
+
+# Annotations for artifact hub and other registries
+annotations:
+  artifacthub.io/category: ai-machine-learning
+  artifacthub.io/license: MIT
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/JosephOIbrahim/framework-orchestrator/blob/main/README.md
+    - name: Specification
+      url: https://github.com/JosephOIbrahim/usd-cognitive-substrate
