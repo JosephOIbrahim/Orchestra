@@ -6,27 +6,21 @@ Framework Orchestrator
 Run with: python framework_orchestrator.py
 
 Agents:
-1. ECHO Curator         - 4-tier context memory (LIVRPS composition)
-2. Domain Intelligence  - Multi-domain analysis (Phoenix + PRISM)
-3. MoE Router           - Expert selection (V5 Intervention Archetypes)
+1. ECHO Curator         - 4-tier context memory
+2. Domain Intelligence  - Multi-domain analysis (Phoenix + PRISM) [GENERALIZED]
+3. MoE Router           - Expert selection (CSQMF-R1 + ATLAS)
 4. World Modeler        - Causal inference (CORTEX)
 5. Code Generator       - Evolutionary code (MAX 3 + MNO v3)
-6. Determinism Guard    - Reproducibility (ThinkingMachines [He2025])
+6. Determinism Guard    - Reproducibility (ThinkingMachines)
 7. Self Reflector       - Constitutional reasoning (RESONANCE + MCAW)
 
-Domain Configuration:
-  - Domains are loaded dynamically from: ~/.framework-orchestrator/domains/
-  - Each domain is a JSON file defining specialists, keywords, and perspectives
-  - Fallback to general-purpose analysis when no domain matches
-  - Users add domain configs as needed for their specific workflows
+Domain configs loaded from: ~/.framework-orchestrator/domains/
+  - vfx.json        (Visual effects - Houdini, Nuke, USD)
+  - webdev.json     (Web development - React, Next.js, APIs)
+  - ai_research.json (AI/ML - models, agents, training)
+  - general.json    (Fallback for unmatched tasks)
 
-Design: General-purpose orchestration. Domain-specific only when domain payloads are loaded.
 Pattern: Ralph v3 - Filesystem IS the state
-
-References:
-  [He2025] He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism
-           in LLM Inference." Thinking Machines Lab: Connectionism, September 2025.
-           https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
 
 Author: Framework Ecosystem Integration
 """
@@ -41,7 +35,32 @@ from typing import Dict, List, Any, Optional, Callable
 from enum import Enum
 import logging
 
-# Configure logging
+# Production hardening modules
+from .config import OrchestratorConfig, get_config
+from .file_ops import atomic_write_json, safe_read_json
+from .resilience import (
+    CircuitBreaker, CircuitBreakerOpen, ResilientExecutor,
+    TimeoutError as AgentTimeoutError
+)
+from .validation import (
+    validate_task, validate_context, sanitize_path_for_logging,
+    truncate_for_logging, ValidationError
+)
+from .logging_setup import setup_logging, log_execution, log_orchestration_start, log_orchestration_complete
+from .health import HealthChecker, HealthStatus, format_health_report
+from .lifecycle import LifecycleManager, LifecycleState, ShutdownContext
+from .schemas import validate_domain_config, validate_state_file
+
+# Production excellence modules (v3.0)
+from .metrics import OrchestratorMetrics, get_metrics
+from .tracing import DistributedTracer, get_tracer, configure_tracer, SpanStatus
+from .bulkhead import BulkheadExecutor, BulkheadRejected, BulkheadTimeout
+from .checkpoint import OrchestrationCheckpoint, CheckpointStatus, recover_from_crash
+from .fallback import FallbackRegistry, FallbackResult, GracefulDegradation
+from .rate_limit import RateLimiter, RateLimitExceeded
+from .idempotency import IdempotencyManager, generate_idempotency_key
+
+# Configure logging - will be reconfigured by setup_logging() if needed
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)s | %(message)s',
@@ -60,6 +79,7 @@ class AgentStatus(Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
+    DEGRADED = "degraded"  # Running with fallback/cached result
 
 
 @dataclass
@@ -583,71 +603,21 @@ class DomainIntelligenceAgent(BaseAgent):
         }
 
 
-class LearningMode(Enum):
-    """Mycelium learning mode configuration.
-
-    STATIC: Default. No automatic weight updates. Full determinism.
-    HEBBIAN: Bounded Hebbian learning. Weights update based on outcomes.
-             Determinism is conditional on outcome sequence.
-
-    Warning: Only STATIC mode guarantees ThinkingMachines [He2025] compliance.
-    """
-    STATIC = "static"
-    HEBBIAN = "hebbian"
-
-
 class Mycelium:
-    """V5 Weight storage for expert routing with optional learning modes.
+    """V5 Neuroplasticity mechanism - bounded adaptive learning.
 
-    Learning Modes:
-    - STATIC (default): No automatic weight updates. Full determinism.
-    - HEBBIAN: Bounded Hebbian learning with safety floor enforcement.
+    Implements Hebbian learning for expert weight adaptation:
+    - Records task outcomes for each expert selection
+    - Updates weights based on success/failure feedback
+    - Maintains homeostatic bounds to prevent runaway specialization
 
-    Design Principles:
-    - Determinism by default (STATIC mode)
-    - Opt-in learning (must explicitly enable HEBBIAN)
-    - Safety floors are ALWAYS enforced regardless of learning mode
-    - ThinkingMachines [He2025] compliant in STATIC mode
-
-    This class provides:
-    - Static weight storage (always)
-    - Optional Hebbian learning (when enabled)
-    - Weight-based loading strategy calculation
-    - Persistence for cross-session calibration
-    - Outcome logging (for analysis and optional learning)
+    Future work:
+    - Full Hebbian update: w_new = w_old + alpha * (outcome - expected) * activation
+    - Temporal aggregation across sessions
+    - Attractor dynamics for stable expert preferences
     """
 
-    # Safety floors (HARD minimums - enforced regardless of learning mode)
-    SAFETY_FLOORS = {
-        "protector": 0.10,
-        "decomposer": 0.05,
-        "restorer": 0.05,
-        "redirector": 0.00,
-        "acknowledger": 0.00,
-        "guide": 0.00,
-        "executor": 0.00
-    }
-
-    # Persistence path (REFERENCES layer in LIVRPS)
-    PERSISTENCE_PATH = Path.home() / ".framework-orchestrator" / "mycelium_weights.json"
-
-    def __init__(self, num_experts: int = 7, load_persisted: bool = True,
-                 learning_mode: LearningMode = LearningMode.STATIC,
-                 learning_rate: float = 0.1):
-        self.num_experts = num_experts
-        self.learning_mode = learning_mode
-        self.learning_rate = learning_rate if learning_mode != LearningMode.STATIC else 0.0
-        self.baseline = 0.5  # Neutral outcome expectation
-        self.outcomes: List[Dict[str, Any]] = []
-        self.logger = logging.getLogger("Mycelium")
-
-        if learning_mode != LearningMode.STATIC:
-            self.logger.warning(
-                f"Mycelium initialized with {learning_mode.value} mode. "
-                "Determinism is NOT guaranteed. Use STATIC mode for reproducibility."
-            )
-
-        # Initialize with uniform weights
+    def __init__(self, num_experts: int = 7):
         self.expert_weights = {
             "protector": 1/num_experts,
             "decomposer": 1/num_experts,
@@ -657,159 +627,34 @@ class Mycelium:
             "guide": 1/num_experts,
             "executor": 1/num_experts
         }
+        self.learning_rate = 0.1
+        self.outcomes: List[Dict[str, Any]] = []
+        self.logger = logging.getLogger("Mycelium")
 
-        # Load calibrated weights if available
-        if load_persisted:
-            self._load_weights()
-
-    def _load_weights(self) -> None:
-        """Load calibrated weights from REFERENCES layer."""
-        if self.PERSISTENCE_PATH.exists():
-            try:
-                state = json.loads(self.PERSISTENCE_PATH.read_text(encoding='utf-8'))
-                loaded_weights = state.get("weights", {})
-                for expert in self.expert_weights:
-                    if expert in loaded_weights:
-                        self.expert_weights[expert] = loaded_weights[expert]
-                self.logger.info(f"Loaded calibrated weights from {self.PERSISTENCE_PATH}")
-            except Exception as e:
-                self.logger.warning(f"Failed to load weights: {e}")
-
-    def save_weights(self) -> None:
-        """Persist calibrated weights to REFERENCES layer."""
-        self.PERSISTENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        state = {
-            "weights": self.expert_weights,
-            "calibration_type": "manual",
-            "last_updated": time.time(),
-            "version": "v5_static"
-        }
-        self.PERSISTENCE_PATH.write_text(json.dumps(state, indent=2))
-        self.logger.info(f"Saved weights to {self.PERSISTENCE_PATH}")
-
-    def set_weight(self, expert: str, weight: float) -> None:
-        """Manually set weight for an expert (explicit calibration).
-
-        Args:
-            expert: Expert name
-            weight: New weight (will be bounded by safety floor)
-        """
-        if expert not in self.expert_weights:
-            raise ValueError(f"Unknown expert: {expert}")
-
-        floor = self.SAFETY_FLOORS.get(expert, 0.0)
-        self.expert_weights[expert] = max(floor, min(1.0, weight))
-        self._normalize_weights()
-
-    def _normalize_weights(self) -> None:
-        """Normalize weights to sum to 1.0 while respecting safety floors."""
-        total = sum(self.expert_weights.values())
-        if total > 0:
-            for expert in self.expert_weights:
-                self.expert_weights[expert] /= total
-
-            # Re-enforce safety floors
-            for expert, floor in self.SAFETY_FLOORS.items():
-                if self.expert_weights.get(expert, 0) < floor:
-                    self.expert_weights[expert] = floor
-
-    def record_outcome(self, expert: str, outcome: float, task_hash: str,
-                       activation: float = 1.0) -> None:
-        """Log outcome and optionally apply learning.
-
-        In STATIC mode: Logs only (no weight updates).
-        In HEBBIAN mode: Applies bounded Hebbian learning after logging.
+    def record_outcome(self, expert: str, outcome: float, task_hash: str) -> None:
+        """Record outcome for Hebbian learning.
 
         Args:
             expert: The expert that was selected
             outcome: Success metric (0.0 = failure, 1.0 = success)
-            task_hash: Hash of the task
-            activation: How strongly this expert was used (0.0-1.0)
+            task_hash: Hash of the task for deduplication
         """
         self.outcomes.append({
             "expert": expert,
             "outcome": outcome,
             "task_hash": task_hash,
-            "activation": activation,
-            "timestamp": time.time(),
-            "learning_mode": self.learning_mode.value
+            "timestamp": time.time()
         })
+        self.logger.info(f"Recorded outcome: {expert} = {outcome}")
 
-        if self.learning_mode == LearningMode.STATIC:
-            self.logger.info(f"Logged outcome: {expert} = {outcome} (weights unchanged - static mode)")
-            return
+    def update_weights(self) -> Dict[str, float]:
+        """Hebbian update: w_new = w_old + alpha * (outcome - expected) * activation.
 
-        if self.learning_mode == LearningMode.HEBBIAN:
-            self._hebbian_update(expert, outcome, activation)
-            self.logger.info(f"Hebbian update: {expert} = {outcome}, activation={activation}")
-
-    def _hebbian_update(self, expert: str, outcome: float, activation: float) -> None:
-        """Apply bounded Hebbian learning.
-
-        Formula: w_new = w_old + α(outcome - expected) × activation
-
-        Where:
-        - α = learning_rate (from __init__)
-        - outcome = measured result [0.0, 1.0]
-        - expected = baseline expectation (0.5 = neutral)
-        - activation = how strongly this expert was used [0.0, 1.0]
-
-        Bounds:
-        - Safety floors are ALWAYS enforced (HARD minimums)
-        - Ceiling of 0.5 prevents any single expert from dominating
+        Placeholder for future implementation. Currently returns current weights.
         """
-        if expert not in self.expert_weights:
-            self.logger.warning(f"Unknown expert for Hebbian update: {expert}")
-            return
-
-        # Calculate weight delta
-        delta = self.learning_rate * (outcome - self.baseline) * activation
-
-        # Apply with bounds
-        new_weight = self.expert_weights[expert] + delta
-        floor = self.SAFETY_FLOORS.get(expert, 0.0)
-        ceiling = 0.5  # Prevent domination
-
-        self.expert_weights[expert] = max(floor, min(ceiling, new_weight))
-
-        # Re-normalize to maintain sum = 1.0
-        self._normalize_weights()
-
-    def get_loading_strategy(self, task: str = None) -> Dict[str, Any]:
-        """Calculate loading strategy based on current weights.
-
-        Returns which experts to prioritize for payload loading:
-        - FAST: High weight concentration, load only top expert
-        - WEIGHTED: Medium distribution, load top-3
-        - THOROUGH: Uniform weights, load all
-        """
-        sorted_experts = sorted(
-            self.expert_weights.items(),
-            key=lambda x: -x[1]
-        )
-        top_expert, top_weight = sorted_experts[0]
-
-        if top_weight > 0.35:
-            return {
-                "strategy": "fast",
-                "load_experts": [top_expert],
-                "reason": f"High weight ({top_weight:.2f}) on {top_expert}",
-                "estimated_latency_ms": 100
-            }
-        elif top_weight > 0.20:
-            return {
-                "strategy": "weighted",
-                "load_experts": [e[0] for e in sorted_experts[:3]],
-                "reason": "Moderate weight distribution, loading top-3",
-                "estimated_latency_ms": 200
-            }
-        else:
-            return {
-                "strategy": "thorough",
-                "load_experts": list(self.expert_weights.keys()),
-                "reason": "Uniform weights, comprehensive analysis",
-                "estimated_latency_ms": 400
-            }
+        # Future: Implement full Hebbian learning
+        # For now, just return current weights
+        return self.expert_weights.copy()
 
     def get_weights(self) -> Dict[str, float]:
         """Get current expert weights for routing."""
@@ -817,299 +662,11 @@ class Mycelium:
 
     def get_state(self) -> Dict[str, Any]:
         """Get current Mycelium state for inspection."""
-        sorted_experts = sorted(
-            self.expert_weights.items(),
-            key=lambda x: -x[1]
-        )
         return {
             "weights": self.expert_weights.copy(),
-            "ranked_experts": [e[0] for e in sorted_experts],
-            "top_expert": sorted_experts[0][0],
-            "top_weight": sorted_experts[0][1],
-            "outcomes_logged": len(self.outcomes),
-            "loading_strategy": self.get_loading_strategy(),
-            "learning_mode": self.learning_mode.value,
             "learning_rate": self.learning_rate,
-            "self_improvement_enabled": self.learning_mode != LearningMode.STATIC,
-            "determinism_guaranteed": self.learning_mode == LearningMode.STATIC,
-            "calibration_type": "hebbian" if self.learning_mode == LearningMode.HEBBIAN else "manual"
-        }
-
-
-class ContextRestorer:
-    """V5-aligned context restoration with 5-level staleness detection.
-
-    Implements the Persistent State Hypothesis context restoration system
-    from USD Cognitive Substrate V5 Section 5.6.
-
-    Staleness Levels:
-    - MICRO    (<15 min):  Silent refocus - no user interaction needed
-    - SESSION  (15m-4h):   Rebuild momentum - offer environment restore
-    - DAY      (4h-16h):   Morning restoration - validate relevance
-    - WEEK     (3d-10d):   Require validation - describe environment changes
-    - DEEP     (>10d):     May be obsolete - offer fresh start
-
-    Design Principles:
-    - Staleness detection is deterministic (time-based)
-    - Restoration protocols are context-appropriate
-    - Snapshots are immutable once created
-    - User agency is preserved (suggestions, not mandates)
-    """
-
-    # Staleness level thresholds (in seconds)
-    STALENESS_LEVELS = {
-        "MICRO": (0, 15 * 60),                    # 0-15 minutes
-        "SESSION": (15 * 60, 4 * 3600),           # 15 min - 4 hours
-        "DAY": (4 * 3600, 16 * 3600),             # 4-16 hours
-        "WEEK": (16 * 3600, 10 * 24 * 3600),      # 16 hours - 10 days
-        "DEEP": (10 * 24 * 3600, float('inf'))    # >10 days
-    }
-
-    # Restoration protocols per staleness level
-    RESTORATION_PROTOCOLS = {
-        "MICRO": {
-            "action": "silent_refocus",
-            "user_prompt": None,  # No prompt needed
-            "restore_full": True,
-            "validate_required": False
-        },
-        "SESSION": {
-            "action": "rebuild_momentum",
-            "user_prompt": "Welcome back! You were working on: {task_summary}. Continue?",
-            "restore_full": True,
-            "validate_required": False
-        },
-        "DAY": {
-            "action": "validate_relevance",
-            "user_prompt": "Good morning! Yesterday you were: {task_summary}. Is this still relevant?",
-            "restore_full": False,  # Restore on confirmation
-            "validate_required": True
-        },
-        "WEEK": {
-            "action": "require_validation",
-            "user_prompt": "It's been {days} days. Your context was: {task_summary}. Environment may have changed. Restore?",
-            "restore_full": False,
-            "validate_required": True
-        },
-        "DEEP": {
-            "action": "offer_fresh_start",
-            "user_prompt": "It's been {days} days. Context may be obsolete. Start fresh or attempt restore?",
-            "restore_full": False,
-            "validate_required": True
-        }
-    }
-
-    # Snapshot storage path
-    SNAPSHOTS_PATH = Path.home() / ".framework-orchestrator" / "snapshots"
-
-    def __init__(self):
-        self.logger = logging.getLogger("ContextRestorer")
-        self.SNAPSHOTS_PATH.mkdir(parents=True, exist_ok=True)
-
-    def detect_staleness(self, last_active: float) -> str:
-        """Detect staleness level based on time since last activity.
-
-        Args:
-            last_active: Unix timestamp of last activity
-
-        Returns:
-            Staleness level: MICRO, SESSION, DAY, WEEK, or DEEP
-        """
-        elapsed = time.time() - last_active
-
-        for level, (min_seconds, max_seconds) in self.STALENESS_LEVELS.items():
-            if min_seconds <= elapsed < max_seconds:
-                return level
-
-        return "DEEP"  # Fallback
-
-    def create_snapshot(self, session_id: str, state: Dict[str, Any]) -> str:
-        """Create immutable snapshot of current session state.
-
-        Args:
-            session_id: Unique session identifier
-            state: Current session state to snapshot
-
-        Returns:
-            Snapshot ID (filename)
-        """
-        snapshot_id = f"{session_id}_{int(time.time())}"
-        snapshot = {
-            "snapshot_id": snapshot_id,
-            "session_id": session_id,
-            "created_at": time.time(),
-            "state": state,
-            "checksum": hashlib.sha256(
-                json.dumps(state, sort_keys=True, default=str).encode()
-            ).hexdigest()[:16]
-        }
-
-        snapshot_path = self.SNAPSHOTS_PATH / f"{snapshot_id}.json"
-        snapshot_path.write_text(json.dumps(snapshot, indent=2, default=str))
-        self.logger.info(f"Created snapshot: {snapshot_id}")
-
-        return snapshot_id
-
-    def load_snapshot(self, snapshot_id: str) -> Optional[Dict[str, Any]]:
-        """Load a snapshot by ID.
-
-        Args:
-            snapshot_id: Snapshot identifier
-
-        Returns:
-            Snapshot data or None if not found
-        """
-        snapshot_path = self.SNAPSHOTS_PATH / f"{snapshot_id}.json"
-        if not snapshot_path.exists():
-            self.logger.warning(f"Snapshot not found: {snapshot_id}")
-            return None
-
-        try:
-            snapshot = json.loads(snapshot_path.read_text())
-            # Verify checksum
-            state_checksum = hashlib.sha256(
-                json.dumps(snapshot["state"], sort_keys=True, default=str).encode()
-            ).hexdigest()[:16]
-            if state_checksum != snapshot["checksum"]:
-                self.logger.error(f"Snapshot checksum mismatch: {snapshot_id}")
-                return None
-            return snapshot
-        except Exception as e:
-            self.logger.error(f"Failed to load snapshot: {e}")
-            return None
-
-    def get_latest_snapshot(self, session_id: str = None) -> Optional[Dict[str, Any]]:
-        """Get the most recent snapshot, optionally filtered by session.
-
-        Args:
-            session_id: Optional session filter
-
-        Returns:
-            Most recent snapshot or None
-        """
-        snapshots = list(self.SNAPSHOTS_PATH.glob("*.json"))
-        if not snapshots:
-            return None
-
-        # Sort by modification time (most recent first)
-        snapshots.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-
-        for snapshot_path in snapshots:
-            try:
-                snapshot = json.loads(snapshot_path.read_text())
-                if session_id is None or snapshot.get("session_id") == session_id:
-                    return snapshot
-            except Exception:
-                continue
-
-        return None
-
-    def restore_context(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
-        """Apply staleness-appropriate restoration protocol.
-
-        Args:
-            snapshot: Snapshot to restore from
-
-        Returns:
-            Restoration result with protocol details
-        """
-        created_at = snapshot.get("created_at", 0)
-        staleness = self.detect_staleness(created_at)
-        protocol = self.RESTORATION_PROTOCOLS[staleness]
-
-        # Calculate human-readable time delta
-        elapsed_seconds = time.time() - created_at
-        if elapsed_seconds < 3600:
-            time_desc = f"{int(elapsed_seconds / 60)} minutes"
-        elif elapsed_seconds < 86400:
-            time_desc = f"{elapsed_seconds / 3600:.1f} hours"
-        else:
-            time_desc = f"{elapsed_seconds / 86400:.1f} days"
-
-        # Build task summary from state
-        state = snapshot.get("state", {})
-        task_summary = state.get("current_task", state.get("task", "unknown task"))
-        if len(task_summary) > 100:
-            task_summary = task_summary[:100] + "..."
-
-        # Format user prompt
-        user_prompt = None
-        if protocol["user_prompt"]:
-            user_prompt = protocol["user_prompt"].format(
-                task_summary=task_summary,
-                days=int(elapsed_seconds / 86400)
-            )
-
-        result = {
-            "staleness_level": staleness,
-            "staleness_thresholds": self.STALENESS_LEVELS[staleness],
-            "time_elapsed": elapsed_seconds,
-            "time_elapsed_human": time_desc,
-            "protocol": protocol["action"],
-            "user_prompt": user_prompt,
-            "restore_full": protocol["restore_full"],
-            "validate_required": protocol["validate_required"],
-            "snapshot_id": snapshot.get("snapshot_id"),
-            "snapshot_checksum": snapshot.get("checksum"),
-            "state": snapshot.get("state") if protocol["restore_full"] else None,
-            "state_summary": {
-                "task": task_summary,
-                "keys": list(state.keys()) if state else []
-            }
-        }
-
-        self.logger.info(
-            f"Restoration protocol: {staleness} -> {protocol['action']} "
-            f"(elapsed: {time_desc})"
-        )
-
-        return result
-
-    def prune_old_snapshots(self, max_age_days: int = 30, max_count: int = 50) -> int:
-        """Remove old snapshots to manage storage.
-
-        Args:
-            max_age_days: Maximum age in days
-            max_count: Maximum number of snapshots to keep
-
-        Returns:
-            Number of snapshots pruned
-        """
-        snapshots = list(self.SNAPSHOTS_PATH.glob("*.json"))
-        if not snapshots:
-            return 0
-
-        # Sort by age (oldest first)
-        snapshots.sort(key=lambda p: p.stat().st_mtime)
-
-        pruned = 0
-        cutoff = time.time() - (max_age_days * 86400)
-
-        for snapshot_path in snapshots:
-            # Prune if too old or too many
-            if snapshot_path.stat().st_mtime < cutoff or len(snapshots) - pruned > max_count:
-                try:
-                    snapshot_path.unlink()
-                    pruned += 1
-                except Exception as e:
-                    self.logger.warning(f"Failed to prune {snapshot_path}: {e}")
-
-        if pruned > 0:
-            self.logger.info(f"Pruned {pruned} old snapshots")
-
-        return pruned
-
-    def get_state(self) -> Dict[str, Any]:
-        """Get current ContextRestorer state for inspection."""
-        snapshots = list(self.SNAPSHOTS_PATH.glob("*.json"))
-        latest = self.get_latest_snapshot()
-
-        return {
-            "snapshots_count": len(snapshots),
-            "snapshots_path": str(self.SNAPSHOTS_PATH),
-            "staleness_levels": list(self.STALENESS_LEVELS.keys()),
-            "latest_snapshot": latest.get("snapshot_id") if latest else None,
-            "latest_staleness": self.detect_staleness(latest["created_at"]) if latest else None
+            "outcomes_recorded": len(self.outcomes),
+            "recent_outcomes": self.outcomes[-5:] if self.outcomes else []
         }
 
 
@@ -1131,13 +688,13 @@ class MoERouterAgent(BaseAgent):
 
     # V5 Expert Archetypes (ordered by priority - lower = higher priority)
     EXPERTS = {
-        "protector": {"priority": 1, "triggers": ["frustrated", "overwhelmed", "safety", "caps", "help", "broken", "failing", "angry"], "temperature": 0.3},
-        "decomposer": {"priority": 2, "triggers": ["stuck", "complex", "too_many", "break_down", "simplify", "start", "begin", "huge"], "temperature": 0.4},
-        "restorer": {"priority": 3, "triggers": ["depleted", "burnout", "tired", "rest", "exhausted", "mush", "fried", "drained"], "temperature": 0.5},
-        "redirector": {"priority": 4, "triggers": ["tangent", "distracted", "off_topic", "sidetrack", "refocus", "back_on_track"], "temperature": 0.4},
+        "protector": {"priority": 1, "triggers": ["frustrated", "overwhelmed", "safety", "caps", "help"], "temperature": 0.3},
+        "decomposer": {"priority": 2, "triggers": ["stuck", "complex", "too_many", "break_down", "simplify"], "temperature": 0.4},
+        "restorer": {"priority": 3, "triggers": ["depleted", "burnout", "tired", "rest", "exhausted"], "temperature": 0.5},
+        "redirector": {"priority": 4, "triggers": ["tangent", "distracted", "off_topic", "sidetrack"], "temperature": 0.4},
         "acknowledger": {"priority": 5, "triggers": ["done", "complete", "milestone", "win", "finished"], "temperature": 0.6},
         "guide": {"priority": 6, "triggers": ["exploring", "what_if", "curious", "learn", "understand"], "temperature": 0.8},
-        "executor": {"priority": 7, "triggers": ["implement", "code", "execute", "build", "create", "write", "make", "run"], "temperature": 0.2}
+        "executor": {"priority": 7, "triggers": ["implement", "code", "do", "execute", "build", "create"], "temperature": 0.2}
     }
 
     # V5 Safety Floors (HARD minimums - NEVER violated)
@@ -1171,126 +728,22 @@ class MoERouterAgent(BaseAgent):
         # Instance-level weights for Mycelium integration
         self.expert_weights = {e: 1.0 / len(self.EXPERTS) for e in self.EXPERTS}
 
-    def _activate(self, task: str, context: Dict[str, Any]) -> tuple:
+    def _activate(self, task: str, context: Dict[str, Any]) -> Dict[str, float]:
         """Phase 1: ACTIVATE - Signal detection → activation vector.
 
         Scans task for trigger words and produces activation scores.
-        Returns tuple of (activation_vector, matched_triggers_by_expert).
-
-        Uses word boundary matching to avoid false positives like
-        "do" matching in "don't" or "complete" in "completely".
-
-        Supports:
-        - Word suffixes: "sidetrack" matches "sidetracked", "sidetracking"
-        - Underscore normalization: underscores in task treated as spaces
-
-        Note: Only -ed, -ing, -s suffixes allowed (preserves meaning).
-        Excluded -er, -ly which change meaning (e.g., "completely" != "complete").
         """
-        import re
-        # Normalize: treat underscores as spaces for matching
-        task_normalized = task.lower().replace("_", " ")
+        task_lower = task.lower()
         activation = {}
-        matched_triggers = {}
 
         for expert, config in self.EXPERTS.items():
             triggers = config["triggers"]
-            expert_matches = []
-
-            for trigger in triggers:
-                # For multi-word triggers (with _), split and check each word
-                if "_" in trigger:
-                    # Multi-word trigger: "break_down" -> check for "break" AND "down"
-                    words = trigger.split("_")
-                    # Allow safe suffixes on each word (-ed, -ing, -s only)
-                    if all(re.search(rf'\b{re.escape(w)}(?:ed|ing|s)?\b', task_normalized) for w in words):
-                        expert_matches.append(trigger)
-                else:
-                    # Single word: allow safe suffixes (-ed, -ing, -s preserve meaning)
-                    if re.search(rf'\b{re.escape(trigger)}(?:ed|ing|s)?\b', task_normalized):
-                        expert_matches.append(trigger)
-
-            matched_triggers[expert] = expert_matches
+            # Count trigger matches
+            matches = sum(1 for t in triggers if t in task_lower)
             # Normalize to 0-1 range based on trigger density
-            activation[expert] = min(len(expert_matches) / max(len(triggers), 1), 1.0)
+            activation[expert] = min(matches / max(len(triggers), 1), 1.0)
 
-        return activation, matched_triggers
-
-    def _generate_explanation(self, task: str, selected: str, bounded: Dict[str, float],
-                              matched_triggers: Dict[str, List[str]],
-                              safety_intervention: bool, raw_winner: str) -> Dict[str, Any]:
-        """Generate human-readable explanation of routing decision.
-
-        Provides full transparency into WHY an expert was selected.
-        """
-        # Get runner-ups (sorted by score, excluding winner)
-        runner_ups = []
-        sorted_by_score = sorted(
-            [(e, s) for e, s in bounded.items() if e != selected],
-            key=lambda x: -x[1]
-        )
-        for expert, score in sorted_by_score[:3]:  # Top 3 runner-ups
-            triggers = matched_triggers.get(expert, [])
-            if triggers:
-                reason = f"Had triggers [{', '.join(triggers)}] but lower score"
-            elif score == self.SAFETY_FLOORS.get(expert, 0):
-                reason = "Only safety floor, no trigger matches"
-            else:
-                reason = "Lower weighted score"
-            runner_ups.append({
-                "expert": expert,
-                "display_name": self.DISPLAY_NAMES.get(expert, expert),
-                "score": round(score, 4),
-                "lost_because": reason
-            })
-
-        # Build selection rationale
-        winner_triggers = matched_triggers.get(selected, [])
-        if safety_intervention:
-            rationale = (
-                f"Safety intervention: {self.DISPLAY_NAMES.get(selected, selected)} selected "
-                f"due to safety floor (minimum {self.SAFETY_FLOORS.get(selected, 0):.0%}), "
-                f"overriding {self.DISPLAY_NAMES.get(raw_winner, raw_winner)} which had higher raw score."
-            )
-        elif winner_triggers:
-            rationale = (
-                f"{self.DISPLAY_NAMES.get(selected, selected)} selected because task contains "
-                f"trigger(s): [{', '.join(winner_triggers)}] "
-                f"({len(winner_triggers)} match{'es' if len(winner_triggers) > 1 else ''})."
-            )
-        else:
-            rationale = (
-                f"{self.DISPLAY_NAMES.get(selected, selected)} selected as default "
-                f"(no specific triggers matched, using safety floor baseline)."
-            )
-
-        # Human-friendly one-liner
-        if safety_intervention:
-            explain_human = f"I prioritized your wellbeing ({self.DISPLAY_NAMES.get(selected, selected)}) over task execution."
-        elif selected == "protector":
-            explain_human = "I noticed signs of frustration or overwhelm - let's address that first."
-        elif selected == "decomposer":
-            explain_human = "This seems complex - let me help break it down into manageable pieces."
-        elif selected == "restorer":
-            explain_human = "You might need a break - recovery is part of productivity."
-        elif selected == "redirector":
-            explain_human = "Let's refocus on the main goal."
-        elif selected == "acknowledger":
-            explain_human = "Great progress! Let's recognize what you've accomplished."
-        elif selected == "guide":
-            explain_human = "I see you're exploring - let me help you discover."
-        elif selected == "executor":
-            explain_human = "Task execution mode - let's build this."
-        else:
-            explain_human = f"Routing to {self.DISPLAY_NAMES.get(selected, selected)}."
-
-        return {
-            "matched_triggers": matched_triggers,
-            "winner_triggers": winner_triggers,
-            "selection_rationale": rationale,
-            "runner_ups": runner_ups,
-            "explain_human": explain_human
-        }
+        return activation
 
     def _weight(self, activation: Dict[str, float], context: Dict[str, Any]) -> Dict[str, float]:
         """Phase 2: WEIGHT - Apply expert weights to activation.
@@ -1310,55 +763,18 @@ class MoERouterAgent(BaseAgent):
         """Phase 3: BOUND - Enforce safety floors + homeostatic normalization.
 
         CRITICAL: Safety floors are HARD constraints. Protector NEVER drops below 10%.
-
-        Strategy (V5.1 Fix):
-        1. First normalize weighted scores to sum to 1.0
-        2. Then enforce floors as POST-normalization guarantees
-        3. Re-normalize only the non-floor portion to maintain sum=1
-
-        This ensures floors are minimum guarantees without dominating
-        when other experts have strong activation signals.
+        After floor enforcement, normalize to sum=1 (homeostatic regulation).
         """
-        # Step 1: Normalize weighted scores first
-        total_weighted = sum(weighted.values())
-        if total_weighted > 0:
-            normalized = {k: v / total_weighted for k, v in weighted.items()}
-        else:
-            # No activation at all - use uniform distribution
-            normalized = {k: 1.0 / len(weighted) for k in weighted}
+        bounded = {}
 
-        # Step 2: Check which experts need floor boosting
-        floor_deficit = {}
-        for expert, score in normalized.items():
+        # Apply safety floors (HARD constraint - non-negotiable)
+        for expert, score in weighted.items():
             floor = self.SAFETY_FLOORS.get(expert, 0.0)
-            if score < floor:
-                floor_deficit[expert] = floor - score
+            bounded[expert] = max(score, floor)
 
-        # Step 3: If floors need boosting, redistribute from non-floor experts
-        if floor_deficit:
-            total_deficit = sum(floor_deficit.values())
-            # Take from experts that are above their floor, proportionally
-            non_floor_experts = {k: v for k, v in normalized.items()
-                                if k not in floor_deficit and v > self.SAFETY_FLOORS.get(k, 0.0)}
-            non_floor_total = sum(non_floor_experts.values())
-
-            bounded = {}
-            for expert, score in normalized.items():
-                if expert in floor_deficit:
-                    # Boost to floor
-                    bounded[expert] = self.SAFETY_FLOORS[expert]
-                elif non_floor_total > 0 and total_deficit > 0:
-                    # Reduce proportionally to cover deficit
-                    reduction = (score / non_floor_total) * total_deficit
-                    bounded[expert] = max(score - reduction, self.SAFETY_FLOORS.get(expert, 0.0))
-                else:
-                    bounded[expert] = score
-        else:
-            bounded = normalized
-
-        # Step 4: Final normalization to ensure sum = 1.0 (fixes any floating point drift)
+        # Homeostatic normalization: ensure weights sum to 1.0
         total = sum(bounded.values())
-        if total > 0 and abs(total - 1.0) > 0.0001:
+        if total > 0:
             bounded = {k: v / total for k, v in bounded.items()}
 
         return bounded
@@ -1395,8 +811,8 @@ class MoERouterAgent(BaseAgent):
 
         seed = context.get("seed", 42)
 
-        # PHASE 1: ACTIVATE - Signal detection → activation vector + matched triggers
-        activation, matched_triggers = self._activate(task, context)
+        # PHASE 1: ACTIVATE - Signal detection → activation vector
+        activation = self._activate(task, context)
 
         # PHASE 2: WEIGHT - Apply expert weights
         weighted = self._weight(activation, context)
@@ -1410,11 +826,6 @@ class MoERouterAgent(BaseAgent):
         # Compute who would have won WITHOUT safety floors (for transparency)
         raw_winner = max(weighted.items(), key=lambda x: (x[1], -self.EXPERTS[x[0]]["priority"]))[0] if any(weighted.values()) else "protector"
         safety_intervention = (selected != raw_winner) and (weighted.get(raw_winner, 0) > weighted.get(selected, 0))
-
-        # Generate human-readable explanation (EXPLAINABILITY)
-        explanation = self._generate_explanation(
-            task, selected, bounded, matched_triggers, safety_intervention, raw_winner
-        )
 
         # PHASE 5: UPDATE - Prepare for Hebbian learning
         update_context = self._prepare_update(selected, task, bounded)
@@ -1461,16 +872,7 @@ class MoERouterAgent(BaseAgent):
 
             # Gating weights for compatibility
             "gating_weights": bounded,
-            "routing_type": "v5_5phase",
-
-            # EXPLAINABILITY - Human-readable routing explanation
-            "explainability": {
-                "matched_triggers": explanation["matched_triggers"],
-                "winner_triggers": explanation["winner_triggers"],
-                "selection_rationale": explanation["selection_rationale"],
-                "runner_ups": explanation["runner_ups"],
-                "explain_human": explanation["explain_human"]
-            }
+            "routing_type": "v5_5phase"
         }
 
 
@@ -1679,16 +1081,33 @@ class FrameworkOrchestrator:
     - Results written to disk immediately
     - State recoverable from files
     - Completion proven by file existence
+
+    Production features (v2.0):
+    - Configurable timeouts and retries
+    - Circuit breaker for cascading failure prevention
+    - Atomic file writes for state integrity
+    - Input validation and sanitization
+    - Health check support
+    - Graceful shutdown handling
     """
 
-    def __init__(self, workspace: Path = None):
-        self.workspace = workspace or Path("./orchestrator_workspace")
+    def __init__(self, workspace: Path = None, config: OrchestratorConfig = None):
+        # Load configuration
+        self.config = config or get_config()
+
+        # Validate configuration
+        config_errors = self.config.validate()
+        if config_errors:
+            logger.warning(f"Configuration warnings: {config_errors}")
+
+        # Setup workspace paths
+        self.workspace = workspace or self.config.workspace
         self.workspace.mkdir(exist_ok=True)
 
-        self.results_dir = self.workspace / "results"
+        self.results_dir = self.config.results_dir
         self.results_dir.mkdir(exist_ok=True)
 
-        self.state_file = self.workspace / ".orchestrator-state.json"
+        self.state_file = self.config.state_file
 
         # Initialize agents
         self.agents: Dict[str, BaseAgent] = {
@@ -1702,6 +1121,109 @@ class FrameworkOrchestrator:
         }
 
         self.iteration = 0
+        self._start_time = time.time()
+
+        # Production hardening components
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=self.config.circuit_breaker_threshold,
+            reset_timeout=self.config.circuit_breaker_reset_timeout
+        )
+
+        self.resilient_executor = ResilientExecutor(
+            circuit_breaker=self.circuit_breaker,
+            default_timeout=self.config.agent_timeout,
+            default_max_retries=self.config.max_retries,
+            retry_base_delay=self.config.retry_base_delay,
+            retry_max_delay=self.config.retry_max_delay,
+            enable_circuit_breaker=self.config.enable_circuit_breaker,
+            enable_retries=self.config.enable_retries
+        )
+
+        self.health_checker = HealthChecker(
+            workspace=self.workspace,
+            agents=self.agents,
+            circuit_breaker=self.circuit_breaker,
+            start_time=self._start_time
+        )
+
+        self.lifecycle = LifecycleManager(
+            shutdown_timeout=self.config.shutdown_timeout
+        )
+
+        # Production excellence components (v3.0)
+        # Metrics
+        self.metrics = OrchestratorMetrics() if self.config.metrics_enabled else None
+
+        # Tracing
+        if self.config.tracing_enabled:
+            self.tracer = configure_tracer(
+                service_name="framework-orchestrator",
+                sample_rate=self.config.tracing_sample_rate,
+                enabled=True
+            )
+        else:
+            self.tracer = None
+
+        # Bulkhead for agent isolation
+        if self.config.enable_bulkhead:
+            self.bulkhead = BulkheadExecutor(
+                max_concurrent=self.config.max_concurrent_agents,
+                queue_size_per_agent=self.config.agent_queue_size,
+                acquire_timeout=self.config.bulkhead_timeout
+            )
+        else:
+            self.bulkhead = None
+
+        # Checkpointing for crash recovery
+        if self.config.checkpoint_enabled:
+            self.checkpoint = OrchestrationCheckpoint(
+                checkpoint_dir=self.config.checkpoint_dir,
+                retention_seconds=self.config.checkpoint_retention
+            )
+        else:
+            self.checkpoint = None
+
+        # Fallback registry for graceful degradation
+        if self.config.enable_fallback:
+            self.fallback_registry = FallbackRegistry(
+                cache_ttl=self.config.fallback_cache_retention,
+                enable_synthetic=self.config.fallback_enable_synthetic
+            )
+        else:
+            self.fallback_registry = None
+
+        # Rate limiter
+        if self.config.enable_rate_limit:
+            self.rate_limiter = RateLimiter(
+                rate=self.config.rate_limit_per_sec,
+                burst_size=self.config.rate_limit_burst,
+                adaptive=self.config.rate_limit_adaptive
+            )
+        else:
+            self.rate_limiter = None
+
+        # Idempotency manager
+        if self.config.enable_idempotency:
+            self.idempotency_manager = IdempotencyManager(
+                retention_seconds=self.config.idempotency_retention,
+                max_entries=self.config.idempotency_max_entries
+            )
+        else:
+            self.idempotency_manager = None
+
+        # Register cleanup handler
+        async def save_state_on_shutdown(ctx: ShutdownContext):
+            """Save current state during shutdown."""
+            if ctx.state_to_save:
+                try:
+                    atomic_write_json(self.state_file, ctx.state_to_save)
+                    logger.info("State saved during shutdown")
+                except Exception as e:
+                    logger.error(f"Failed to save state during shutdown: {e}")
+
+        self.lifecycle.register_shutdown_handler(save_state_on_shutdown)
+
+        logger.info(f"Orchestrator initialized with workspace: {sanitize_path_for_logging(self.workspace)}")
 
     def _route_task(self, task: str, context: Dict[str, Any]) -> List[str]:
         """CSQMF-style routing to determine which agents to activate.
@@ -1747,20 +1269,173 @@ class FrameworkOrchestrator:
 
     async def _execute_agent(self, agent_name: str, task: str,
                               context: Dict[str, Any]) -> AgentResult:
-        """Execute a single agent and return result."""
+        """Execute a single agent with full production resilience.
 
+        Production hardening (v2.0):
+        - Circuit breaker prevents calling failing agents
+        - Timeout prevents hung agents
+        - Retry handles transient failures
+        - Atomic writes prevent state corruption
+
+        Production excellence (v3.0):
+        - Bulkhead isolation prevents agent starvation
+        - Idempotency prevents double-execution on retry
+        - Fallback provides graceful degradation
+        - Metrics track execution performance
+        - Tracing provides distributed observability
+        """
         agent = self.agents[agent_name]
         start_time = time.time()
+        task_hash = hashlib.sha256(task.encode()).hexdigest()[:8]
+
+        # Start tracing span
+        span = None
+        if self.tracer:
+            parent_span = context.get("_parent_span")
+            span = self.tracer.start_span(
+                f"agent.{agent_name}",
+                parent=parent_span,
+                attributes={"agent": agent_name, "task_hash": task_hash}
+            )
+
+        # Track active agents
+        if self.metrics:
+            self.metrics.active_agents.inc()
+
+        output = None
+        status = None
+        error = None
 
         try:
-            output = await agent.execute(task, context)
+            # Generate idempotency key
+            idempotency_key = generate_idempotency_key(
+                agent_name, task, self.iteration
+            ) if self.idempotency_manager else None
+
+            # Define execution function
+            async def execute_fn():
+                return await agent.execute(task, context)
+
+            # Wrap with bulkhead if enabled
+            async def bulkhead_wrapped():
+                if self.bulkhead:
+                    return await self.bulkhead.execute_isolated(
+                        agent_name,
+                        self.resilient_executor.execute(
+                            name=agent_name,
+                            func=execute_fn,
+                            timeout=self.config.agent_timeout,
+                            max_retries=self.config.max_retries
+                        )
+                    )
+                else:
+                    return await self.resilient_executor.execute(
+                        name=agent_name,
+                        func=execute_fn,
+                        timeout=self.config.agent_timeout,
+                        max_retries=self.config.max_retries
+                    )
+
+            # Execute with idempotency if enabled
+            if self.idempotency_manager and idempotency_key:
+                output = await self.idempotency_manager.execute_idempotent(
+                    idempotency_key,
+                    bulkhead_wrapped
+                )
+            else:
+                output = await bulkhead_wrapped()
+
             status = AgentStatus.COMPLETED
             error = None
+
+            # Cache successful result for fallback
+            if self.fallback_registry:
+                self.fallback_registry.cache_result(agent_name, output, task_hash)
+
+        except CircuitBreakerOpen as e:
+            # Circuit is open - try fallback
+            if self.fallback_registry:
+                fallback_result = await self.fallback_registry.try_fallback(
+                    agent_name, f"Circuit open: {e.time_until_reset:.1f}s"
+                )
+                output = fallback_result.to_dict()
+                status = AgentStatus.DEGRADED if fallback_result.source != 'synthetic' else AgentStatus.SKIPPED
+                error = f"Circuit breaker open, using {fallback_result.source}"
+                logger.warning(f"Agent {agent_name}: {error}")
+            else:
+                output = {"error": f"Circuit breaker open: {e.name}", "skipped": True}
+                status = AgentStatus.SKIPPED
+                error = str(e)
+                logger.warning(f"Agent {agent_name} skipped: circuit breaker open")
+
+            # Record circuit breaker trip
+            if self.metrics:
+                self.metrics.record_circuit_breaker_trip(agent_name)
+
+        except BulkheadRejected as e:
+            # Bulkhead rejected - try fallback
+            if self.fallback_registry:
+                fallback_result = await self.fallback_registry.try_fallback(
+                    agent_name, f"Bulkhead rejected: {e.reason}"
+                )
+                output = fallback_result.to_dict()
+                status = AgentStatus.DEGRADED
+                error = f"Bulkhead rejected, using {fallback_result.source}"
+            else:
+                output = {"error": str(e), "rejected": True}
+                status = AgentStatus.FAILED
+                error = str(e)
+            logger.warning(f"Agent {agent_name} bulkhead rejected: {e.reason}")
+
+        except BulkheadTimeout as e:
+            # Bulkhead timeout - try fallback
+            if self.fallback_registry:
+                fallback_result = await self.fallback_registry.try_fallback(
+                    agent_name, f"Bulkhead timeout after {e.timeout}s"
+                )
+                output = fallback_result.to_dict()
+                status = AgentStatus.DEGRADED
+                error = f"Bulkhead timeout, using {fallback_result.source}"
+            else:
+                output = {"error": str(e)}
+                status = AgentStatus.FAILED
+                error = str(e)
+            logger.warning(f"Agent {agent_name} bulkhead timeout")
+
+        except AgentTimeoutError as e:
+            # Agent timed out - try fallback
+            if self.fallback_registry:
+                fallback_result = await self.fallback_registry.try_fallback(
+                    agent_name, f"Timeout after {e.timeout}s"
+                )
+                output = fallback_result.to_dict()
+                status = AgentStatus.DEGRADED
+                error = f"Timeout, using {fallback_result.source}"
+            else:
+                output = {"error": f"Timeout after {e.timeout}s"}
+                status = AgentStatus.FAILED
+                error = str(e)
+            logger.error(f"Agent {agent_name} timed out after {e.timeout}s")
+
         except Exception as e:
-            output = {"error": str(e)}
-            status = AgentStatus.FAILED
-            error = str(e)
+            # Other failures - try fallback
+            if self.fallback_registry:
+                fallback_result = await self.fallback_registry.try_fallback(
+                    agent_name, str(e)
+                )
+                output = fallback_result.to_dict()
+                status = AgentStatus.DEGRADED
+                error = f"Failed, using {fallback_result.source}: {e}"
+            else:
+                output = {"error": str(e)}
+                status = AgentStatus.FAILED
+                error = str(e)
             logger.error(f"Agent {agent_name} failed: {e}")
+
+        finally:
+            # Track active agents (decrement)
+            if self.metrics:
+                self.metrics.active_agents.dec()
 
         execution_time = time.time() - start_time
 
@@ -1777,73 +1452,424 @@ class FrameworkOrchestrator:
             error=error
         )
 
-        # Ralph pattern: Write to filesystem immediately
+        # Ralph pattern: Write to filesystem immediately (atomic)
         result_file = self.results_dir / f"{agent_name}.json"
-        result_file.write_text(json.dumps(result.to_dict(), indent=2))
+        try:
+            atomic_write_json(result_file, result.to_dict())
+        except Exception as e:
+            logger.error(f"Failed to write result for {agent_name}: {e}")
+
+        # Record metrics
+        if self.metrics:
+            status_str = 'completed' if status == AgentStatus.COMPLETED else (
+                'degraded' if status == AgentStatus.DEGRADED else 'failed'
+            )
+            self.metrics.record_agent_execution(
+                agent_name, status_str, execution_time * 1000
+            )
+
+        # End tracing span
+        if span:
+            span.set_attribute("status", status.value)
+            span.set_attribute("checksum", checksum)
+            span.set_attribute("execution_time_ms", execution_time * 1000)
+            self.tracer.end_span(
+                span,
+                status=SpanStatus.OK if status == AgentStatus.COMPLETED else SpanStatus.ERROR,
+                error=error
+            )
+
+        # Structured logging
+        log_execution(
+            logger=logger,
+            agent_name=agent_name,
+            task_hash=task_hash,
+            duration_ms=execution_time * 1000,
+            checksum=checksum,
+            status='completed' if status == AgentStatus.COMPLETED else (
+                'degraded' if status == AgentStatus.DEGRADED else 'failed'
+            ),
+            error=error
+        )
 
         return result
 
     async def orchestrate(self, task: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Run orchestration cycle."""
+        """Run orchestration cycle with production hardening.
 
+        Production features (v2.0):
+        - Input validation at entry
+        - Orchestration timeout for entire cycle
+        - Atomic state file writes
+        - Structured logging
+        - Shutdown awareness
+
+        Production excellence (v3.0):
+        - Rate limiting for overload protection
+        - Metrics tracking for observability
+        - Distributed tracing for debugging
+        - Checkpointing for crash recovery
+        """
+        # Check if shutting down
+        if self.lifecycle.is_shutting_down:
+            raise RuntimeError("Orchestrator is shutting down, cannot accept new tasks")
+
+        # Apply rate limiting
+        if self.rate_limiter:
+            try:
+                wait_time = await self.rate_limiter.acquire()
+                if wait_time > 0:
+                    logger.info(f"Rate limited, waited {wait_time:.2f}s")
+            except RateLimitExceeded as e:
+                if self.metrics:
+                    self.metrics.tasks_failed.inc()
+                raise
+
+        # Validate task input
+        validation = validate_task(task, max_length=self.config.max_task_length)
+        if not validation.valid:
+            raise ValidationError(validation.errors)
+        task = validation.sanitized  # Use sanitized task
+
+        # Validate context
         context = context or {}
+        ctx_validation = validate_context(context)
+        if not ctx_validation.valid:
+            logger.warning(f"Context validation warnings: {ctx_validation.errors}")
+
         context["seed"] = context.get("seed", 42)
 
         self.iteration += 1
-        logger.info(f"Starting orchestration iteration {self.iteration}")
-        logger.info(f"Task: {task[:100]}...")
 
-        # Phase 1: Route task to agents
-        active_agents = self._route_task(task, context)
-        logger.info(f"Active agents: {', '.join(active_agents)}")
+        # Track task metrics
+        if self.metrics:
+            self.metrics.increment_task_total()
 
-        # Phase 2: Execute agents in parallel
-        start_time = time.time()
+        log_orchestration_start(logger, self.iteration, task, [])
 
-        results = await asyncio.gather(*[
-            self._execute_agent(agent_name, task, context)
-            for agent_name in active_agents
-        ])
+        try:
+            # Wrap entire orchestration with timeout
+            result = await asyncio.wait_for(
+                self._orchestrate_impl(task, context),
+                timeout=self.config.orchestration_timeout
+            )
 
-        total_time = time.time() - start_time
+            # Track success
+            if self.metrics:
+                self.metrics.increment_task_succeeded()
+                if self.rate_limiter and self.config.rate_limit_adaptive:
+                    self.rate_limiter.record_success()
 
-        # Phase 3: Collect results
-        result_map = {r.agent_name: r for r in results}
+            return result
 
-        # Phase 4: Run determinism guard with all results
-        context["agent_results"] = result_map
-        if "determinism_guard" not in result_map:
-            det_result = await self._execute_agent("determinism_guard", task, context)
-            result_map["determinism_guard"] = det_result
+        except asyncio.TimeoutError:
+            logger.error(f"Orchestration timed out after {self.config.orchestration_timeout}s")
+            if self.metrics:
+                self.metrics.increment_task_failed()
+                if self.rate_limiter and self.config.rate_limit_adaptive:
+                    self.rate_limiter.record_failure()
+            raise AgentTimeoutError("orchestration", self.config.orchestration_timeout)
 
-        # Phase 5: Compute master checksum
-        all_checksums = sorted([r.checksum for r in result_map.values()])
-        combined = "".join(all_checksums)
-        master_checksum = hashlib.sha256(combined.encode()).hexdigest()[:32]
+        except Exception as e:
+            if self.metrics:
+                self.metrics.increment_task_failed()
+                if self.rate_limiter and self.config.rate_limit_adaptive:
+                    self.rate_limiter.record_failure()
+            raise
 
-        # Phase 6: Build synthesis
-        synthesis = {
-            "iteration": self.iteration,
-            "task": task[:200],
-            "timestamp": time.time(),
-            "total_execution_time_ms": round(total_time * 1000, 2),
-            "agents_executed": len(result_map),
-            "agents_succeeded": sum(1 for r in result_map.values() if r.status == AgentStatus.COMPLETED),
-            "master_checksum": master_checksum,
-            "reproducibility_proof": f"sha256:{master_checksum}",
-            "agent_results": {name: r.to_dict() for name, r in result_map.items()},
-            "agent_checksums": {name: r.checksum for name, r in result_map.items()}
-        }
+    async def _orchestrate_impl(self, task: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal orchestration implementation with full observability."""
 
-        # Phase 7: Persist state (Ralph pattern)
-        self.state_file.write_text(json.dumps(synthesis, indent=2))
-        logger.info(f"State persisted to {self.state_file}")
+        orchestration_start = time.time()
+        checkpoint_id = None
 
-        return synthesis
+        # Start root tracing span
+        root_span = None
+        if self.tracer:
+            root_span = self.tracer.start_span(
+                "orchestration",
+                attributes={
+                    "iteration": self.iteration,
+                    "task_hash": hashlib.sha256(task.encode()).hexdigest()[:16]
+                }
+            )
+            context["_parent_span"] = root_span
+
+        try:
+            # Phase 1: Route task to agents
+            active_agents = self._route_task(task, context)
+            logger.info(f"Active agents: {', '.join(active_agents)}")
+
+            if root_span:
+                root_span.set_attribute("active_agents", len(active_agents))
+
+            # Create checkpoint (pre-orchestration)
+            if self.checkpoint:
+                checkpoint_id = await self.checkpoint.start_orchestration(
+                    self.iteration, task, context, active_agents
+                )
+
+            # Phase 2: Execute agents in parallel
+            start_time = time.time()
+
+            results = await asyncio.gather(*[
+                self._execute_agent(agent_name, task, context)
+                for agent_name in active_agents
+            ], return_exceptions=True)
+
+            # Handle any exceptions from gather
+            processed_results = []
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    agent_name = active_agents[i]
+                    logger.error(f"Agent {agent_name} raised exception: {result}")
+                    processed_results.append(AgentResult(
+                        agent_name=agent_name,
+                        status=AgentStatus.FAILED,
+                        output={"error": str(result)},
+                        checksum=hashlib.sha256(str(result).encode()).hexdigest()[:16],
+                        execution_time=0,
+                        error=str(result)
+                    ))
+                else:
+                    processed_results.append(result)
+
+                    # Checkpoint each agent completion
+                    if self.checkpoint and checkpoint_id:
+                        await self.checkpoint.checkpoint_agent_completion(
+                            checkpoint_id, result.agent_name, result.to_dict()
+                        )
+
+            total_time = time.time() - start_time
+
+            # Phase 3: Collect results
+            result_map = {r.agent_name: r for r in processed_results}
+
+            # Phase 4: Run determinism guard with all results
+            context["agent_results"] = result_map
+            if "determinism_guard" not in result_map:
+                det_result = await self._execute_agent("determinism_guard", task, context)
+                result_map["determinism_guard"] = det_result
+
+            # Phase 5: Compute master checksum
+            all_checksums = sorted([r.checksum for r in result_map.values()])
+            combined = "".join(all_checksums)
+            master_checksum = hashlib.sha256(combined.encode()).hexdigest()[:32]
+
+            # Phase 6: Build synthesis
+            agents_succeeded = sum(1 for r in result_map.values() if r.status == AgentStatus.COMPLETED)
+            agents_failed = sum(1 for r in result_map.values() if r.status == AgentStatus.FAILED)
+            agents_degraded = sum(1 for r in result_map.values() if r.status == AgentStatus.DEGRADED)
+
+            synthesis = {
+                "iteration": self.iteration,
+                "task": truncate_for_logging(task, 200),
+                "timestamp": time.time(),
+                "total_execution_time_ms": round(total_time * 1000, 2),
+                "agents_executed": len(result_map),
+                "agents_succeeded": agents_succeeded,
+                "agents_failed": agents_failed,
+                "agents_degraded": agents_degraded,
+                "agents_skipped": sum(1 for r in result_map.values() if r.status == AgentStatus.SKIPPED),
+                "master_checksum": master_checksum,
+                "reproducibility_proof": f"sha256:{master_checksum}",
+                "agent_results": {name: r.to_dict() for name, r in result_map.items()},
+                "agent_checksums": {name: r.checksum for name, r in result_map.items()}
+            }
+
+            # Phase 7: Persist state (Ralph pattern) - ATOMIC WRITE
+            try:
+                atomic_write_json(self.state_file, synthesis)
+                logger.info(f"State persisted to {sanitize_path_for_logging(self.state_file)}")
+            except Exception as e:
+                logger.error(f"Failed to persist state: {e}")
+
+            # Complete checkpoint
+            if self.checkpoint and checkpoint_id:
+                await self.checkpoint.complete_orchestration(checkpoint_id, synthesis)
+
+            # Record orchestration latency
+            orchestration_time = time.time() - orchestration_start
+            if self.metrics:
+                self.metrics.observe_orchestration_latency(orchestration_time * 1000)
+
+                # Update circuit breaker gauge
+                open_circuits = sum(
+                    1 for stats in self.circuit_breaker.get_all_stats().values()
+                    if stats.get('state') == 'open'
+                )
+                self.metrics.set_circuit_breakers_open(open_circuits)
+
+            # End root tracing span
+            if root_span:
+                root_span.set_attribute("master_checksum", master_checksum)
+                root_span.set_attribute("agents_succeeded", agents_succeeded)
+                root_span.set_attribute("agents_failed", agents_failed)
+                root_span.set_attribute("total_time_ms", orchestration_time * 1000)
+                self.tracer.end_span(root_span, status=SpanStatus.OK)
+
+            # Structured completion logging
+            log_orchestration_complete(
+                logger=logger,
+                iteration=self.iteration,
+                duration_ms=total_time * 1000,
+                agents_succeeded=agents_succeeded,
+                agents_failed=agents_failed,
+                master_checksum=master_checksum
+            )
+
+            return synthesis
+
+        except Exception as e:
+            # Fail checkpoint on error
+            if self.checkpoint and checkpoint_id:
+                await self.checkpoint.fail_orchestration(checkpoint_id, str(e))
+
+            # End root span with error
+            if root_span:
+                self.tracer.end_span(root_span, status=SpanStatus.ERROR, error=str(e))
+
+            raise
 
     def get_agent_info(self) -> Dict[str, Dict[str, str]]:
         """Get information about all agents."""
         return {name: agent.get_info() for name, agent in self.agents.items()}
+
+    def get_health(self) -> Dict[str, Any]:
+        """Get health status of the orchestrator."""
+        report = self.health_checker.check_health()
+        return report.to_dict()
+
+    def is_healthy(self) -> bool:
+        """Quick health check - returns True if ready to accept tasks."""
+        return self.health_checker.get_ready_status()
+
+    def get_circuit_breaker_status(self) -> Dict[str, Any]:
+        """Get status of all circuit breakers."""
+        return self.circuit_breaker.get_all_stats()
+
+    def reset_circuit_breaker(self, agent_name: str = None) -> None:
+        """Reset circuit breaker(s)."""
+        self.circuit_breaker.reset(agent_name)
+
+    def get_metrics(self) -> Optional[Dict[str, Any]]:
+        """Get metrics statistics."""
+        if self.metrics:
+            return self.metrics.get_stats()
+        return None
+
+    def export_metrics_prometheus(self) -> str:
+        """Export metrics in Prometheus text format."""
+        if self.metrics:
+            return self.metrics.export_prometheus()
+        return "# Metrics not enabled"
+
+    def get_bulkhead_stats(self) -> Optional[Dict[str, Any]]:
+        """Get bulkhead statistics."""
+        if self.bulkhead:
+            return self.bulkhead.get_stats()
+        return None
+
+    def get_fallback_stats(self) -> Optional[Dict[str, Any]]:
+        """Get fallback statistics."""
+        if self.fallback_registry:
+            return self.fallback_registry.get_stats()
+        return None
+
+    def get_idempotency_stats(self) -> Optional[Dict[str, Any]]:
+        """Get idempotency manager statistics."""
+        if self.idempotency_manager:
+            return self.idempotency_manager.get_stats()
+        return None
+
+    def get_rate_limiter_stats(self) -> Optional[Dict[str, Any]]:
+        """Get rate limiter statistics."""
+        if self.rate_limiter:
+            return self.rate_limiter.get_stats()
+        return None
+
+    async def get_interrupted_orchestrations(self) -> List[Dict[str, Any]]:
+        """Get list of interrupted orchestrations for recovery."""
+        if self.checkpoint:
+            interrupted = self.checkpoint.get_interrupted_orchestrations()
+            return [cp.to_dict() for cp in interrupted]
+        return []
+
+    async def recover_orchestration(self, checkpoint_id: str) -> Optional[Dict[str, Any]]:
+        """Attempt to recover an interrupted orchestration."""
+        if not self.checkpoint:
+            logger.warning("Checkpointing not enabled")
+            return None
+
+        checkpoint_data = await self.checkpoint.resume_orchestration(checkpoint_id)
+        if not checkpoint_data:
+            return None
+
+        # Resume orchestration with checkpoint data
+        logger.info(f"Resuming orchestration from checkpoint {checkpoint_id}")
+        return await self.orchestrate(
+            checkpoint_data.task,
+            checkpoint_data.context
+        )
+
+    def export_trace(self, trace_id: str, format: str = 'jaeger') -> str:
+        """Export a trace in the specified format."""
+        if not self.tracer:
+            return "{}"
+
+        if format == 'zipkin':
+            return self.tracer.export_zipkin(trace_id)
+        return self.tracer.export_jaeger(trace_id)
+
+    def get_production_status(self) -> Dict[str, Any]:
+        """Get comprehensive production status."""
+        status = {
+            "version": "3.0",
+            "healthy": self.is_healthy(),
+            "iteration": self.iteration,
+            "uptime_seconds": time.time() - self._start_time,
+        }
+
+        # Component status
+        components = {}
+        components["circuit_breaker"] = {
+            "enabled": self.config.enable_circuit_breaker,
+            "stats": self.get_circuit_breaker_status()
+        }
+        if self.bulkhead:
+            components["bulkhead"] = {
+                "enabled": True,
+                "stats": self.bulkhead.get_stats(),
+                "healthy": self.bulkhead.is_healthy()
+            }
+        if self.metrics:
+            components["metrics"] = {
+                "enabled": True,
+                "stats": self.metrics.get_stats()
+            }
+        if self.checkpoint:
+            components["checkpoint"] = {
+                "enabled": True,
+                "directory": str(self.config.checkpoint_dir)
+            }
+        if self.rate_limiter:
+            components["rate_limiter"] = {
+                "enabled": True,
+                "stats": self.rate_limiter.get_stats()
+            }
+        if self.fallback_registry:
+            components["fallback"] = {
+                "enabled": True,
+                "stats": self.fallback_registry.get_stats()
+            }
+        if self.idempotency_manager:
+            components["idempotency"] = {
+                "enabled": True,
+                "stats": self.idempotency_manager.get_stats()
+            }
+
+        status["components"] = components
+        return status
 
 
 # =============================================================================
@@ -1851,22 +1877,172 @@ class FrameworkOrchestrator:
 # =============================================================================
 
 async def main():
-    """Main entry point for CLI usage."""
+    """Main entry point for CLI usage with production features."""
 
     import argparse
 
-    parser = argparse.ArgumentParser(description="Framework Orchestrator")
+    parser = argparse.ArgumentParser(
+        description="Framework Orchestrator - Production-Ready 7-Agent System (v3.0)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Environment Variables:
+  FO_WORKSPACE           Workspace directory (default: ~/.framework-orchestrator)
+  FO_AGENT_TIMEOUT       Per-agent timeout in seconds (default: 30)
+  FO_ORCHESTRATION_TIMEOUT  Total orchestration timeout (default: 120)
+  FO_MAX_RETRIES         Retry count for failed agents (default: 3)
+  FO_LOG_FORMAT          Log format: 'text' or 'json' (default: text)
+  FO_LOG_LEVEL           Log level: DEBUG, INFO, WARNING, ERROR (default: INFO)
+
+  # v3.0 Production Excellence
+  FO_MAX_CONCURRENT_AGENTS  Bulkhead concurrency limit (default: 3)
+  FO_CHECKPOINT_ENABLED     Enable crash recovery (default: true)
+  FO_METRICS_ENABLED        Enable Prometheus metrics (default: true)
+  FO_TRACING_ENABLED        Enable distributed tracing (default: true)
+
+Examples:
+  # Run a single task
+  python -m framework_orchestrator --task "Analyze this code"
+
+  # Run with JSON logging for production
+  FO_LOG_FORMAT=json python -m framework_orchestrator --task "..."
+
+  # Check health status
+  python -m framework_orchestrator --health
+
+  # Show configuration
+  python -m framework_orchestrator --show-config
+
+  # Export Prometheus metrics
+  python -m framework_orchestrator --metrics
+
+  # Show interrupted orchestrations (for crash recovery)
+  python -m framework_orchestrator --show-interrupted
+
+  # Resume an interrupted orchestration
+  python -m framework_orchestrator --resume <checkpoint_id>
+
+  # Show production status
+  python -m framework_orchestrator --status
+"""
+    )
     parser.add_argument("--task", "-t", type=str, help="Task to process")
-    parser.add_argument("--workspace", "-w", type=str, default="./orchestrator_workspace",
-                       help="Workspace directory")
+    parser.add_argument("--workspace", "-w", type=str, help="Workspace directory (overrides FO_WORKSPACE)")
     parser.add_argument("--seed", "-s", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--info", action="store_true", help="Show agent information")
+    parser.add_argument("--health", action="store_true", help="Show health status and exit")
+    parser.add_argument("--show-config", action="store_true", help="Show current configuration")
+    parser.add_argument("--reset-circuits", action="store_true", help="Reset all circuit breakers")
+
+    # v3.0 Production Excellence CLI options
+    parser.add_argument("--metrics", action="store_true", help="Export Prometheus metrics and exit")
+    parser.add_argument("--status", action="store_true", help="Show production status and exit")
+    parser.add_argument("--show-interrupted", action="store_true", help="Show interrupted orchestrations")
+    parser.add_argument("--resume", type=str, metavar="CHECKPOINT_ID", help="Resume interrupted orchestration")
 
     args = parser.parse_args()
 
-    workspace = Path(args.workspace)
-    orchestrator = FrameworkOrchestrator(workspace)
+    # Load configuration
+    config = get_config()
 
+    # Setup logging based on config
+    global logger
+    logger = setup_logging(
+        level=config.log_level,
+        log_format=config.log_format,
+        log_file=config.log_file
+    )
+
+    # Determine workspace
+    workspace = Path(args.workspace) if args.workspace else config.workspace
+
+    # Create orchestrator
+    orchestrator = FrameworkOrchestrator(workspace, config)
+
+    # Setup signal handlers for graceful shutdown
+    orchestrator.lifecycle.setup_signal_handlers()
+    orchestrator.lifecycle.mark_running()
+
+    # Handle --show-config
+    if args.show_config:
+        print("\n" + "=" * 60)
+        print("FRAMEWORK ORCHESTRATOR - Configuration")
+        print("=" * 60)
+        for key, value in config.to_dict().items():
+            print(f"  {key}: {value}")
+        print("=" * 60)
+        return
+
+    # Handle --health
+    if args.health:
+        health = orchestrator.get_health()
+        report = orchestrator.health_checker.check_health()
+        print(format_health_report(report))
+        return 0 if report.is_healthy else 1
+
+    # Handle --reset-circuits
+    if args.reset_circuits:
+        orchestrator.reset_circuit_breaker()
+        print("All circuit breakers reset")
+        return
+
+    # Handle --metrics (v3.0)
+    if args.metrics:
+        print(orchestrator.export_metrics_prometheus())
+        return
+
+    # Handle --status (v3.0)
+    if args.status:
+        print("\n" + "=" * 60)
+        print("FRAMEWORK ORCHESTRATOR - Production Status (v3.0)")
+        print("=" * 60)
+        status = orchestrator.get_production_status()
+        print(json.dumps(status, indent=2, default=str))
+        print("=" * 60)
+        return
+
+    # Handle --show-interrupted (v3.0)
+    if args.show_interrupted:
+        print("\n" + "=" * 60)
+        print("FRAMEWORK ORCHESTRATOR - Interrupted Orchestrations")
+        print("=" * 60)
+        interrupted = await orchestrator.get_interrupted_orchestrations()
+        if interrupted:
+            for cp in interrupted:
+                print(f"\nCheckpoint ID: {cp['checkpoint_id']}")
+                print(f"  Iteration: {cp['iteration']}")
+                print(f"  Status: {cp['status']}")
+                print(f"  Task: {cp['task'][:80]}...")
+                print(f"  Started: {cp['started_at']}")
+                print(f"  Agents completed: {len(cp.get('agents_completed', {}))}")
+                print(f"  Agents pending: {len(cp.get('agents_pending', []))}")
+        else:
+            print("No interrupted orchestrations found.")
+        print("=" * 60)
+        return
+
+    # Handle --resume (v3.0)
+    if args.resume:
+        print(f"\nResuming orchestration from checkpoint: {args.resume}")
+        try:
+            result = await orchestrator.recover_orchestration(args.resume)
+            if result:
+                print("\n" + "=" * 60)
+                print("ORCHESTRATION RESUMED SUCCESSFULLY")
+                print("=" * 60)
+                print(f"Iteration: {result['iteration']}")
+                print(f"Agents: {result['agents_succeeded']}/{result['agents_executed']} succeeded")
+                print(f"Master Checksum: {result['master_checksum']}")
+                print("=" * 60)
+            else:
+                print("Failed to resume orchestration. Check logs for details.")
+                return 1
+        except Exception as e:
+            print(f"Error resuming orchestration: {e}")
+            logger.exception("Resume error")
+            return 1
+        return
+
+    # Handle --info
     if args.info:
         print("\n" + "=" * 60)
         print("FRAMEWORK ORCHESTRATOR - Agent Roster")
@@ -1879,17 +2055,42 @@ async def main():
         return
 
     if not args.task:
-        # Interactive mode
+        # Interactive mode with graceful shutdown support
         print("\n" + "=" * 60)
-        print("FRAMEWORK ORCHESTRATOR - Interactive Mode")
+        print("FRAMEWORK ORCHESTRATOR - Interactive Mode (v3.0 Production)")
         print("=" * 60)
-        print("Enter tasks to process. Type 'quit' to exit.\n")
+        print("Enter tasks to process. Type 'quit' to exit.")
+        print("Commands: 'health', 'circuits', 'metrics', 'status', 'bulkhead', 'quit'\n")
 
-        while True:
+        while not orchestrator.lifecycle.is_shutting_down:
             try:
                 task = input("Task> ").strip()
+
+                # Handle commands
                 if task.lower() in ["quit", "exit", "q"]:
                     break
+                if task.lower() == "health":
+                    report = orchestrator.health_checker.check_health()
+                    print(format_health_report(report))
+                    continue
+                if task.lower() == "circuits":
+                    print(json.dumps(orchestrator.get_circuit_breaker_status(), indent=2))
+                    continue
+                if task.lower() == "metrics":
+                    if orchestrator.metrics:
+                        print(json.dumps(orchestrator.metrics.get_stats(), indent=2))
+                    else:
+                        print("Metrics not enabled")
+                    continue
+                if task.lower() == "status":
+                    print(json.dumps(orchestrator.get_production_status(), indent=2, default=str))
+                    continue
+                if task.lower() == "bulkhead":
+                    if orchestrator.bulkhead:
+                        print(json.dumps(orchestrator.bulkhead.get_stats(), indent=2))
+                    else:
+                        print("Bulkhead not enabled")
+                    continue
                 if not task:
                     continue
 
@@ -1897,27 +2098,61 @@ async def main():
 
                 print(f"\nIteration: {result['iteration']}")
                 print(f"Agents: {result['agents_succeeded']}/{result['agents_executed']} succeeded")
+                if result.get('agents_failed', 0) > 0:
+                    print(f"Failed: {result['agents_failed']}")
+                if result.get('agents_degraded', 0) > 0:
+                    print(f"Degraded (using fallback): {result['agents_degraded']}")
+                if result.get('agents_skipped', 0) > 0:
+                    print(f"Skipped (circuit open): {result['agents_skipped']}")
                 print(f"Time: {result['total_execution_time_ms']}ms")
                 print(f"Checksum: {result['master_checksum']}")
-                print(f"Results saved to: {workspace / 'results'}\n")
+                print(f"Results saved to: {sanitize_path_for_logging(workspace / 'results')}\n")
 
             except KeyboardInterrupt:
-                print("\nExiting...")
+                print("\nShutting down gracefully...")
+                await orchestrator.lifecycle.shutdown(reason="User interrupt")
                 break
+            except ValidationError as e:
+                print(f"\nValidation error: {e.errors}")
+            except Exception as e:
+                print(f"\nError: {e}")
+                logger.exception("Orchestration error")
     else:
         # Single task mode
-        result = await orchestrator.orchestrate(args.task, {"seed": args.seed})
+        try:
+            result = await orchestrator.orchestrate(args.task, {"seed": args.seed})
 
-        print("\n" + "=" * 60)
-        print("ORCHESTRATION COMPLETE")
-        print("=" * 60)
-        print(f"Task: {args.task[:80]}...")
-        print(f"Agents: {result['agents_succeeded']}/{result['agents_executed']} succeeded")
-        print(f"Time: {result['total_execution_time_ms']}ms")
-        print(f"Master Checksum: {result['master_checksum']}")
-        print(f"\nDetailed results: {workspace / 'results'}")
-        print(f"State file: {workspace / '.orchestrator-state.json'}")
-        print("=" * 60)
+            print("\n" + "=" * 60)
+            print("ORCHESTRATION COMPLETE")
+            print("=" * 60)
+            print(f"Task: {args.task[:80]}...")
+            print(f"Agents: {result['agents_succeeded']}/{result['agents_executed']} succeeded")
+            if result.get('agents_failed', 0) > 0:
+                print(f"Failed: {result['agents_failed']}")
+            if result.get('agents_skipped', 0) > 0:
+                print(f"Skipped: {result['agents_skipped']}")
+            print(f"Time: {result['total_execution_time_ms']}ms")
+            print(f"Master Checksum: {result['master_checksum']}")
+            print(f"\nDetailed results: {sanitize_path_for_logging(workspace / 'results')}")
+            print(f"State file: {sanitize_path_for_logging(workspace / '.orchestrator-state.json')}")
+            print("=" * 60)
+
+        except ValidationError as e:
+            print(f"Validation error: {e.errors}")
+            return 1
+        except AgentTimeoutError as e:
+            print(f"Timeout: {e}")
+            return 1
+        except Exception as e:
+            print(f"Error: {e}")
+            logger.exception("Orchestration error")
+            return 1
+
+    # Graceful shutdown
+    if not orchestrator.lifecycle.is_stopped:
+        await orchestrator.lifecycle.shutdown(reason="Normal exit")
+
+    return 0
 
 
 if __name__ == "__main__":

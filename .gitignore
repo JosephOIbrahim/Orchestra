@@ -56,3 +56,25 @@ test_workspace/
 
 # MyPy
 .mypy_cache/
+
+# Windows shortcuts and icons (local only)
+*.bat
+*.ps1
+icons/
+*.ico
+*.lnk
+
+# State files
+*.state.json
+
+# Windows artifacts
+nul
+
+# Internal analysis (contains ratings)
+RALPH_ITERATION_*.md
+FRAMEWORK-CES2026-SYNTHESIS.md
+FRAMEWORK-SUMMARY-ADHD.md
+LAUNCHER-DESIGN-PHILOSOPHY.md
+
+# Utilities
+create_icon.py

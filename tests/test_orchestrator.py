@@ -239,21 +239,20 @@ class TestMycelium:
             assert abs(weight - expected) < 0.001
 
     def test_record_outcome(self, mycelium):
-        """Should log outcomes for analysis (no weight updates - static by design)."""
+        """Should record outcomes for Hebbian learning."""
         mycelium.record_outcome("protector", 1.0, "abc123")
         state = mycelium.get_state()
-        assert state["outcomes_logged"] == 1
-        # Weights should remain unchanged (no self-improvement)
-        assert state["self_improvement_enabled"] == False
+        assert state["outcomes_recorded"] == 1
+        assert state["recent_outcomes"][0]["expert"] == "protector"
+        assert state["recent_outcomes"][0]["outcome"] == 1.0
 
     def test_get_state(self, mycelium):
-        """Should return current state for inspection (static weights)."""
+        """Should return current state for inspection."""
         state = mycelium.get_state()
         assert "weights" in state
-        assert "outcomes_logged" in state
-        assert "loading_strategy" in state
-        assert state["calibration_type"] == "manual"
-        assert state["self_improvement_enabled"] == False
+        assert "learning_rate" in state
+        assert "outcomes_recorded" in state
+        assert state["learning_rate"] == 0.1
 
 
 class TestDeterminismGuard:

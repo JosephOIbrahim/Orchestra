@@ -9,14 +9,14 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="framework-orchestrator",
-    version="1.0.0",
+    version="3.0.0",
     author="Joseph O. Ibrahim",
     author_email="",
     description="USD Composition Semantics for AI Agent Orchestration",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/JosephOIbrahim/framework-orchestrator",
-    py_modules=["framework_orchestrator"],
+    packages=find_packages(exclude=["tests", "tests.*", "examples"]),
     python_requires=">=3.8",
     install_requires=[],
     extras_require={
@@ -33,7 +33,7 @@ setup(
         ],
     },
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",

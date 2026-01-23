@@ -128,16 +128,28 @@ expert_index = int(hashlib.md5(task.encode()).hexdigest(), 16) % len(experts)
 
 ## Installation
 
+### Quick Install (Recommended)
 ```bash
-# Clone the repository
 git clone https://github.com/JosephOIbrahim/framework-orchestrator.git
 cd framework-orchestrator
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Or install as package
 pip install -e .
+```
+
+### With Development Tools
+```bash
+pip install -e ".[dev]"
+```
+
+### Verify Installation
+```bash
+python -c "from framework_orchestrator import FrameworkOrchestrator; print('v3.0.0')"
+# Expected: v3.0.0
+```
+
+### Run Tests
+```bash
+pytest tests/ -v
+# 128 tests should pass
 ```
 
 ## Quick Start

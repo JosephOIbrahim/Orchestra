@@ -71,11 +71,11 @@ Routes tasks to domain-specific specialists based on keyword matching.
 **Domain Loading**:
 ```
 ~/.framework-orchestrator/domains/
-├── <your_domain>.json  # User-defined domain specialists
-└── general.json        # Fallback specialists (auto-created if missing)
+├── vfx.json         # VFX specialists (pyro, flip, lighting, etc.)
+├── webdev.json      # Web specialists (frontend, backend, etc.)
+├── ai_research.json # AI specialists (training, inference, etc.)
+└── general.json     # Fallback specialists
 ```
-
-Domains are loaded dynamically. Users add domain configs as needed for their workflows.
 
 **Key Features**:
 - Dynamic domain loading from JSON configs
@@ -86,10 +86,10 @@ Domains are loaded dynamically. Users add domain configs as needed for their wor
 **Output Example**:
 ```json
 {
-  "detected_domains": ["my_domain"],
-  "primary_domain": "my_domain",
-  "detected_specialists": ["my_domain.analysis", "my_domain.optimization"],
-  "primary_specialist": "my_domain.analysis",
+  "detected_domains": ["vfx", "ai_research"],
+  "primary_domain": "vfx",
+  "detected_specialists": ["vfx.pyro", "vfx.lighting"],
+  "primary_specialist": "vfx.pyro",
   "prism_perspectives_applied": ["causal", "optimization", "risk"],
   "domain_task_detected": true
 }
@@ -115,10 +115,6 @@ Routes tasks to intervention experts using a 5-phase process with enforced safet
 | 5 | **Acknowledger** | Progress recognition | 0% | done, complete, milestone, win, finished |
 | 6 | **Guide** | Discovery facilitation | 0% | exploring, what_if, curious, learn, understand |
 | 7 | **Executor** | Direct task execution | 0% | implement, code, do, execute, build, create |
-
-![V5 Expert Routing](images/v5-routing.png)
-
-*Figure: V5 expert configuration showing priority order, safety floors, and trigger patterns. Safety-critical experts (Protector, Decomposer, Restorer) maintain hard minimum floors that cannot be violated.*
 
 **5-Phase Routing**:
 1. **ACTIVATE** - Signal detection → activation vector (trigger matching)
@@ -159,19 +155,6 @@ Routes tasks to intervention experts using a 5-phase process with enforced safet
 **Mycelium Integration**:
 The MoE Router can receive learned weights from the Mycelium neuroplasticity mechanism via `context["mycelium_weights"]`. This enables adaptive expert selection based on task outcome history.
 
-**Framework Lineage**:
-
-| V5 Component | Source Framework | Reference |
-|--------------|-----------------|-----------|
-| 7 Expert Archetypes | ADHD Support Framework | Validator, Scaffolder, Restorer, Refocuser, Celebrator, Socratic, Direct |
-| Safety Floors | ADHD Support + ECHO 2.0 | Burnout detection, constitutional field |
-| 5-Phase Routing | NEXUS Framework | DETECT→CASCADE→LOCK→EXECUTE→UPDATE |
-| Hebbian Learning | Cortex_Mycelium Framework | Local connection strengthening, homeostatic plasticity |
-| Convergence Tracking | RC^+xi Framework | Epistemic tension: xi_n = \|\|A_{n+1} - A_n\|\|_2 |
-| Batch-Invariance | ThinkingMachines [He2025] | Fixed iteration order, no dynamic switching |
-
-See `V5_FRAMEWORK_SYNTHESIS.md` for detailed mappings.
-
 ---
 
 ### 4. World Modeler
@@ -190,10 +173,10 @@ Builds a dependency graph of the task context.
 **Output Example**:
 ```json
 {
-  "entities_extracted": ["task_config", "system_settings", "output_path"],
+  "entities_extracted": ["pyro_sim", "render_settings", "output_path"],
   "dependency_graph": {
-    "task_config": ["system_settings"],
-    "system_settings": ["output_path"]
+    "pyro_sim": ["render_settings"],
+    "render_settings": ["output_path"]
   },
   "active_paradigm": "cortex_hierarchical",
   "context_tokens": 2048
@@ -395,9 +378,3 @@ self.agents["my_agent"] = MyAgent()
 if "my_keyword" in task_lower:
     active.append("my_agent")
 ```
-
----
-
-## References
-
-- [He2025] He, Horace and Thinking Machines Lab. (2025). "Defeating Nondeterminism in LLM Inference." *Thinking Machines Lab: Connectionism*, September 2025. https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
