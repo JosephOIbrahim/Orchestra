@@ -8,7 +8,6 @@ A 7-agent async orchestration system that applies Pixar's USD (Universal Scene D
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![ORCID](https://img.shields.io/badge/ORCID-0009--0009--2689--4966-green.svg)](https://orcid.org/0009-0009-2689-4966)
-[![Frontier Score](https://img.shields.io/badge/Frontier_Score-9.1%2F10-brightgreen.svg)](docs/FRONTIER_SCORES.md)
 
 ## The Thesis
 
