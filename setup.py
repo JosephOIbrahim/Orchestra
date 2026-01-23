@@ -9,7 +9,7 @@ long_description = (this_directory / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="framework-orchestrator",
-    version="3.0.0",
+    version="3.1.0",
     author="Joseph O. Ibrahim",
     author_email="",
     description="USD Composition Semantics for AI Agent Orchestration",
