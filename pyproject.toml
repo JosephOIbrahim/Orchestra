@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "orchestra"
+name = "cognitive-orchestra"
 version = "5.0.0"
 description = "Cognitive orchestration system with work/delegate/protect decision model"
 readme = "README.md"
@@ -50,8 +50,8 @@ tui = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/your-username/orchestra"
-"Bug Tracker" = "https://github.com/your-username/orchestra/issues"
+"Homepage" = "https://github.com/JosephOIbrahim/Orchestra"
+"Bug Tracker" = "https://github.com/JosephOIbrahim/Orchestra/issues"
 
 [project.scripts]
 orchestra = "orchestra.cli.main:main"

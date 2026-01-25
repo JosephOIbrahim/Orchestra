@@ -221,6 +221,31 @@ Orchestra is built for neurodivergent brains:
 
 ---
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [QUICKSTART](docs/QUICKSTART.md) | 2-minute setup guide for artists & TDs |
+| [ARCHITECTURE](docs/ARCHITECTURE.md) | Technical deep-dive |
+| [CONTRIBUTING](CONTRIBUTING.md) | Development guidelines |
+| [CITATIONS](CITATIONS.md) | Academic references |
+
+---
+
+## Installation
+
+```bash
+# From PyPI
+pip install cognitive-orchestra
+
+# From source
+git clone https://github.com/JosephOIbrahim/Orchestra.git
+cd Orchestra
+pip install -e .
+```
+
+---
+
 ## Credits
 
 - [USD](https://graphics.pixar.com/usd/) composition semantics for cognitive state
@@ -228,4 +253,13 @@ Orchestra is built for neurodivergent brains:
 
 ---
 
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
 *Orchestra v5.0.0 - Cognitive Engine for Claude Code*
+
+[![PyPI](https://img.shields.io/pypi/v/cognitive-orchestra)](https://pypi.org/project/cognitive-orchestra/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

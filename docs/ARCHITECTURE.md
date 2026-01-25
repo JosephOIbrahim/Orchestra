@@ -1,8 +1,16 @@
 # Architecture
 
+**Technical deep-dive into Orchestra's cognitive orchestration system.**
+
+Based on ThinkingMachines [He2025] batch-invariance and USD composition semantics.
+
+> **Reference:** He, Horace and Thinking Machines Lab, "Defeating Nondeterminism in LLM Inference",
+> Thinking Machines Lab: Connectionism, Sep 2025.
+> https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
+
 ## Overview
 
-Framework Orchestrator is a 7-agent async orchestration system that applies USD (Universal Scene Description) composition semantics to cognitive state management.
+Orchestra v5.0 is a cognitive orchestration system that applies USD (Universal Scene Description) composition semantics to cognitive state management, with ThinkingMachines-compliant deterministic execution.
 
 ## Core Design Principles
 
@@ -93,15 +101,36 @@ Same input → Same routing → Same output.
 
 ## Data Flow
 
-### 5-Phase Execution (NEXUS)
+### 5-Phase NEXUS Pipeline (ThinkingMachines Compliant)
 
 ```
-1. DETECT    → Extract signals (emotional, mode, domain, task)
-2. CASCADE   → Route through experts based on signal priority
-3. LOCK      → Lock parameters BEFORE generation
-4. EXECUTE   → Run with locked params
-5. UPDATE    → Update state, check convergence
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   DETECT    │ ──▶ │   CASCADE   │ ──▶ │    LOCK     │
+│   (PRISM)   │     │  (ADHD_MoE) │     │   (MAX3)    │
+└─────────────┘     └─────────────┘     └─────────────┘
+                                               │
+┌─────────────┐     ┌─────────────┐            │
+│   UPDATE    │ ◀── │   EXECUTE   │ ◀──────────┘
+│  (RC^+xi)   │     │  (Claude)   │
+└─────────────┘     └─────────────┘
+
+1. DETECT    → PRISM extracts signals (emotional > mode > domain > task)
+2. CASCADE   → Safety gates + ADHD_MoE routing (7 experts, fixed priority)
+3. LOCK      → MAX3 bounded reflection + parameter freezing
+4. EXECUTE   → Generation with locked parameters
+5. UPDATE    → RC^+xi convergence tracking (xi_n = ||A_{n+1} - A_n||_2)
 ```
+
+### ThinkingMachines [He2025] Compliance
+
+| Guarantee | Implementation |
+|-----------|----------------|
+| Fixed evaluation order | `SIGNAL_PRIORITY`, `EXPERT_PRIORITY` immutable lists |
+| No dynamic switching | First-match-wins, no runtime reordering |
+| Parameter locking | `LockedParams` immutable dataclass |
+| Reproducible checksums | `json.dumps(..., sort_keys=True)` + MD5 |
+| Atomic state commits | `batch_update()` pattern |
+| Session invariance | Snapshot before processing |
 
 ### Task Processing Pipeline
 
