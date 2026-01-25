@@ -6,8 +6,8 @@ and ThinkingMachines [He2025] compliant deterministic execution.
 
 v5.0 Cognitive Engine:
 - 5-Phase NEXUS Pipeline (DETECT → CASCADE → LOCK → EXECUTE → UPDATE)
-- ADHD_MoE expert routing (7 experts, fixed priority, first-match-wins)
-- MAX3 bounded reflection with ADHD safety gating
+- Cognitive Safety MoE expert routing (7 experts, fixed priority, first-match-wins)
+- MAX3 bounded reflection with cognitive safety gating
 - RC^+xi convergence tracking with attractor basins
 - Deterministic checksums for reproducible behavior
 - Claude Code hook integration (python -m orchestra.hooks)
@@ -337,7 +337,7 @@ from .decision_engine import (
 # v6.0 ThinkingMachines [He2025] Compliant Execution
 # ============================================================================
 
-# Expert Router (ADHD_MoE)
+# Expert Router (Cognitive Safety MoE)
 from .expert_router import (
     Expert,
     RoutingResult,
@@ -382,6 +382,36 @@ from .dashboard_bridge import (
     DashboardBridge,
     map_nexus_to_dashboard,
     create_bridge,
+)
+
+# ============================================================================
+# v7.0 USD Cognitive Substrate Runtime
+# ============================================================================
+
+# Substrate Runtime (extracted from cognitive-orchestrator)
+from .substrate import (
+    # Knowledge - O(1) factual retrieval
+    KnowledgePrim,
+    KnowledgeRetriever,
+    RetrievalResult,
+    get_retriever,
+    retrieve,
+    search,
+    # EWM - External Working Memory
+    EWMManager,
+    EWMState,
+    Project,
+    ProjectFriction,
+    SessionAnchor,
+    TimeBeacon,
+    get_ewm_manager,
+    # Hardening - Graceful degradation, backup, recovery
+    HandoffDocument,
+    HandoffManager,
+    StateManager,
+    StateResult,
+    get_handoff_manager,
+    get_state_manager,
 )
 
 __all__ = [
@@ -609,7 +639,7 @@ __all__ = [
     # v6.0 ThinkingMachines [He2025] Compliant Execution
     # ========================================
 
-    # Expert Router (ADHD_MoE)
+    # Expert Router (Cognitive Safety MoE)
     "Expert",
     "RoutingResult",
     "ExpertRouter",
@@ -645,4 +675,33 @@ __all__ = [
     "DashboardBridge",
     "map_nexus_to_dashboard",
     "create_bridge",
+
+    # ========================================
+    # v7.0 USD Cognitive Substrate Runtime
+    # ========================================
+
+    # Knowledge - O(1) factual retrieval
+    "KnowledgePrim",
+    "KnowledgeRetriever",
+    "RetrievalResult",
+    "get_retriever",
+    "retrieve",
+    "search",
+
+    # EWM - External Working Memory
+    "EWMManager",
+    "EWMState",
+    "Project",
+    "ProjectFriction",
+    "SessionAnchor",
+    "TimeBeacon",
+    "get_ewm_manager",
+
+    # Hardening - Graceful degradation, backup, recovery
+    "HandoffDocument",
+    "HandoffManager",
+    "StateManager",
+    "StateResult",
+    "get_handoff_manager",
+    "get_state_manager",
 ]

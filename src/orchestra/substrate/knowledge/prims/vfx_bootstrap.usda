@@ -1,0 +1,1376 @@
+#usda 1.0
+(
+    doc = """
+    VFX Knowledge Bootstrap - Manually Curated Knowledge Prims
+
+    75 knowledge prims for Persistent State Hypothesis testing.
+    Distribution: 25 USD, 25 Houdini, 15 Karma, 10 Pipeline
+    """
+    customLayerData = {
+        string version = "1.0.0"
+        string created = "2026-01-21"
+        int prim_count = 75
+        float confidence = 0.95
+    }
+)
+
+def "Knowledge" (
+    kind = "assembly"
+)
+{
+    # ═══════════════════════════════════════════════════════════════════
+    # USD CONCEPTS (25 prims)
+    # ═══════════════════════════════════════════════════════════════════
+
+    def "USD" {
+        def "LIVRPS" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/LIVRPS"
+            custom string content = """LIVRPS is the composition arc strength ordering in USD: Local, Inherits, VariantSets, References, Payloads, Specializes. Stronger arcs override weaker ones. Local opinions (direct attribute values) are strongest. Specializes is weakest, providing base definitions. This ordering is deterministic and enables predictable override behavior in complex scene graphs."""
+            custom string summary = "USD composition arc priority ordering: Local > Inherits > VariantSets > References > Payloads > Specializes"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx", "composition"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/USD/Composition", "/Knowledge/USD/Reference", "/Knowledge/USD/Payload"]
+            custom string[] related_to = ["/Knowledge/USD/Opinion", "/Knowledge/USD/LayerStack"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Composition ordering", "Override strength", "Deterministic resolution"]
+            custom string[] triggers = ["livrps", "composition order", "arc strength", "override priority"]
+        }
+
+        def "Composition" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Composition"
+            custom string content = """USD Composition is the process of combining multiple layers and references into a single resolved stage. Composition arcs (LIVRPS) define how opinions from different sources combine. The result is a flattened view where each attribute has exactly one resolved value. Composition is lazy - only accessed prims are fully composed."""
+            custom string summary = "Process of combining USD layers and references into a single resolved stage"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/LIVRPS"]
+            custom string[] enables = ["/Knowledge/USD/Stage", "/Knowledge/USD/LayerStack"]
+            custom string[] related_to = ["/Knowledge/USD/Opinion", "/Knowledge/USD/Reference"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Layer combination", "Opinion resolution", "Lazy evaluation"]
+            custom string[] triggers = ["composition", "compose", "layer combination", "how usd combines"]
+        }
+
+        def "Prim" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Prim"
+            custom string content = """A Prim (primitive) is the fundamental unit in USD's scene hierarchy. Prims have a path, type (schema), and contain attributes, relationships, and metadata. Prims form a tree structure with parent-child relationships. Common prim types include Xform, Mesh, Scope, and custom schema types."""
+            custom string summary = "Fundamental unit in USD scene hierarchy containing attributes and relationships"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/USD/Attribute", "/Knowledge/USD/Relationship", "/Knowledge/USD/Schema"]
+            custom string[] related_to = ["/Knowledge/USD/Def", "/Knowledge/USD/Over", "/Knowledge/USD/Class"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Scene hierarchy unit", "Contains attributes", "Has path and type"]
+            custom string[] triggers = ["prim", "primitive", "usd prim", "what is a prim"]
+        }
+
+        def "Attribute" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Attribute"
+            custom string content = """Attributes store typed data values on prims. They have a name, type (int, float, string, etc.), and optional time samples for animation. Attributes can be custom (user-defined) or part of a schema. Value resolution follows composition rules - the strongest opinion wins."""
+            custom string summary = "Typed data values stored on prims, supporting animation via time samples"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim"]
+            custom string[] enables = ["/Knowledge/USD/TimeSamples", "/Knowledge/USD/Opinion"]
+            custom string[] related_to = ["/Knowledge/USD/Relationship", "/Knowledge/USD/Schema"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Typed values", "Time samples", "Opinion resolution"]
+            custom string[] triggers = ["attribute", "usd attribute", "prim attribute", "attr"]
+        }
+
+        def "Relationship" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Relationship"
+            custom string content = """Relationships are connections between prims, storing lists of paths to target prims. Unlike attributes, relationships point to other prims rather than holding values. Common uses include material bindings, collection membership, and skeletal bindings. Relationships compose by list-editing (append, prepend, delete)."""
+            custom string summary = "Connections between prims storing paths to target prims"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim"]
+            custom string[] enables = ["/Knowledge/USD/MaterialBinding"]
+            custom string[] related_to = ["/Knowledge/USD/Attribute", "/Knowledge/USD/Collection"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Prim connections", "Path targets", "List editing"]
+            custom string[] triggers = ["relationship", "usd relationship", "prim connection", "rel"]
+        }
+
+        def "Stage" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Stage"
+            custom string content = """The Stage is the composed view of a USD scene. It presents a single unified prim hierarchy from potentially many layers. The stage handles composition, provides the API for traversal and editing, and manages the layer stack. Opening a stage is the entry point for USD operations."""
+            custom string summary = "Composed view of USD scene presenting unified prim hierarchy from layers"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Composition", "/Knowledge/USD/LayerStack"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/DefaultPrim", "/Knowledge/USD/RootLayer"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Composed view", "Entry point", "Layer management"]
+            custom string[] triggers = ["stage", "usd stage", "open stage", "Usd.Stage"]
+        }
+
+        def "LayerStack" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/LayerStack"
+            custom string content = """The LayerStack is the ordered list of layers that contribute to a stage. The root layer is at the top, with sublayers below. Stronger layers override weaker ones within the stack. Session layers sit above all others for non-destructive edits. Each layer can itself reference other layers."""
+            custom string summary = "Ordered list of layers contributing to a stage, with override priority"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Composition"]
+            custom string[] enables = ["/Knowledge/USD/Opinion"]
+            custom string[] related_to = ["/Knowledge/USD/Stage", "/Knowledge/USD/Sublayer"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Layer ordering", "Override priority", "Session layer"]
+            custom string[] triggers = ["layer stack", "layerstack", "sublayers", "layer order"]
+        }
+
+        def "Variant" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Variant"
+            custom string content = """A Variant is a named alternative within a VariantSet. It contains opinions that apply when that variant is selected. Common uses include LOD levels, material variations, and regional differences. Only one variant per set is active at a time."""
+            custom string summary = "Named alternative within a VariantSet containing conditional opinions"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/VariantSet"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/LIVRPS"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Named option", "Conditional opinions", "Single selection"]
+            custom string[] triggers = ["variant", "usd variant", "variant selection"]
+        }
+
+        def "VariantSet" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/VariantSet"
+            custom string content = """A VariantSet is a collection of named variants on a prim. It allows switching between predefined configurations without external references. VariantSets are part of the composition system (the V in LIVRPS) and affect all child prims. Selection can be authored in layers or set at runtime."""
+            custom string summary = "Collection of named variants enabling configuration switching on a prim"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim", "/Knowledge/USD/LIVRPS"]
+            custom string[] enables = ["/Knowledge/USD/Variant"]
+            custom string[] related_to = ["/Knowledge/USD/Composition"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Variant collection", "Configuration switching", "Composition arc"]
+            custom string[] triggers = ["variantset", "variant set", "variantsets"]
+        }
+
+        def "Reference" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Reference"
+            custom string content = """A Reference is a composition arc that brings content from another layer into the current prim. The referenced content appears as if authored locally but can be overridden. References are loaded immediately (unlike payloads). Multiple references can target the same prim, composing via list editing."""
+            custom string summary = "Composition arc bringing content from another layer, loaded immediately"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/LIVRPS", "/Knowledge/USD/Composition"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Payload", "/Knowledge/USD/Inherits"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["External content", "Immediate loading", "Composition arc"]
+            custom string[] triggers = ["reference", "usd reference", "references", "ref"]
+        }
+
+        def "Payload" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Payload"
+            custom string content = """A Payload is like a reference but supports deferred loading. Payloads can be unloaded to reduce memory, making them ideal for heavy assets. The stage controls which payloads are loaded via load rules. Payloads are weaker than references in composition (LIVRPS)."""
+            custom string summary = "Deferred-loading composition arc for heavy assets, can be unloaded"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/LIVRPS", "/Knowledge/USD/Reference"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Stage", "/Knowledge/USD/LoadRules"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Deferred loading", "Memory management", "Load rules"]
+            custom string[] triggers = ["payload", "usd payload", "payloads", "lazy load"]
+        }
+
+        def "Inherits" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Inherits"
+            custom string content = """Inherits is a composition arc for sharing opinions from a class prim. Inherited content acts as a fallback - local opinions override inherited ones. Classes are typically defined with 'class' keyword and contain shared defaults. Inherits is the I in LIVRPS, stronger than variants."""
+            custom string summary = "Composition arc for inheriting opinions from class prims as fallbacks"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/LIVRPS", "/Knowledge/USD/Class"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Specializes", "/Knowledge/USD/Reference"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Class inheritance", "Shared defaults", "Fallback values"]
+            custom string[] triggers = ["inherits", "usd inherits", "inheritance", "class inherit"]
+        }
+
+        def "Specializes" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Specializes"
+            custom string content = """Specializes is the weakest composition arc, providing base definitions that everything else overrides. It's used for 'is-a' relationships where a prim specializes a base type. Unlike inherits, specialized content is always the weakest opinion, ensuring derived types can fully customize."""
+            custom string summary = "Weakest composition arc for base definitions, always overridden"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/LIVRPS"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Inherits", "/Knowledge/USD/Schema"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Base definitions", "Weakest arc", "Is-a relationships"]
+            custom string[] triggers = ["specializes", "usd specializes", "specialize"]
+        }
+
+        def "Schema" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Schema"
+            custom string content = """Schemas define prim types and their expected attributes/relationships. IsA schemas (like UsdGeomMesh) define typed prims. Applied API schemas (like UsdShadeMaterialBindingAPI) add capabilities to any prim. Schemas are defined in USD plugin files and provide fallback values."""
+            custom string summary = "Type definitions specifying expected attributes and relationships for prims"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim", "/Knowledge/USD/Attribute"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Kind", "/Knowledge/USD/Purpose"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Type definitions", "IsA vs Applied", "Fallback values"]
+            custom string[] triggers = ["schema", "usd schema", "prim type", "apiSchema"]
+        }
+
+        def "Kind" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Kind"
+            custom string content = """Kind is metadata classifying prims for pipeline purposes. Standard kinds include 'model' (root of asset), 'component' (leaf model), 'group' (collection), and 'assembly' (set of models). Kind enables model hierarchy traversal without loading full geometry."""
+            custom string summary = "Pipeline metadata classifying prims as model, component, group, or assembly"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx", "pipeline"]
+            custom string[] requires = ["/Knowledge/USD/Prim"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Purpose", "/Knowledge/USD/Schema"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Model classification", "Hierarchy traversal", "Pipeline metadata"]
+            custom string[] triggers = ["kind", "usd kind", "model kind", "component kind"]
+        }
+
+        def "Purpose" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Purpose"
+            custom string content = """Purpose controls visibility for different contexts: 'default' (always visible), 'render' (final renders only), 'proxy' (viewport proxy), 'guide' (guides/helpers). Renderers and viewers filter by purpose. Setting purpose on parent affects all descendants."""
+            custom string summary = "Visibility control for render, proxy, or guide contexts"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Kind", "/Knowledge/USD/Visibility"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Visibility context", "Render vs proxy", "Inheritance"]
+            custom string[] triggers = ["purpose", "usd purpose", "render purpose", "proxy purpose"]
+        }
+
+        def "Opinion" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Opinion"
+            custom string content = """An Opinion is a value authored for an attribute in a specific layer. Multiple layers can have opinions for the same attribute - composition determines which wins. The strongest opinion (per LIVRPS) becomes the resolved value. 'No opinion' differs from explicit default."""
+            custom string summary = "Authored value for an attribute in a layer, resolved via composition"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Attribute", "/Knowledge/USD/LIVRPS"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/LayerStack", "/Knowledge/USD/Composition"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Authored value", "Layer source", "Resolution"]
+            custom string[] triggers = ["opinion", "usd opinion", "authored value", "which value"]
+        }
+
+        def "DefaultPrim" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/DefaultPrim"
+            custom string content = """DefaultPrim is layer metadata specifying which prim to use when the layer is referenced without an explicit target path. It's essential for asset layers - when you reference asset.usd, the defaultPrim determines what gets brought in. Set via layer.defaultPrim or in file header."""
+            custom string summary = "Layer metadata specifying which prim to use when referenced without path"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx", "pipeline"]
+            custom string[] requires = ["/Knowledge/USD/Reference", "/Knowledge/USD/Payload"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Stage", "/Knowledge/USD/AssetPath"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Reference target", "Asset root", "Layer metadata"]
+            custom string[] triggers = ["defaultprim", "default prim", "asset root"]
+        }
+
+        def "Xform" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Xform"
+            custom string content = """UsdGeomXform is a transformable prim type providing 3D transforms. Transforms are defined via xformOps - an ordered list of operations (translate, rotate, scale, matrix). The xformOpOrder attribute controls operation order. Xform is the base for most geometric prims."""
+            custom string summary = "Transformable prim type with ordered transform operations"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim", "/Knowledge/USD/Schema"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Scope", "/Knowledge/USD/Mesh"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Transform operations", "xformOpOrder", "Geometric base"]
+            custom string[] triggers = ["xform", "usdgeomxform", "transform prim", "xformOp"]
+        }
+
+        def "Scope" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Scope"
+            custom string content = """UsdGeomScope is a grouping prim with no transform or geometry. It's used purely for organization - grouping related prims under a common parent. Scope is lightweight compared to Xform when transforms aren't needed. Common for organizing materials, lights, or logical groups."""
+            custom string summary = "Lightweight grouping prim for organization without transform"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Xform", "/Knowledge/USD/Kind"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Grouping", "No transform", "Organization"]
+            custom string[] triggers = ["scope", "usdgeomscope", "group prim", "organize"]
+        }
+
+        def "Def" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Def"
+            custom string content = """'def' is the USD keyword for defining a concrete prim that exists in the composed stage. A def creates a prim spec that contributes to the final scene graph. This differs from 'over' (override only) and 'class' (abstract template). Most prims are created with def."""
+            custom string summary = "USD keyword for defining concrete prims in the scene graph"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Over", "/Knowledge/USD/Class"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Concrete prim", "Scene graph entry", "Definition"]
+            custom string[] triggers = ["def keyword", "usd def", "define prim"]
+        }
+
+        def "Over" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Over"
+            custom string content = """'over' is the USD keyword for overriding an existing prim without defining it. Over specs only contribute opinions if the prim exists from elsewhere. This is used in override layers to modify referenced content without duplicating structure. Over alone doesn't create a prim."""
+            custom string summary = "USD keyword for overriding existing prims without defining them"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim", "/Knowledge/USD/Composition"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Def", "/Knowledge/USD/Opinion"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Override only", "No definition", "Layer edits"]
+            custom string[] triggers = ["over keyword", "usd over", "override prim"]
+        }
+
+        def "Class" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/Class"
+            custom string content = """'class' is the USD keyword for defining an abstract prim template. Class prims don't appear in the composed stage but can be inherited from. They provide shared defaults for multiple prims. Classes are typically defined at root level (/_class_MyClass) for inheritance."""
+            custom string summary = "USD keyword for abstract prim templates used with inherits"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Prim", "/Knowledge/USD/Inherits"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Def", "/Knowledge/USD/Over"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Abstract template", "Inheritance source", "Shared defaults"]
+            custom string[] triggers = ["class keyword", "usd class", "class prim", "template"]
+        }
+
+        def "TimeSamples" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/USD/TimeSamples"
+            custom string content = """TimeSamples store animated attribute values keyed to time codes. Each sample is a (time, value) pair. USD interpolates between samples (linear for most types). Time samples are stored efficiently - only changes are recorded. Default values apply when no samples exist."""
+            custom string summary = "Animated attribute values keyed to time codes with interpolation"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["usd", "vfx", "animation"]
+            custom string[] requires = ["/Knowledge/USD/Attribute"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Stage", "/Knowledge/USD/Opinion"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Animation keys", "Interpolation", "Efficient storage"]
+            custom string[] triggers = ["timesamples", "time samples", "animation usd", "keyframes"]
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════════════
+    # HOUDINI CONCEPTS (25 prims)
+    # ═══════════════════════════════════════════════════════════════════
+
+    def "Houdini" {
+        def "LOPs" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/LOPs"
+            custom string content = """LOPs (Layout Operators) is Houdini's USD-native context for scene layout and lighting. LOPs nodes operate on USD stages, creating prims, setting attributes, and managing composition. The LOP network builds a procedural USD pipeline within Houdini."""
+            custom string summary = "Houdini's USD-native context for scene layout and lighting"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "usd"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Houdini/SolarisLighting", "/Knowledge/Houdini/USD_ROP"]
+            custom string[] related_to = ["/Knowledge/Houdini/SOPs", "/Knowledge/USD/Stage"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["USD context", "Scene layout", "Procedural USD"]
+            custom string[] triggers = ["lops", "layout operators", "solaris", "houdini usd"]
+        }
+
+        def "SOPs" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/SOPs"
+            custom string content = """SOPs (Surface Operators) is Houdini's geometry context for modeling, procedural geometry, and simulation setup. SOPs operate on geometry (points, primitives, vertices). The SOP context is Houdini's most used, with hundreds of nodes for geometry manipulation."""
+            custom string summary = "Houdini's geometry context for modeling and procedural geometry"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Houdini/Attribute", "/Knowledge/Houdini/Group"]
+            custom string[] related_to = ["/Knowledge/Houdini/DOPs", "/Knowledge/Houdini/VOPs"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Geometry context", "Procedural modeling", "Point/prim data"]
+            custom string[] triggers = ["sops", "surface operators", "geometry context", "sop"]
+        }
+
+        def "DOPs" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/DOPs"
+            custom string content = """DOPs (Dynamics Operators) is Houdini's simulation context for physics, particles, fluids, and destruction. DOPs use solvers that step through time, updating simulation state. Results are typically cached and brought back to SOPs."""
+            custom string summary = "Houdini's simulation context for physics, fluids, and destruction"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "simulation"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = ["/Knowledge/Houdini/Solver"]
+            custom string[] related_to = ["/Knowledge/Houdini/Caching", "/Knowledge/Houdini/Volume"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Simulation context", "Physics solvers", "Time-stepping"]
+            custom string[] triggers = ["dops", "dynamics", "simulation", "dop"]
+        }
+
+        def "VOPs" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/VOPs"
+            custom string content = """VOPs (VEX Operators) is Houdini's visual programming context that compiles to VEX. VOPs provide a node-based interface for writing shaders and attribute manipulation. The compiled VEX runs efficiently on geometry."""
+            custom string summary = "Visual programming context that compiles to VEX code"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Houdini/VEX"]
+            custom string[] related_to = ["/Knowledge/Houdini/SOPs", "/Knowledge/Karma/MaterialX"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Visual programming", "VEX compilation", "Shaders"]
+            custom string[] triggers = ["vops", "vex operators", "vop", "visual vex"]
+        }
+
+        def "PDG" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/PDG"
+            custom string content = """PDG (Procedural Dependency Graph) is Houdini's task-based workflow system, accessed via TOPs. PDG manages work item dependencies and distributes tasks across machines. It's used for wedging, rendering, and farm submission."""
+            custom string summary = "Task-based workflow system for distributed processing and wedging"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "pipeline"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Houdini/Wedge"]
+            custom string[] related_to = ["/Knowledge/Pipeline/RenderFarm"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Task dependency", "Distributed processing", "Work items"]
+            custom string[] triggers = ["pdg", "tops", "procedural dependency", "task graph"]
+        }
+
+        def "VEX" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/VEX"
+            custom string content = """VEX (Vector Expression Language) is Houdini's high-performance scripting language. VEX runs on geometry in parallel, making it fast for per-point/prim operations. Syntax is C-like with built-in functions for geometry, math, and noise."""
+            custom string summary = "High-performance parallel scripting language for geometry operations"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Houdini/Wrangle"]
+            custom string[] related_to = ["/Knowledge/Houdini/VOPs", "/Knowledge/Houdini/Expression"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Parallel execution", "C-like syntax", "Geometry processing"]
+            custom string[] triggers = ["vex", "vector expression", "vex code", "wrangle"]
+        }
+
+        def "CookTime" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/CookTime"
+            custom string content = """Cook time is the processing time for a node to evaluate. Houdini's procedural nature means nodes 'cook' when needed. Performance Monitor shows cook times. Reducing cook time involves caching, compiled blocks, and efficient VEX."""
+            custom string summary = "Node evaluation time, key metric for Houdini performance"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "performance"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/CompiledBlocks", "/Knowledge/Houdini/Caching"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Performance metric", "Lazy evaluation", "Optimization target"]
+            custom string[] triggers = ["cook time", "cooktime", "node performance", "slow cook"]
+        }
+
+        def "CompiledBlocks" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/CompiledBlocks"
+            custom string content = """Compiled blocks optimize SOP networks by fusing operations. Nodes inside a compile block are combined into a single efficient operation. This reduces overhead from intermediate geometry. Use Block Begin/End Compile nodes."""
+            custom string summary = "SOP optimization by fusing multiple nodes into single operations"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "performance"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/CookTime", "/Knowledge/Houdini/ForLoop"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Node fusion", "Reduced overhead", "Block compile"]
+            custom string[] triggers = ["compiled block", "compile block", "sop compile", "block begin compile"]
+        }
+
+        def "SpareInput" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/SpareInput"
+            custom string content = """Spare inputs allow referencing external geometry without direct wiring. Added via Edit Parameter Interface, spare inputs are accessed in VEX via opinput:N. Useful for lookups, comparisons, and referencing template geometry."""
+            custom string summary = "External geometry reference without direct node wiring"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = ["/Knowledge/Houdini/VEX"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/Parameter"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["External reference", "opinput syntax", "Lookup geometry"]
+            custom string[] triggers = ["spare input", "opinput", "spare inputs", "extra input"]
+        }
+
+        def "HDA" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/HDA"
+            custom string content = """HDA (Houdini Digital Asset) is a packaged, reusable node with exposed parameters. HDAs encapsulate complex networks into single nodes. They support versioning, locking, and can be shared across projects and artists."""
+            custom string summary = "Packaged reusable node encapsulating complex networks"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "pipeline"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/Parameter", "/Knowledge/Pipeline/Versioning"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Reusable asset", "Encapsulation", "Version control"]
+            custom string[] triggers = ["hda", "digital asset", "otl", "houdini asset"]
+        }
+
+        def "Parameter" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Parameter"
+            custom string content = """Parameters are node inputs exposed in the parameter pane. Types include float, int, string, ramp, button. Parameters can have expressions, channels, or direct values. The Parameter Interface editor customizes exposed parameters."""
+            custom string summary = "Node inputs exposed in the UI, supporting expressions and animation"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Houdini/Expression", "/Knowledge/Houdini/Channel"]
+            custom string[] related_to = ["/Knowledge/Houdini/HDA"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Node input", "Type system", "Expression support"]
+            custom string[] triggers = ["parameter", "parm", "parameter interface", "node parameter"]
+        }
+
+        def "Channel" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Channel"
+            custom string content = """Channels store animated parameter values over time. The Channel Editor (motion editor) displays and edits keyframes. Channels support various interpolation types. CHOPs process channels for complex animation."""
+            custom string summary = "Animated parameter values with keyframes and interpolation"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "animation"]
+            custom string[] requires = ["/Knowledge/Houdini/Parameter"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/TimeSamples"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Animation data", "Keyframes", "Interpolation"]
+            custom string[] triggers = ["channel", "chop", "animation", "keyframe"]
+        }
+
+        def "Expression" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Expression"
+            custom string content = """Expressions are formulas in parameter fields. HScript expressions use ch(), point(), etc. Python expressions use hou module. Expressions enable procedural parameter values that update dynamically."""
+            custom string summary = "Formulas in parameters for dynamic procedural values"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = ["/Knowledge/Houdini/Parameter"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/VEX", "/Knowledge/Houdini/Channel"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Dynamic values", "HScript/Python", "Procedural parameters"]
+            custom string[] triggers = ["expression", "ch()", "hscript", "parameter expression"]
+        }
+
+        def "Attribute" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Attribute"
+            custom string content = """Houdini attributes store data on geometry elements (point, vertex, primitive, detail). Common attributes include P (position), N (normal), Cd (color). Attributes flow through the network and can be read/written in VEX."""
+            custom string summary = "Data stored on geometry elements flowing through the network"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/Group", "/Knowledge/Houdini/VEX"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Geometry data", "Point/prim/vertex/detail", "Data flow"]
+            custom string[] triggers = ["attribute", "attrib", "point attribute", "geometry attribute"]
+        }
+
+        def "Group" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Group"
+            custom string content = """Groups are named selections of geometry elements. Point groups select points, primitive groups select primitives. Groups are used to isolate operations, apply materials, or control simulations. Created via Group node or in VEX."""
+            custom string summary = "Named selections of geometry elements for targeted operations"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/Attribute"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Selection set", "Point/prim groups", "Operation targeting"]
+            custom string[] triggers = ["group", "point group", "primitive group", "@group"]
+        }
+
+        def "ForLoop" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/ForLoop"
+            custom string content = """For-Each loops iterate over pieces, points, or primitives. Block Begin/End nodes define the loop body. Metadata tracks iteration. Compiled for-each loops are significantly faster than uncompiled versions."""
+            custom string summary = "Iteration over geometry pieces with optional compilation"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/CompiledBlocks"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Iteration", "Block nodes", "Compilation benefit"]
+            custom string[] triggers = ["for each", "foreach", "for loop", "block begin"]
+        }
+
+        def "Solver" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Solver"
+            custom string content = """Solver SOP enables time-dependent operations in SOPs by feeding previous frame output back as input. Useful for accumulation effects, particle systems, and custom simulations. Requires caching for random access."""
+            custom string summary = "Time-dependent SOP using previous frame as input"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "simulation"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/DOPs", "/Knowledge/Houdini/Caching"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Time dependency", "Feedback loop", "Frame accumulation"]
+            custom string[] triggers = ["solver sop", "solver", "time dependent", "feedback"]
+        }
+
+        def "Packed" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Packed"
+            custom string content = """Packed primitives are lightweight references to geometry. They store transforms but not geometry data, reducing memory. Types include packed disk (file reference), packed geometry (in-memory), and packed USD. Essential for instancing and large scenes."""
+            custom string summary = "Lightweight geometry references reducing memory via instancing"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "performance"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = ["/Knowledge/Houdini/Instancing"]
+            custom string[] related_to = ["/Knowledge/USD/Payload"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Memory efficiency", "Transform only", "Instancing base"]
+            custom string[] triggers = ["packed", "packed primitive", "packed geometry", "packed disk"]
+        }
+
+        def "Alembic" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Alembic"
+            custom string content = """Alembic is an interchange format for baked geometry and animation. It stores points, topology, and attributes per frame. Houdini reads/writes Alembic via dedicated nodes. Alembic is widely supported but lacks USD's composition features."""
+            custom string summary = "Interchange format for baked geometry and animation cache"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "pipeline"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Stage", "/Knowledge/Houdini/Caching"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Baked cache", "Interchange format", "Animation storage"]
+            custom string[] triggers = ["alembic", "abc", "geometry cache", "baked geometry"]
+        }
+
+        def "USD_ROP" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/USD_ROP"
+            custom string content = """USD ROP exports the LOP stage to USD files. It supports frame ranges, file-per-frame, and flattening options. Configure default prim, kind, and metadata. The ROP can write .usd, .usda, .usdc, or .usdz formats."""
+            custom string summary = "LOP export node writing USD files with configurable options"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "usd"]
+            custom string[] requires = ["/Knowledge/Houdini/LOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/DefaultPrim", "/Knowledge/USD/Stage"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["USD export", "Output formats", "Frame range"]
+            custom string[] triggers = ["usd rop", "export usd", "write usd", "usd output"]
+        }
+
+        def "Geometry" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Geometry"
+            custom string content = """Houdini geometry consists of points, vertices, primitives, and detail. Points have position (P), primitives reference points. Attributes can exist at any level. The geometry spreadsheet shows all data."""
+            custom string summary = "Core data structure of points, vertices, primitives, and detail"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Houdini/Attribute", "/Knowledge/Houdini/Group"]
+            custom string[] related_to = ["/Knowledge/Houdini/SOPs"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Point/vertex/prim/detail", "Attribute levels", "Geometry spreadsheet"]
+            custom string[] triggers = ["geometry", "geo", "points", "primitives"]
+        }
+
+        def "Volume" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Volume"
+            custom string content = """Volumes store 3D scalar or vector data in voxel grids. Used for smoke, fire, clouds, and SDFs. VDB is the standard sparse volume format. Volume primitives are manipulated with Volume VOP, Volume Wrangle, or dedicated nodes."""
+            custom string summary = "3D voxel grids for smoke, fire, and signed distance fields"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "simulation"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/DOPs", "/Knowledge/Karma/Volumes"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Voxel data", "VDB format", "Sparse storage"]
+            custom string[] triggers = ["volume", "vdb", "voxel", "smoke volume"]
+        }
+
+        def "Instancing" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Instancing"
+            custom string content = """Instancing replicates geometry efficiently by referencing rather than copying. Copy to Points creates instances. Point instancing in rendering uses s@instance attribute. Combines with packed geometry for massive scale."""
+            custom string summary = "Efficient geometry replication via references rather than copies"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "performance"]
+            custom string[] requires = ["/Knowledge/Houdini/Packed"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/USD/Reference"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Memory efficiency", "Copy to Points", "s@instance"]
+            custom string[] triggers = ["instance", "instancing", "copy to points", "point instance"]
+        }
+
+        def "Caching" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Caching"
+            custom string content = """Caching writes geometry to disk for reuse. File Cache SOP is the standard method. Caching speeds iteration by avoiding recalculation. Cache invalidation requires manual updates when upstream changes."""
+            custom string summary = "Writing geometry to disk for faster iteration and reuse"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "performance"]
+            custom string[] requires = ["/Knowledge/Houdini/SOPs"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/Alembic", "/Knowledge/Pipeline/CacheManagement"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Disk storage", "Iteration speed", "Invalidation"]
+            custom string[] triggers = ["cache", "file cache", "caching", "write to disk"]
+        }
+
+        def "Wedge" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Houdini/Wedge"
+            custom string content = """Wedging generates parameter variations for batch processing. PDG/TOPs creates work items for each variation. Wedge ROP in ROPs context. Common for look development, simulation tuning, and generating training data."""
+            custom string summary = "Generating parameter variations for batch processing"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["houdini", "vfx", "pipeline"]
+            custom string[] requires = ["/Knowledge/Houdini/PDG"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/RenderFarm"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Parameter variation", "Batch processing", "Look dev"]
+            custom string[] triggers = ["wedge", "wedging", "variations", "parameter sweep"]
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════════════
+    # KARMA CONCEPTS (15 prims)
+    # ═══════════════════════════════════════════════════════════════════
+
+    def "Karma" {
+        def "XPU" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/XPU"
+            custom string content = """Karma XPU is the GPU-accelerated render mode using NVIDIA OptiX. XPU renders significantly faster than CPU for many scenes. It requires RTX-capable GPUs. Some features may have CPU fallbacks."""
+            custom string summary = "GPU-accelerated Karma rendering using NVIDIA OptiX"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/CPU", "/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["GPU rendering", "OptiX", "Hardware acceleration"]
+            custom string[] triggers = ["xpu", "karma xpu", "gpu render", "optix"]
+        }
+
+        def "CPU" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/CPU"
+            custom string content = """Karma CPU is the multi-threaded CPU render mode. It supports all features without GPU requirements. CPU mode is deterministic and handles complex scenes with large memory requirements."""
+            custom string summary = "Multi-threaded CPU Karma rendering with full feature support"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/XPU", "/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["CPU rendering", "Full features", "Memory handling"]
+            custom string[] triggers = ["karma cpu", "cpu render", "cpu mode"]
+        }
+
+        def "MaterialX" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/MaterialX"
+            custom string content = """MaterialX is the open-source material definition standard. Karma uses MaterialX for shading. Materials are defined as node graphs with standardized inputs. MaterialX provides cross-renderer compatibility."""
+            custom string summary = "Open-source material definition standard used by Karma"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering", "materials"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/VOPs", "/Knowledge/USD/Schema"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Material standard", "Node graphs", "Cross-renderer"]
+            custom string[] triggers = ["materialx", "mtlx", "material", "shader"]
+        }
+
+        def "PixelSamples" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/PixelSamples"
+            custom string content = """Pixel samples control the number of rays per pixel. Higher values reduce noise but increase render time. Typical values range from 64-256 for production. Denoising can reduce the samples needed."""
+            custom string summary = "Number of rays per pixel controlling noise and render time"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/Denoising", "/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Ray count", "Noise control", "Quality vs speed"]
+            custom string[] triggers = ["pixel samples", "samples", "spp", "samples per pixel"]
+        }
+
+        def "RayDepth" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/RayDepth"
+            custom string content = """Ray depth limits the number of bounces for reflection/refraction. Diffuse, reflection, and refraction depths are set separately. Higher values enable more realistic light transport but increase render time."""
+            custom string summary = "Maximum ray bounces for reflection, refraction, and diffuse"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/Indirect", "/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Bounce limits", "Light transport", "Performance"]
+            custom string[] triggers = ["ray depth", "bounce", "reflection depth", "refraction depth"]
+        }
+
+        def "AOV" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/AOV"
+            custom string content = """AOVs (Arbitrary Output Variables) are additional render outputs beyond beauty. Common AOVs include diffuse, specular, depth, normals, and IDs. AOVs enable compositing control without re-rendering."""
+            custom string summary = "Additional render outputs for compositing control"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering", "compositing"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Karma/Cryptomatte"]
+            custom string[] related_to = ["/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Extra passes", "Compositing", "Light layers"]
+            custom string[] triggers = ["aov", "render pass", "output variable", "extra output"]
+        }
+
+        def "Denoising" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/Denoising"
+            custom string content = """Denoising reduces render noise without increasing samples. Karma supports OIDN (Intel Open Image Denoise) and OptiX denoising. Denoising works best with auxiliary AOVs (albedo, normal). Can be applied in-render or as post-process."""
+            custom string summary = "AI-based noise reduction using OIDN or OptiX"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = ["/Knowledge/Karma/AOV"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/PixelSamples"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["AI denoising", "OIDN", "Auxiliary data"]
+            custom string[] triggers = ["denoise", "denoising", "oidn", "noise reduction"]
+        }
+
+        def "LightLinking" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/LightLinking"
+            custom string content = """Light linking controls which lights affect which geometry. Include/exclude lists specify relationships. Implemented via USD collections in Solaris. Essential for art-directed lighting control."""
+            custom string summary = "Controlling which lights affect which geometry"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering", "lighting"]
+            custom string[] requires = ["/Knowledge/USD/Relationship"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Include/exclude", "USD collections", "Art direction"]
+            custom string[] triggers = ["light linking", "light link", "include lights", "exclude lights"]
+        }
+
+        def "Cryptomatte" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/Cryptomatte"
+            custom string content = """Cryptomatte generates ID mattes for compositing. It encodes object/material IDs in special AOVs. Nuke/Fusion extract precise masks from cryptomatte. No need to pre-define matte objects."""
+            custom string summary = "Automatic ID mattes for compositing without predefined selections"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering", "compositing"]
+            custom string[] requires = ["/Knowledge/Karma/AOV"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/ReviewPipeline"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["ID mattes", "Automatic masking", "Compositing"]
+            custom string[] triggers = ["cryptomatte", "crypto", "id matte", "object matte"]
+        }
+
+        def "RenderSettings" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/RenderSettings"
+            custom string content = """Render Settings configure Karma output. Key settings include resolution, camera, samples, ray depths, and output paths. Settings are stored on RenderSettings prim in USD. Multiple settings prims enable render variants."""
+            custom string summary = "Configuration for Karma output including quality and format"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = ["/Knowledge/USD/Prim"]
+            custom string[] enables = ["/Knowledge/Karma/PixelSamples", "/Knowledge/Karma/RayDepth"]
+            custom string[] related_to = ["/Knowledge/Houdini/LOPs"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Output config", "Quality settings", "USD storage"]
+            custom string[] triggers = ["render settings", "karma settings", "render config"]
+        }
+
+        def "Indirect" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/Indirect"
+            custom string content = """Indirect illumination settings control global illumination quality. Diffuse quality affects color bleeding accuracy. Secondary bounces add realism but cost render time. Can be cached for animation."""
+            custom string summary = "Global illumination and secondary bounce settings"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = ["/Knowledge/Karma/RayDepth"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/PixelSamples"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Global illumination", "Color bleeding", "GI cache"]
+            custom string[] triggers = ["indirect", "gi", "global illumination", "bounced light"]
+        }
+
+        def "Volumes" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/Volumes"
+            custom string content = """Volume rendering in Karma handles smoke, fire, clouds, and atmospherics. Volume step size controls quality vs speed. Volumes interact with lighting via scattering. VDB is the primary volume format."""
+            custom string summary = "Rendering of volumetric effects like smoke, fire, and clouds"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering", "simulation"]
+            custom string[] requires = ["/Knowledge/Houdini/Volume"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Volume step", "Scattering", "VDB rendering"]
+            custom string[] triggers = ["volume render", "smoke render", "volumetrics", "atmosphere"]
+        }
+
+        def "MotionBlur" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/MotionBlur"
+            custom string content = """Motion blur simulates camera shutter during object movement. Controlled by shutter time and samples. Transform and deformation blur are separate. Motion vectors enable post-process motion blur."""
+            custom string summary = "Camera shutter simulation for moving objects"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering", "animation"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/RenderSettings", "/Knowledge/Karma/AOV"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Shutter time", "Transform/deform blur", "Motion vectors"]
+            custom string[] triggers = ["motion blur", "moblur", "shutter", "blur"]
+        }
+
+        def "Subdivision" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/Subdivision"
+            custom string content = """Subdivision smooths mesh surfaces at render time. Catmull-Clark is the standard scheme. Subdivision level controls smoothness. Creases preserve sharp edges. Dicing controls adaptive subdivision."""
+            custom string summary = "Render-time mesh smoothing via Catmull-Clark subdivision"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Karma/Displacement"]
+            custom string[] related_to = ["/Knowledge/USD/Schema"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Catmull-Clark", "Creases", "Dicing"]
+            custom string[] triggers = ["subdivision", "subdiv", "subd", "smooth mesh"]
+        }
+
+        def "Displacement" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Karma/Displacement"
+            custom string content = """Displacement modifies geometry at render time using textures. True displacement moves vertices, unlike bump mapping. Requires sufficient subdivision. Displacement bounds affect ray tracing efficiency."""
+            custom string summary = "Render-time geometry modification using displacement maps"
+            custom float confidence = 0.95
+            custom string provenance = "sidefx_docs"
+            custom string[] domains = ["karma", "vfx", "rendering"]
+            custom string[] requires = ["/Knowledge/Karma/Subdivision"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Karma/MaterialX"]
+            custom string teaching_altitude = "Ground"
+            custom string[] key_concepts = ["Vertex displacement", "Displacement bounds", "vs bump"]
+            custom string[] triggers = ["displacement", "displace", "height map", "displacement map"]
+        }
+    }
+
+    # ═══════════════════════════════════════════════════════════════════
+    # PIPELINE CONCEPTS (10 prims)
+    # ═══════════════════════════════════════════════════════════════════
+
+    def "Pipeline" {
+        def "AssetResolution" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/AssetResolution"
+            custom string content = """Asset resolution maps logical asset paths to physical locations. USD uses ArResolver plugins. Common schemes include search paths, database queries, and versioned paths. Resolution is configurable per-project."""
+            custom string summary = "Mapping logical asset paths to physical file locations"
+            custom float confidence = 0.95
+            custom string provenance = "pixar_usd_docs"
+            custom string[] domains = ["pipeline", "vfx", "usd"]
+            custom string[] requires = ["/Knowledge/USD/AssetPath"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/Versioning", "/Knowledge/Pipeline/AssetManagement"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["ArResolver", "Search paths", "Logical to physical"]
+            custom string[] triggers = ["asset resolution", "arresolver", "path resolution", "asset path"]
+        }
+
+        def "Versioning" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/Versioning"
+            custom string content = """Versioning tracks asset iterations. Version numbers (v001, v002) or semantic versions (1.0.0). Latest/approved pointers enable auto-updating. Version history enables rollback. Versions may be immutable after publish."""
+            custom string summary = "Tracking asset iterations with version numbers and history"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/PublishWorkflow", "/Knowledge/Pipeline/AssetManagement"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Version numbers", "Latest/approved", "Immutability"]
+            custom string[] triggers = ["version", "versioning", "v001", "version control"]
+        }
+
+        def "PublishWorkflow" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/PublishWorkflow"
+            custom string content = """Publish workflow validates and exports assets for downstream use. Steps include validation, export, file copy, database registration, and notification. Published assets are typically immutable and versioned."""
+            custom string summary = "Validated export process for downstream asset consumption"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx"]
+            custom string[] requires = ["/Knowledge/Pipeline/Versioning"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/AssetManagement"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Validation", "Immutable output", "Registration"]
+            custom string[] triggers = ["publish", "publishing", "export asset", "release"]
+        }
+
+        def "ShotStructure" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/ShotStructure"
+            custom string content = """Shot structure organizes production content. Hierarchy: Project > Sequence > Shot. Shots reference assets and contain shot-specific overrides. USD layers separate departments (anim, fx, light). Frame ranges define shot boundaries."""
+            custom string summary = "Hierarchical organization of production content by sequence and shot"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx"]
+            custom string[] requires = ["/Knowledge/USD/Reference"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/Namespacing"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Project/Sequence/Shot", "Department layers", "Frame range"]
+            custom string[] triggers = ["shot structure", "shot", "sequence", "production hierarchy"]
+        }
+
+        def "OCIO" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/OCIO"
+            custom string content = """OCIO (OpenColorIO) manages color across the pipeline. Config files define colorspaces and transforms. All applications share the same config. Views define display transforms. Linear workflow is standard."""
+            custom string summary = "Open-source color management across pipeline applications"
+            custom float confidence = 0.95
+            custom string provenance = "opencolorio_docs"
+            custom string[] domains = ["pipeline", "vfx", "color"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/ReviewPipeline"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Config files", "Colorspaces", "Linear workflow"]
+            custom string[] triggers = ["ocio", "opencolorio", "color management", "colorspace"]
+        }
+
+        def "ReviewPipeline" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/ReviewPipeline"
+            custom string content = """Review pipeline enables dailies and client reviews. Playblasts and renders are submitted for review. Annotations and feedback are tracked. Status updates drive task assignment. Tools include RV, Shotgrid, and ftrack."""
+            custom string summary = "Dailies and client review process with feedback tracking"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/OCIO"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Dailies", "Annotations", "Status tracking"]
+            custom string[] triggers = ["review", "dailies", "client review", "feedback"]
+        }
+
+        def "RenderFarm" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/RenderFarm"
+            custom string content = """Render farm distributes rendering across machines. Job schedulers (Deadline, Tractor) manage queues and priorities. Jobs are split into frames or tiles. Dependencies chain jobs together. Resource limits prevent overload."""
+            custom string summary = "Distributed rendering across networked machines"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx", "rendering"]
+            custom string[] requires = []
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Houdini/PDG", "/Knowledge/Karma/RenderSettings"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Job scheduling", "Frame distribution", "Dependencies"]
+            custom string[] triggers = ["render farm", "farm", "deadline", "distributed render"]
+        }
+
+        def "CacheManagement" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/CacheManagement"
+            custom string content = """Cache management handles disk-based geometry and simulation caches. Organized by shot/task/version. Cleanup policies prevent disk overflow. Central vs local caching trade-offs. Caches are typically versioned alongside scenes."""
+            custom string summary = "Organization and lifecycle of disk-based caches"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx"]
+            custom string[] requires = ["/Knowledge/Houdini/Caching"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/Versioning"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Disk organization", "Cleanup policies", "Versioning"]
+            custom string[] triggers = ["cache management", "disk cache", "cache cleanup", "cache storage"]
+        }
+
+        def "AssetManagement" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/AssetManagement"
+            custom string content = """Asset management tracks all production assets. Database stores metadata, versions, and relationships. Tools like Shotgrid, ftrack provide UI and API. Assets link to tasks and reviews. Thumbnails and previews aid discovery."""
+            custom string summary = "Database tracking of production assets with metadata"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx"]
+            custom string[] requires = []
+            custom string[] enables = ["/Knowledge/Pipeline/PublishWorkflow", "/Knowledge/Pipeline/Versioning"]
+            custom string[] related_to = ["/Knowledge/Pipeline/AssetResolution"]
+            custom string teaching_altitude = "15000ft"
+            custom string[] key_concepts = ["Database tracking", "Metadata", "Task linking"]
+            custom string[] triggers = ["asset management", "shotgrid", "ftrack", "asset database"]
+        }
+
+        def "Namespacing" (
+            prepend apiSchemas = ["KnowledgePrimAPI"]
+        )
+        {
+            custom string canonical_path = "/Knowledge/Pipeline/Namespacing"
+            custom string content = """Namespacing prevents naming collisions when combining assets. USD prim paths provide natural namespacing. Referenced assets get unique prefixes. Consistent naming conventions aid debugging. Namespaces may encode provenance."""
+            custom string summary = "Preventing naming collisions when combining assets"
+            custom float confidence = 0.95
+            custom string provenance = "industry_practice"
+            custom string[] domains = ["pipeline", "vfx", "usd"]
+            custom string[] requires = ["/Knowledge/USD/Reference"]
+            custom string[] enables = []
+            custom string[] related_to = ["/Knowledge/Pipeline/ShotStructure"]
+            custom string teaching_altitude = "5000ft"
+            custom string[] key_concepts = ["Collision avoidance", "Prim paths", "Prefixing"]
+            custom string[] triggers = ["namespace", "namespacing", "naming collision", "naming convention"]
+        }
+    }
+}
