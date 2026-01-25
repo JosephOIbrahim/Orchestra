@@ -118,24 +118,24 @@ Where:
 
 ### Example Blend
 
-Task: "I'm stuck and frustrated trying to debug this render issue"
+Task: "I'm stuck and frustrated trying to debug this API issue"
 
 ```
 Signal Detection (PRISM):
   emotional.frustrated = 0.7
   emotional.stuck = 0.6
   task.debug = 0.8
-  domain.vfx = 0.9
+  domain.webdev = 0.9
 
 Framework Activation Weights:
   Protector:   0.7 × 0.3 (learned) = 0.21  → Validate emotion first
   Decomposer:  0.6 × 0.4 (learned) = 0.24  → Break down the problem
   Restorer:    0.3 × 0.2 (learned) = 0.06  → Offer recovery option
-  VFX_Expert:  0.9 × 0.5 (learned) = 0.45  → Domain knowledge
+  Domain:      0.9 × 0.5 (learned) = 0.45  → Domain knowledge
   Executor:    0.4 × 0.3 (learned) = 0.12  → Ready to act
 
 Blended Response Character:
-  45% domain expertise (VFX debugging knowledge)
+  45% domain expertise (debugging knowledge)
   24% decomposition (break it into steps)
   21% protection (acknowledge frustration)
   12% execution (ready to implement)

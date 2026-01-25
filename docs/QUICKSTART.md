@@ -1,6 +1,6 @@
 # Orchestra Quickstart Guide
 
-**For VFX Artists, TDs, and Creative Technologists**
+**For Developers and Creative Technologists**
 
 Get Orchestra running in 2 minutes. No PhD required.
 
@@ -116,19 +116,6 @@ Orchestra routes to different "experts" based on your signals:
 | **Celebrator** | You finished something | Acknowledges the win |
 | **Socratic** | You're exploring | Guides discovery |
 | **Direct** | You're in flow | Stays out of the way |
-
----
-
-## For Houdini/Nuke Users
-
-Orchestra understands VFX context. When you're working with:
-
-- **USD/LOPs** → VFX-aware responses, O(n) complexity analysis
-- **SOPs/DOPs** → Cook time considerations
-- **Karma/Rendering** → Memory profiling, render optimization
-- **Nuke** → Compositing workflow awareness
-
-Just work normally. Orchestra detects domain context from your messages.
 
 ---
 

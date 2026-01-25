@@ -10,7 +10,6 @@ Framework Orchestrator uses a layered configuration system with JSON files store
 ~/.framework-orchestrator/
 ├── principles.json           # Constitutional constraints (SPECIALIZES layer)
 └── domains/                  # Domain-specific configurations
-    ├── vfx.json
     ├── webdev.json
     ├── ai_conductor.json
     ├── ai_research.json
@@ -188,25 +187,6 @@ Which of the 6 PRISM perspectives apply to this domain:
 2. Restart the orchestrator - domains are loaded on initialization.
 
 ## Example Domains
-
-### VFX Domain
-
-```json
-{
-  "name": "VFX",
-  "specialists": {
-    "pyro": {
-      "keywords": ["fire", "smoke", "explosion", "pyro"],
-      "analysis_focus": ["voxel_count", "simulation_substeps"]
-    },
-    "flip": {
-      "keywords": ["water", "fluid", "ocean", "splash"],
-      "analysis_focus": ["particle_count", "substeps"]
-    }
-  },
-  "routing_keywords": ["vfx", "houdini", "render", "sim"]
-}
-```
 
 ### WebDev Domain
 

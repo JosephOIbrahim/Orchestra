@@ -86,10 +86,9 @@ C:\Users\User\Orchestra\
 
 ### Configuration (config/)
 
-#### Domain Configs (5 files)
+#### Domain Configs (4 files)
 | Domain | Specialists | Keywords |
 |--------|-------------|----------|
-| `vfx.json` | 9 | USD, Houdini, Nuke, Karma |
 | `webdev.json` | 6 | React, Next.js, CSS, API |
 | `ai_research.json` | 7 | ML, agents, prompts |
 | `ai_conductor.json` | 10 | Orchestration, cognitive |

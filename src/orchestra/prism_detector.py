@@ -65,8 +65,6 @@ SIGNAL_PATTERNS = {
         "recovery": ["break", "rest", "pause", "step back", "need time"],
     },
     SignalCategory.DOMAIN: {
-        # VFX domain
-        "vfx": ["houdini", "nuke", "usd", "karma", "render", "vex", "sop", "dop", "pyro", "flip"],
         # WebDev domain
         "webdev": ["react", "next", "css", "api", "frontend", "backend", "component"],
         # AI Research domain
