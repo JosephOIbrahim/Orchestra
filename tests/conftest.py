@@ -11,7 +11,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 # Create module aliases for backward compatibility with old import paths
-# Old: from framework_orchestrator import ...
+# Old: from orchestra import ...
 # New: from orchestra.framework_orchestrator import ...
 import orchestra
 import orchestra.framework_orchestrator
@@ -21,7 +21,7 @@ import orchestra.file_ops
 import orchestra.validation
 import orchestra.cognitive_state
 import orchestra.prism_detector
-import orchestra.adhd_support
+import orchestra.adhd_support  # Provides both new and backward-compat names
 import orchestra.cognitive_support
 
 sys.modules['framework_orchestrator'] = orchestra.framework_orchestrator
@@ -31,7 +31,8 @@ sys.modules['file_ops'] = orchestra.file_ops
 sys.modules['validation'] = orchestra.validation
 sys.modules['cognitive_state'] = orchestra.cognitive_state
 sys.modules['prism_detector'] = orchestra.prism_detector
-sys.modules['adhd_support'] = orchestra.adhd_support
+sys.modules['adhd_support'] = orchestra.adhd_support  # Backward compatibility
+sys.modules['cognitive_safety'] = orchestra.adhd_support  # New name alias
 sys.modules['cognitive_support'] = orchestra.cognitive_support
 
 

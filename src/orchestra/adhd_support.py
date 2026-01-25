@@ -1,10 +1,10 @@
 """
-ADHD Support Module
-===================
+Cognitive Safety Module
+=======================
 
-Implements ADHD-aware constraints for the Orchestra cognitive model.
+Implements cognitive safety gating for the Orchestra cognitive model.
 
-Core ADHD Constraints (from CLAUDE.md):
+Core Cognitive Safety Constraints (from CLAUDE.md):
 - Working memory limit: Max 3 items without structure
 - Time blindness: Use exchange count as proxy (20 exchanges = 90min)
 - Tangent budget: 5 per session, explicit tracking
@@ -12,7 +12,7 @@ Core ADHD Constraints (from CLAUDE.md):
 - Task chunking: Max 5 subtasks visible at once
 
 Toggle Mode:
-- ADHD mode is a binary toggle (ON/OFF)
+- Cognitive safety mode is a binary toggle (ON/OFF)
 - When ON: All constraints enforced
 - When OFF: Constraints disabled
 
@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# ADHD Constraints - FIXED Values
+# Cognitive Safety Constraints - FIXED Values
 # =============================================================================
 
-class ADHDConstraints:
-    """Fixed ADHD constraint values - never vary based on input."""
+class CognitiveSafetyConstraints:
+    """Fixed cognitive safety constraint values - never vary based on input."""
 
     # Working memory
     WORKING_MEMORY_LIMIT = 3  # Max items without structure
@@ -113,12 +113,12 @@ RECOVERY_OPTIONS = {
 
 
 # =============================================================================
-# ADHD Support Result
+# Cognitive Safety Check Result
 # =============================================================================
 
 @dataclass
-class ADHDCheckResult:
-    """Result from ADHD constraint checking."""
+class CognitiveSafetyCheckResult:
+    """Result from cognitive safety constraint checking."""
 
     # Constraint status
     working_memory_exceeded: bool = False
@@ -165,35 +165,35 @@ class ADHDCheckResult:
 
 
 # =============================================================================
-# ADHD Support Manager
+# Cognitive Safety Manager
 # =============================================================================
 
-class ADHDSupportManager:
+class CognitiveSafetyManager:
     """
-    Manages ADHD support constraints when enabled.
+    Manages cognitive safety constraints when enabled.
 
     Toggle mode: Binary ON/OFF, no soft modes per [He2025].
     """
 
     def __init__(self, enabled: bool = False):
         """
-        Initialize ADHD support.
+        Initialize cognitive safety support.
 
         Args:
-            enabled: Whether ADHD mode is enabled
+            enabled: Whether cognitive safety mode is enabled
         """
         self.enabled = enabled
-        self.constraints = ADHDConstraints()
+        self.constraints = CognitiveSafetyConstraints()
 
     def set_enabled(self, enabled: bool) -> None:
-        """Toggle ADHD mode (binary)."""
+        """Toggle cognitive safety mode (binary)."""
         self.enabled = enabled
-        logger.info(f"ADHD support {'enabled' if enabled else 'disabled'}")
+        logger.info(f"Cognitive safety {'enabled' if enabled else 'disabled'}")
 
     def check(self, state: CognitiveState, task_items: int = 0,
-              text: str = "") -> ADHDCheckResult:
+              text: str = "") -> CognitiveSafetyCheckResult:
         """
-        Check ADHD constraints against current state.
+        Check cognitive safety constraints against current state.
 
         Args:
             state: Current cognitive state
@@ -201,12 +201,12 @@ class ADHDSupportManager:
             text: User input text (for perfectionism detection)
 
         Returns:
-            ADHDCheckResult with constraint status and recommendations
+            CognitiveSafetyCheckResult with constraint status and recommendations
         """
-        result = ADHDCheckResult()
+        result = CognitiveSafetyCheckResult()
 
         if not self.enabled:
-            # ADHD mode disabled - return minimal result
+            # Cognitive safety mode disabled - return minimal result
             result.depth_limit = "ultradeep"  # No limits
             return result
 
@@ -265,7 +265,7 @@ class ADHDSupportManager:
         """
         Get thinking depth limit based on state.
 
-        ADHD Safety Gating: State ALWAYS overrides user depth request.
+        Cognitive Safety Gating: State ALWAYS overrides user depth request.
         Can REDUCE depth, never increase.
         """
         # Depleted = minimal only
@@ -325,7 +325,7 @@ class ADHDSupportManager:
     def format_progress(self, completed: int, total: int,
                         current_phase: int = 1, total_phases: int = 1) -> str:
         """
-        Format progress for ADHD-friendly display.
+        Format progress for cognitive safety-friendly display.
 
         Per CLAUDE.md: "Progress ALWAYS visible"
 
@@ -425,12 +425,12 @@ class ADHDSupportManager:
 @dataclass
 class WorkingMemoryTracker:
     """
-    Tracks items in working memory for ADHD support.
+    Tracks items in working memory for cognitive safety.
 
     Enforces the 3-item limit per CLAUDE.md.
     """
     items: List[str] = field(default_factory=list)
-    max_items: int = ADHDConstraints.WORKING_MEMORY_LIMIT
+    max_items: int = CognitiveSafetyConstraints.WORKING_MEMORY_LIMIT
 
     def add(self, item: str) -> Tuple[bool, Optional[str]]:
         """
@@ -481,21 +481,43 @@ class WorkingMemoryTracker:
 # Factory Functions
 # =============================================================================
 
-def create_adhd_manager(state: CognitiveState) -> ADHDSupportManager:
+def create_cognitive_safety_manager(state: CognitiveState) -> CognitiveSafetyManager:
     """
-    Create ADHD support manager from cognitive state.
+    Create cognitive safety manager from cognitive state.
 
     Args:
-        state: Current cognitive state (reads adhd_enabled flag)
+        state: Current cognitive state (reads cognitive_safety_enabled flag)
 
     Returns:
-        Configured ADHDSupportManager
+        Configured CognitiveSafetyManager
     """
-    return ADHDSupportManager(enabled=state.adhd_enabled)
+    return CognitiveSafetyManager(enabled=getattr(state, 'cognitive_safety_enabled', getattr(state, 'adhd_enabled', False)))
+
+
+# =============================================================================
+# Backward Compatibility Aliases (deprecated, will be removed in v2.0)
+# =============================================================================
+
+ADHDConstraints = CognitiveSafetyConstraints
+ADHDCheckResult = CognitiveSafetyCheckResult
+ADHDSupportManager = CognitiveSafetyManager
+
+
+def create_adhd_manager(state: CognitiveState) -> CognitiveSafetyManager:
+    """
+    Backward compatibility: Create cognitive safety manager.
+
+    DEPRECATED: Use create_cognitive_safety_manager() instead.
+    """
+    return create_cognitive_safety_manager(state)
 
 
 __all__ = [
-    'ADHDConstraints', 'RecoveryOption', 'RECOVERY_OPTIONS',
-    'ADHDCheckResult', 'ADHDSupportManager', 'WorkingMemoryTracker',
-    'create_adhd_manager'
+    # New names (preferred)
+    'CognitiveSafetyConstraints', 'CognitiveSafetyCheckResult',
+    'CognitiveSafetyManager', 'create_cognitive_safety_manager',
+    # Backward compatibility aliases (deprecated)
+    'ADHDConstraints', 'ADHDCheckResult', 'ADHDSupportManager', 'create_adhd_manager',
+    # Shared (no name change)
+    'RecoveryOption', 'RECOVERY_OPTIONS', 'WorkingMemoryTracker'
 ]

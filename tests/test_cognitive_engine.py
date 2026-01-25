@@ -2,7 +2,7 @@
 Tests for the Cognitive Engine (5-Phase NEXUS Pipeline)
 
 Tests:
-- Expert routing (ADHD_MoE)
+- Expert routing (Cognitive Safety MoE)
 - Parameter locking (MAX3, safety gating)
 - Convergence tracking (RC^+xi)
 - Full pipeline orchestration
@@ -40,7 +40,7 @@ from orchestra.prism_detector import PRISMDetector, SignalVector, create_detecto
 # =============================================================================
 
 class TestExpertRouter:
-    """Tests for ADHD_MoE expert routing."""
+    """Tests for Cognitive Safety MoE expert routing."""
 
     def test_create_router(self):
         """Router creates successfully."""

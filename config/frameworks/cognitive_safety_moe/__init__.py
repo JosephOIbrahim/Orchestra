@@ -2,9 +2,6 @@
 Cognitive Safety MoE Payload - Safety Tier (Always Loaded)
 ==========================================================
 
-DEPRECATED: This module is kept for backward compatibility.
-Please use cognitive_safety_moe instead.
-
 Implements V5 Intervention Experts with Safety Floors.
 
 Source Frameworks:

@@ -7,7 +7,7 @@ import { TOKENS } from '../../StatusView/StatusView'
  * Shows:
  * - Constitutional check (pass/fail)
  * - Safety gate check (pass/fail with redirect)
- * - 7-level ADHD_MoE expert routing with first-match-wins
+ * - 7-level Cognitive Safety MoE expert routing with first-match-wins
  *
  * ThinkingMachines [He2025]: Fixed priority order, first-match-wins
  * Expert priority: Validator > Scaffolder > Restorer > Refocuser > Celebrator > Socratic > Direct

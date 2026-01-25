@@ -11,7 +11,7 @@ import time
 import statistics
 from pathlib import Path
 
-from framework_orchestrator import (
+from orchestra import (
     FrameworkOrchestrator,
     OrchestratorConfig,
 )

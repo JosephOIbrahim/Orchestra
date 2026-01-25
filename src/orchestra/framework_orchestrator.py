@@ -65,7 +65,11 @@ from .cognitive_state import (
     BurnoutLevel, MomentumPhase, EnergyLevel, CognitiveMode, Altitude
 )
 from .prism_detector import PRISMDetector, SignalVector, SignalCategory
-from .adhd_support import ADHDSupportManager, ADHDCheckResult, create_adhd_manager
+from .adhd_support import (
+    CognitiveSafetyManager, CognitiveSafetyCheckResult, create_cognitive_safety_manager,
+    # Backward compatibility aliases
+    ADHDSupportManager, ADHDCheckResult, create_adhd_manager
+)
 
 # Decision engine (v4.3.0 - Work/Delegate/Protect)
 from .decision_engine import (
@@ -1421,7 +1425,7 @@ class FrameworkOrchestrator:
             state_dir=self.workspace / "state"
         )
         self.prism_detector = PRISMDetector()
-        self.adhd_manager: Optional[ADHDSupportManager] = None
+        self.cognitive_safety_manager: Optional[CognitiveSafetyManager] = None
 
         # Decision engine (v4.3.0 - Work/Delegate/Protect)
         # Feature flag: use_decision_engine controls whether we use new routing
@@ -1955,7 +1959,7 @@ class FrameworkOrchestrator:
         Flow (7 Phases):
         1. SNAPSHOT: Take cognitive state snapshot BEFORE processing
         2. DETECT: Run PRISM signal detection
-        3. SAFETY GATE: ADHD constraints check
+        3. SAFETY GATE: Cognitive safety constraints check
         4. ROUTE: DecisionEngine.process_task() with pre-computed table
         5. EXECUTE: Branch by DecisionMode (WORK/DELEGATE/PROTECT)
         6. COLLECT: Gather results, determinism guard, checksum
@@ -1975,8 +1979,8 @@ class FrameworkOrchestrator:
         # Increment exchange count
         cognitive_state.increment_exchange(rapid=True)
 
-        # Initialize ADHD manager from state
-        self.adhd_manager = create_adhd_manager(cognitive_state)
+        # Initialize cognitive safety manager from state
+        self.cognitive_safety_manager = create_cognitive_safety_manager(cognitive_state)
 
         # Add cognitive context for agents
         context["cognitive_state"] = cognitive_snapshot
@@ -1996,16 +2000,16 @@ class FrameworkOrchestrator:
             context["safety_reason"] = intervention_reason
 
         # =====================================================================
-        # PHASE 3: SAFETY GATE - ADHD Constraints Check
+        # PHASE 3: SAFETY GATE - Cognitive Safety Constraints Check
         # =====================================================================
-        adhd_check = None
+        cognitive_safety_check = None
         can_spawn = True
-        if self.adhd_manager and self.adhd_manager.enabled:
-            adhd_check = self.adhd_manager.check(cognitive_snapshot, task_items=1, text=task)
-            context["adhd_check"] = adhd_check.to_dict()
+        if self.cognitive_safety_manager and self.cognitive_safety_manager.enabled:
+            cognitive_safety_check = self.cognitive_safety_manager.check(cognitive_snapshot, task_items=1, text=task)
+            context["cognitive_safety_check"] = cognitive_safety_check.to_dict()
 
             # Check if agents should be spawned
-            can_spawn, spawn_reason = self.adhd_manager.should_spawn_agents(cognitive_snapshot)
+            can_spawn, spawn_reason = self.cognitive_safety_manager.should_spawn_agents(cognitive_snapshot)
             if not can_spawn:
                 logger.warning(f"Agent spawning restricted: {spawn_reason}")
                 # Return simplified response in restricted mode
@@ -2017,7 +2021,7 @@ class FrameworkOrchestrator:
                         "cognitive_intervention": True,
                         "intervention_type": "burnout_red",
                         "message": "RED burnout detected. Offering recovery options.",
-                        "recovery_menu": self.adhd_manager.get_recovery_menu(),
+                        "recovery_menu": self.cognitive_safety_manager.get_recovery_menu(),
                         "agents_executed": 0,
                         "master_checksum": hashlib.sha256(task.encode()).hexdigest()[:32],
                         "decision_mode": "protect"
@@ -2260,8 +2264,8 @@ class FrameworkOrchestrator:
             # Add cognitive state to synthesis
             synthesis["cognitive_state"] = cognitive_state.to_dict()
             synthesis["prism_signals"] = context.get("prism_signals", {})
-            if adhd_check:
-                synthesis["adhd_check"] = adhd_check.to_dict()
+            if cognitive_safety_check:
+                synthesis["cognitive_safety_check"] = cognitive_safety_check.to_dict()
 
             # =====================================================================
             # PHASE 6.75: Queue Delivery Check (v4.3.0)

@@ -1,6 +1,6 @@
 """
-Expert Router (ADHD_MoE)
-========================
+Expert Router (Cognitive Safety MoE)
+====================================
 
 Routes incoming signals to intervention experts using FIXED priority,
 first-match-wins semantics.
@@ -144,7 +144,7 @@ class ExpertRouter:
     """
     Routes signals to intervention experts.
 
-    Implements ADHD_MoE from CLAUDE.md with:
+    Implements Cognitive Safety MoE from CLAUDE.md with:
     - FIXED priority order (1-7)
     - First-match-wins semantics
     - Safety gates for constitutional compliance
@@ -202,7 +202,7 @@ class ExpertRouter:
             return safety_result
 
         # =================================================================
-        # GATE 3: ADHD_MoE Routing (FIXED priority, first-match-wins)
+        # GATE 3: Cognitive Safety MoE Routing (FIXED priority, first-match-wins)
         # =================================================================
         context = {
             "signals": signals,
@@ -227,7 +227,7 @@ class ExpertRouter:
                     priority_index=priority_idx
                 )
                 self._last_routing = result
-                logger.info(f"ADHD_MoE → {expert.value} (priority {priority_idx}): {trigger}")
+                logger.info(f"CognitiveSafetyMoE → {expert.value} (priority {priority_idx}): {trigger}")
                 return result
 
         # Default to Direct (should always match, but safety fallback)

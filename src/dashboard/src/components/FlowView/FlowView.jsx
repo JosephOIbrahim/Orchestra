@@ -37,7 +37,7 @@ import { TOKENS } from '../StatusView/StatusView'
 // Custom node types - 5-phase NEXUS pipeline
 const nodeTypes = {
   stateNode: StateNode,       // Phase 1: DETECT
-  cascadeNode: CascadeNode,   // Phase 2: CASCADE (7-expert ADHD_MoE)
+  cascadeNode: CascadeNode,   // Phase 2: CASCADE (7-expert Cognitive Safety MoE)
   lockNode: LockNode,         // Phase 3: LOCK (MAX3 + params)
   executionNode: ExecutionNode, // Phase 4: EXECUTE (work/delegate)
   storageNode: StorageNode,   // Phase 4: PROTECT

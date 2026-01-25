@@ -44,8 +44,8 @@
       "analysis_focus": ["interface_design", "execution_contract", "error_handling", "output_schema", "checksum_generation"]
     },
     "executive_function": {
-      "keywords": ["adhd", "executive", "burnout", "energy", "momentum", "hyperfocus", "scaffolder", "validator", "restorer"],
-      "tools": ["ADHD_MoE", "Executive Function Support"],
+      "keywords": ["cognitive_safety", "executive", "burnout", "energy", "momentum", "hyperfocus", "scaffolder", "validator", "restorer"],
+      "tools": ["Cognitive_Safety_MoE", "Executive Function Support"],
       "analysis_focus": ["energy_tracking", "burnout_detection", "momentum_phase", "intervention_timing", "recovery_support"]
     },
     "thinking_protocol": {
@@ -58,7 +58,7 @@
     "orchestrat", "conductor", "substrate", "cognitive", "framework", "synthesis",
     "livrps", "routing", "cascade", "determinism", "agent", "multi-agent",
     "state", "session", "ralph", "csqmf", "moe", "reflection", "resonance",
-    "convergence", "adhd", "executive", "thinking", "depth"
+    "convergence", "cognitive_safety", "executive", "thinking", "depth"
   ],
   "prism_perspectives": ["causal", "hierarchical", "optimization", "temporal", "risk", "opportunity"]
 }

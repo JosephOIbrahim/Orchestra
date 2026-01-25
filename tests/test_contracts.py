@@ -10,7 +10,7 @@ import json
 import hashlib
 from pathlib import Path
 
-from framework_orchestrator import (
+from orchestra import (
     FrameworkOrchestrator,
     OrchestratorConfig,
     AgentStatus,

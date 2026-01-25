@@ -511,7 +511,7 @@ class CognitiveAwareSynthesis(SynthesisAgent):
     Adjusts synthesis based on:
     - Burnout level (simpler output when stressed)
     - Mode (different emphasis for exploring vs focused)
-    - ADHD constraints (chunking, working memory limits)
+    - Cognitive safety constraints (chunking, working memory limits)
     """
 
     def __init__(self, cognitive_state: CognitiveState = None):

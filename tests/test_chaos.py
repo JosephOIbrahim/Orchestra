@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from framework_orchestrator import (
+from orchestra import (
     FrameworkOrchestrator,
     OrchestratorConfig,
     AgentStatus,

@@ -6,15 +6,15 @@ Provides a CLI dashboard for viewing and managing cognitive state.
 
 Features:
 - View current cognitive state (burnout, momentum, energy, mode)
-- Toggle ADHD mode on/off
+- Toggle cognitive safety mode on/off
 - View PRISM signal analysis
 - Progress visualization
 - Recovery menu access
 
 Usage:
     python -m orchestra.dashboard status
-    python -m orchestra.dashboard adhd on
-    python -m orchestra.dashboard adhd off
+    python -m orchestra.dashboard cognitive-safety on
+    python -m orchestra.dashboard cognitive-safety off
     python -m orchestra.dashboard reset
 """
 
@@ -29,7 +29,11 @@ from .cognitive_state import (
     CognitiveStateManager, CognitiveState,
     BurnoutLevel, MomentumPhase, EnergyLevel, CognitiveMode
 )
-from .adhd_support import ADHDSupportManager, RECOVERY_OPTIONS, RecoveryOption
+from .adhd_support import (
+    CognitiveSafetyManager, RECOVERY_OPTIONS, RecoveryOption,
+    # Backward compatibility alias
+    ADHDSupportManager
+)
 from .agent_coordinator import AgentCoordinator, DecisionMode
 
 

@@ -49,7 +49,7 @@ Orchestra implements a **5-Phase NEXUS Pipeline** based on ThinkingMachines [He2
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │   DETECT    │ ──▶ │   CASCADE   │ ──▶ │    LOCK     │
-│   (PRISM)   │     │  (ADHD_MoE) │     │   (MAX3)    │
+│   (PRISM)   │     │ (CogSafeMoE)│     │   (MAX3)    │
 └─────────────┘     └─────────────┘     └─────────────┘
                                                │
 ┌─────────────┐     ┌─────────────┐            │
@@ -63,7 +63,7 @@ Orchestra implements a **5-Phase NEXUS Pipeline** based on ThinkingMachines [He2
 | Module | File | Purpose |
 |--------|------|---------|
 | `PRISMDetector` | `prism_detector.py` | Signal extraction (emotional > mode > domain > task) |
-| `ExpertRouter` | `expert_router.py` | ADHD_MoE routing (7 experts, fixed priority) |
+| `ExpertRouter` | `expert_router.py` | Cognitive Safety MoE routing (7 experts, fixed priority) |
 | `ParameterLocker` | `parameter_locker.py` | MAX3 bounded reflection, safety gating |
 | `ConvergenceTracker` | `convergence_tracker.py` | RC^+xi epistemic tension tracking |
 | `CognitiveOrchestrator` | `cognitive_orchestrator.py` | 5-Phase pipeline coordination |

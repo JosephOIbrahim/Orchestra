@@ -5,7 +5,7 @@
  *
  * 5-Phase NEXUS Pipeline (ThinkingMachines [He2025]):
  * 1. DETECT  - StateNode (PRISM signal extraction)
- * 2. CASCADE - CascadeNode (7-expert ADHD_MoE routing)
+ * 2. CASCADE - CascadeNode (7-expert Cognitive Safety MoE routing)
  * 3. LOCK    - LockNode (MAX3 + parameter locking)
  * 4. EXECUTE - ExecutionNode/StorageNode (work/delegate/protect)
  * 5. UPDATE  - UpdateNode (RC^+xi convergence tracking)

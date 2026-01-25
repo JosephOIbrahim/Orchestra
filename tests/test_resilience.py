@@ -6,7 +6,7 @@ import asyncio
 import pytest
 import time
 
-from framework_orchestrator.resilience import (
+from orchestra.resilience import (
     CircuitBreaker,
     CircuitBreakerOpen,
     CircuitState,

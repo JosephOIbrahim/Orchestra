@@ -117,7 +117,7 @@ export const STATES = {
 }
 
 // ============================================================================
-// EXPERT COLORS (ADHD_MoE - 7 Intervention Experts)
+// EXPERT COLORS (Cognitive Safety MoE - 7 Intervention Experts)
 // ============================================================================
 
 export const EXPERT_COLORS = {

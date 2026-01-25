@@ -2,7 +2,7 @@
 
 **Cognitive orchestration for Claude Code with deterministic behavior.**
 
-Orchestra is a cognitive engine that processes every message through a 5-Phase NEXUS Pipeline, providing deterministic expert routing and ADHD-aware safety gating. Built on USD composition semantics and ThinkingMachines [He2025] batch-invariance principles.
+Orchestra is a cognitive engine that processes every message through a 5-Phase NEXUS Pipeline, providing deterministic expert routing and cognitive safety gating. Built on USD composition semantics and ThinkingMachines [He2025] batch-invariance principles.
 
 ```
 Same signals → Same routing → Same behavior
@@ -41,12 +41,12 @@ Every message you send to Claude Code:
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 2: CASCADE                                                            │
-│   Safety gates + ADHD_MoE expert routing (7 experts, first-match-wins)      │
+│   Safety gates + Cognitive Safety MoE routing (7 experts, first-match-wins) │
 └───────────────────────────┬─────────────────────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 3: LOCK                                                               │
-│   MAX3 bounded reflection + ADHD safety gating + deterministic checksum     │
+│   MAX3 bounded reflection + cognitive safety gating + deterministic checksum│
 └───────────────────────────┬─────────────────────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -63,7 +63,7 @@ Every message you send to Claude Code:
 
 ---
 
-## Expert Routing (ADHD_MoE)
+## Expert Routing (Cognitive Safety MoE)
 
 Signals are routed to intervention experts in **fixed priority** order:
 
@@ -191,7 +191,7 @@ echo '{"user_prompt": "test"}' | python -m orchestra.hooks
 Orchestra/
 ├── src/orchestra/
 │   ├── cognitive_orchestrator.py  # 5-Phase NEXUS Pipeline
-│   ├── expert_router.py           # ADHD_MoE (7 experts)
+│   ├── expert_router.py           # Cognitive Safety MoE (7 experts)
 │   ├── parameter_locker.py        # MAX3 + safety gating
 │   ├── convergence_tracker.py     # RC^+xi tracking
 │   ├── prism_detector.py          # Signal detection

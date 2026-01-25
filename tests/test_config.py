@@ -13,7 +13,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 
-from framework_orchestrator.config import (
+from orchestra.config import (
     OrchestratorConfig,
     get_config,
     set_config,

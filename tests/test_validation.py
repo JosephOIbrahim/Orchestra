@@ -5,7 +5,7 @@ Tests for validation module.
 import pytest
 from pathlib import Path
 
-from framework_orchestrator.validation import (
+from orchestra.validation import (
     validate_task,
     validate_context,
     validate_agent_name,

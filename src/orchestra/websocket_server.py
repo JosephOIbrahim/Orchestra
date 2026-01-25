@@ -41,7 +41,7 @@ class CognitiveState:
 
     Phases:
     1. DETECT  - PRISM signal extraction
-    2. CASCADE - Constitutional/safety gates + ADHD_MoE expert routing
+    2. CASCADE - Constitutional/safety gates + Cognitive Safety MoE expert routing
     3. LOCK    - Parameter locking with MAX3 bounds
     4. EXECUTE - Work/delegate/protect execution
     5. UPDATE  - RC^+xi convergence tracking

@@ -389,7 +389,7 @@ class DecisionEngine:
         snapshot = self._create_state_snapshot(request, context)
 
         # =================================================================
-        # PHASE 2: SAFETY GATE (ADHD constraints)
+        # PHASE 2: SAFETY GATE (Cognitive safety constraints)
         # =================================================================
         # RED burnout → force recovery, no agents
         if snapshot.burnout_level == "RED":

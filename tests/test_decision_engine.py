@@ -202,7 +202,7 @@ class TestDecisionEngineDeterminism:
 
 
 class TestSafetyGating:
-    """Tests for ADHD safety constraints."""
+    """Tests for cognitive safety constraints."""
 
     def test_burnout_red_forces_protect(self):
         """RED burnout should force PROTECT mode."""

@@ -10,7 +10,7 @@ Payloads are loaded on demand based on:
 3. Safety tier requirements
 
 Loading Tiers:
-- SAFETY: Always loaded (adhd_moe with safety floors)
+- SAFETY: Always loaded (cognitive_safety_moe with safety floors)
 - WEIGHTED: Loaded based on calibrated weights
 - DEFERRED: Loaded only when explicitly needed
 
@@ -27,7 +27,8 @@ from pathlib import Path
 PAYLOAD_ROOT = Path(__file__).parent
 
 AVAILABLE_PAYLOADS = [
-    "adhd_moe",
+    "cognitive_safety_moe",
+    "adhd_moe",  # Backward compatibility alias
     "max_reflection",
     "nova_oracle",
     "echo_memory",

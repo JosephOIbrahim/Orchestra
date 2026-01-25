@@ -35,7 +35,7 @@ Tension surfacing is **epistemic humility** - acknowledging when the model has c
 
 **There is no toggle.**
 
-Human cognition has limits. Whether you have ADHD, are experiencing anxiety, are sleep-deprived, stressed, or simply overwhelmed by modern information density - the challenges are the same. The prosthetic always:
+Human cognition has limits. Whether you are neurodivergent, experiencing anxiety, sleep-deprived, stressed, or simply overwhelmed by modern information density - the challenges are the same. The prosthetic always:
 
 - Manages working memory (humans hold ~3-4 items without structure - this is biology, not diagnosis)
 - Tracks time through exchanges (compensates for flow-state time distortion and stress-induced time blindness)
@@ -46,7 +46,7 @@ Human cognition has limits. Whether you have ADHD, are experiencing anxiety, are
 
 These are not features for a specific diagnosis. They are how good cognitive support works.
 
-**Rationale**: The principles that help ADHD minds are simply good cognitive ergonomics applied universally. A well-designed system accommodates human cognitive limits by default. You don't need a diagnosis to benefit from a system that respects how brains actually work.
+**Rationale**: The principles that help neurodivergent minds are simply good cognitive ergonomics applied universally. A well-designed system accommodates human cognitive limits by default. You don't need a diagnosis to benefit from a system that respects how brains actually work.
 
 ---
 

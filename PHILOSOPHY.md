@@ -80,7 +80,7 @@ Orchestra extends human cognitive capacity where it's limited.
 
 ### Universal Cognitive Challenges
 
-These limitations affect everyone - whether from ADHD, anxiety, stress, fatigue, or information overload:
+These limitations affect everyone - whether from neurodivergence, anxiety, stress, fatigue, or information overload:
 
 | Challenge | How Orchestra Compensates |
 |-----------|---------------------------|
@@ -91,7 +91,7 @@ These limitations affect everyone - whether from ADHD, anxiety, stress, fatigue,
 | Emotional load | Safety floors, validation before problem-solving |
 | Context switching cost | State persistence, handoff protocols |
 
-The principles that help ADHD minds are simply good cognitive ergonomics. Everyone benefits from a system that respects how brains actually work.
+The principles that help neurodivergent minds are simply good cognitive ergonomics. Everyone benefits from a system that respects how brains actually work.
 
 ### The Prosthetic Contract
 Orchestra doesn't replace human cognition - it **scaffolds** it:

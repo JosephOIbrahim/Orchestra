@@ -343,13 +343,13 @@ def get_agent_suggestion(plan: ExecutionPlan) -> Optional[str]:
 
 
 # =============================================================================
-# Expert Routing (ADHD_MoE)
+# Expert Routing (Cognitive Safety MoE)
 # =============================================================================
 
 def get_recommended_expert(signals: SignalVector,
                            cognitive_check: CognitiveCheckResult) -> Tuple[str, str]:
     """
-    Get recommended expert based on signals (ADHD_MoE routing).
+    Get recommended expert based on signals (Cognitive Safety MoE routing).
 
     Returns:
         (expert_name, reason) tuple

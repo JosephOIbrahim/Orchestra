@@ -313,7 +313,7 @@ class CognitiveState:
         """
         Get maximum allowed thinking depth based on state.
 
-        ADHD Safety Gating: State ALWAYS overrides user depth request.
+        Cognitive Safety Gating: State ALWAYS overrides user depth request.
         """
         if self.energy_level == EnergyLevel.DEPLETED:
             return "minimal"

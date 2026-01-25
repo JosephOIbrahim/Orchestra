@@ -6,7 +6,7 @@ Locks cognitive parameters before generation for deterministic behavior.
 
 Features:
 - MAX3 bounded reflection (max 3 iterations)
-- ADHD safety gating (state overrides user requests)
+- Cognitive safety gating (state overrides user requests)
 - Deterministic checksum computation
 - Parameter freezing for batch-invariance
 
@@ -15,7 +15,7 @@ ThinkingMachines [He2025] Compliance:
 - Same inputs = same locked params = same checksum
 - No mid-generation parameter changes
 
-ADHD Safety Gating (from CLAUDE.md):
+Cognitive Safety Gating (from CLAUDE.md):
 - depleted → minimal thinking
 - low energy → standard thinking
 - RED/ORANGE burnout → standard thinking
@@ -169,7 +169,7 @@ class ParameterLocker:
 
     Implements:
     - MAX3 bounded reflection
-    - ADHD safety gating
+    - Cognitive safety gating
     - Deterministic checksums
     - Paradigm selection based on mode
     """
@@ -220,7 +220,7 @@ class ParameterLocker:
         paradigm = self._select_paradigm(routing.expert, mode)
 
         # =================================================================
-        # STEP 2: Apply ADHD safety gating to thinking depth
+        # STEP 2: Apply cognitive safety gating to thinking depth
         # =================================================================
         actual_depth, safety_capped = self._apply_safety_gating(
             requested_depth, burnout, energy
@@ -290,7 +290,7 @@ class ParameterLocker:
         energy: EnergyLevel
     ) -> tuple[ThinkDepth, bool]:
         """
-        Apply ADHD safety gating to thinking depth.
+        Apply cognitive safety gating to thinking depth.
 
         Per CLAUDE.md:
         - depleted → minimal
@@ -322,7 +322,7 @@ class ParameterLocker:
         """
         Get maximum allowed thinking depth based on state.
 
-        ADHD Safety Gating (from CLAUDE.md):
+        Cognitive Safety Gating (from CLAUDE.md):
         - depleted → minimal
         - low energy → standard
         - RED burnout → minimal
