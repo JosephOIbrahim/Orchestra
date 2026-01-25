@@ -87,25 +87,51 @@ class LockedParams:
     Immutable locked parameters for generation.
 
     Once locked, these CANNOT change during generation.
+
+    ThinkingMachines [He2025] Batch-Invariance:
+    - `checksum`: Routing-only checksum (excludes reflection_iteration)
+    - `session_checksum`: Full checksum including iteration (for debugging)
+    - Same routing params → same checksum regardless of reflection count
     """
     expert: str
     paradigm: str
     altitude: str
     think_depth: str
     checksum: str = ""
+    session_checksum: str = ""  # Includes reflection_iteration for debugging
     reflection_iteration: int = 0
     max_reflections: int = 3  # MAX3
 
     def __post_init__(self):
-        """Compute deterministic checksum."""
+        """Compute deterministic checksums."""
         if not self.checksum:
             self.checksum = self._compute_checksum()
+        if not self.session_checksum:
+            self.session_checksum = self._compute_session_checksum()
 
     def _compute_checksum(self) -> str:
         """
-        Compute deterministic checksum of locked params.
+        Compute deterministic checksum of ROUTING params only.
 
-        Same inputs → same checksum (batch-invariance).
+        Excludes reflection_iteration to ensure batch-invariance:
+        Same routing decision → same checksum regardless of iteration.
+
+        ThinkingMachines [He2025]: Same inputs → same outputs → same checksums
+        """
+        data = json.dumps({
+            "expert": self.expert,
+            "paradigm": self.paradigm,
+            "altitude": self.altitude,
+            "think_depth": self.think_depth,
+            # NOTE: reflection_iteration intentionally excluded for batch-invariance
+        }, sort_keys=True)
+        return hashlib.md5(data.encode()).hexdigest()[:6]
+
+    def _compute_session_checksum(self) -> str:
+        """
+        Compute session-aware checksum including iteration.
+
+        Used for debugging/tracing, not for batch-invariance verification.
         """
         data = json.dumps({
             "expert": self.expert,
@@ -132,6 +158,7 @@ class LockedParams:
             "altitude": self.altitude,
             "think_depth": self.think_depth,
             "checksum": self.checksum,
+            "session_checksum": self.session_checksum,
             "reflection_iteration": self.reflection_iteration,
             "max_reflections": self.max_reflections
         }
@@ -148,6 +175,7 @@ class LockResult:
     params: LockedParams
     safety_capped: bool = False  # True if safety gating reduced depth
     original_depth: Optional[str] = None  # Depth before safety cap
+    converged: bool = False  # True if early convergence detected (xi < epsilon)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict."""
@@ -155,7 +183,8 @@ class LockResult:
             "status": self.status.value,
             "params": self.params.to_dict(),
             "safety_capped": self.safety_capped,
-            "original_depth": self.original_depth
+            "original_depth": self.original_depth,
+            "converged": self.converged
         }
 
 
@@ -181,11 +210,12 @@ class ParameterLocker:
         Args:
             max_reflections: Maximum reflection iterations (MAX3)
             epsilon: Convergence threshold for stopping early
+
+        Note: reflection_count is now tracked in CognitiveState for batch-invariance.
         """
         self.max_reflections = max_reflections
         self.epsilon = epsilon
         self._current_lock: Optional[LockResult] = None
-        self._reflection_count = 0
 
     def lock(
         self,
@@ -195,12 +225,15 @@ class ParameterLocker:
         altitude: Altitude,
         requested_depth: ThinkDepth = ThinkDepth.STANDARD,
         mode: str = "focused",
-        epistemic_tension: float = 0.0
+        epistemic_tension: float = 0.0,
+        reflection_count: int = 0
     ) -> LockResult:
         """
         Lock parameters for generation.
 
         ThinkingMachines [He2025]: Parameters locked BEFORE generation.
+        Batch-invariance: reflection_count passed from state snapshot,
+        not stored as instance state.
 
         Args:
             routing: Result from expert router
@@ -210,6 +243,7 @@ class ParameterLocker:
             requested_depth: User-requested thinking depth
             mode: Current cognitive mode (for paradigm selection)
             epistemic_tension: Current epistemic tension (for early stop)
+            reflection_count: Current reflection count (from CognitiveState snapshot)
 
         Returns:
             LockResult with locked parameters
@@ -229,16 +263,17 @@ class ParameterLocker:
         # =================================================================
         # STEP 3: Check MAX3 and epsilon stopping
         # =================================================================
-        if epistemic_tension < self.epsilon and self._reflection_count > 0:
-            # Early convergence - stop reflecting
+        converged = False
+        if epistemic_tension < self.epsilon and reflection_count > 0:
+            # Early convergence - signal to caller
             logger.info(f"Early convergence at xi={epistemic_tension:.2f} < epsilon={self.epsilon}")
-            self._reflection_count = self.max_reflections  # Mark as done
+            converged = True
 
-        if self._reflection_count >= self.max_reflections:
+        if reflection_count >= self.max_reflections:
             # MAX3 reached - force minimal depth
             actual_depth = ThinkDepth.MINIMAL
             safety_capped = True
-            logger.info(f"MAX3 reached ({self._reflection_count}/{self.max_reflections})")
+            logger.info(f"MAX3 reached ({reflection_count}/{self.max_reflections})")
 
         # =================================================================
         # STEP 4: Create locked params
@@ -248,18 +283,20 @@ class ParameterLocker:
             paradigm=paradigm.value,
             altitude=self._format_altitude(altitude),
             think_depth=actual_depth.value,
-            reflection_iteration=self._reflection_count
+            reflection_iteration=reflection_count
         )
 
         result = LockResult(
             status=LockStatus.LOCKED,
             params=params,
             safety_capped=safety_capped,
-            original_depth=requested_depth.value if safety_capped else None
+            original_depth=requested_depth.value if safety_capped else None,
+            converged=converged
         )
 
         self._current_lock = result
-        self._reflection_count += 1
+        # NOTE: Counter increment now handled by caller (CognitiveOrchestrator)
+        # after batch_update() for batch-invariance
 
         logger.info(f"Locked params: {params.to_anchor()}")
         return result
@@ -359,17 +396,15 @@ class ParameterLocker:
         return altitude_map.get(altitude, "30000ft")
 
     def reset(self) -> None:
-        """Reset locker state (for new task)."""
-        self._reflection_count = 0
+        """Reset locker state (for new task).
+
+        Note: reflection_count is now reset in CognitiveState for batch-invariance.
+        """
         self._current_lock = None
 
     def get_current_lock(self) -> Optional[LockResult]:
         """Get current lock result."""
         return self._current_lock
-
-    def get_reflection_count(self) -> int:
-        """Get current reflection count."""
-        return self._reflection_count
 
 
 # =============================================================================

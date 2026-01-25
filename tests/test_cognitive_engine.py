@@ -199,16 +199,71 @@ class TestParameterLocker:
             routing=routing,
             burnout=BurnoutLevel.GREEN,
             energy=EnergyLevel.MEDIUM,
-            altitude=Altitude.VISION
+            altitude=Altitude.VISION,
+            reflection_count=0  # Explicitly pass reflection_count
         )
         result2 = locker2.lock(
             routing=routing,
             burnout=BurnoutLevel.GREEN,
             energy=EnergyLevel.MEDIUM,
-            altitude=Altitude.VISION
+            altitude=Altitude.VISION,
+            reflection_count=0  # Same reflection_count
         )
 
         assert result1.params.checksum == result2.params.checksum
+
+    def test_batch_invariance_different_reflection_count(self):
+        """
+        ThinkingMachines [He2025]: Same routing params → same checksum
+        even with different reflection_count values (within MAX3 bounds).
+
+        This is the core batch-invariance test: routing checksum excludes
+        reflection_iteration, so different counts produce identical checksums.
+
+        Note: Uses reflection_count values < MAX3 (3) to avoid triggering
+        safety caps that would change think_depth.
+        """
+        locker = create_locker()
+        router = create_router()
+        detector = create_detector()
+
+        signals = detector.detect("test message")
+        routing = router.route(
+            signals=signals,
+            burnout=BurnoutLevel.GREEN,
+            energy=EnergyLevel.MEDIUM,
+            momentum=MomentumPhase.ROLLING,
+            mode="focused"
+        )
+
+        from orchestra.cognitive_state import Altitude
+
+        # Two calls with same routing but different reflection_count
+        # Both within MAX3 bounds (< 3) to avoid safety caps
+        result1 = locker.lock(
+            routing=routing,
+            burnout=BurnoutLevel.GREEN,
+            energy=EnergyLevel.MEDIUM,
+            altitude=Altitude.VISION,
+            reflection_count=0  # First iteration
+        )
+        result2 = locker.lock(
+            routing=routing,
+            burnout=BurnoutLevel.GREEN,
+            energy=EnergyLevel.MEDIUM,
+            altitude=Altitude.VISION,
+            reflection_count=2  # Third iteration (still within MAX3)
+        )
+
+        # Routing checksum should be identical (batch-invariant)
+        assert result1.params.checksum == result2.params.checksum
+
+        # Session checksum should differ (includes iteration for debugging)
+        assert result1.params.session_checksum != result2.params.session_checksum
+
+        # reflection_iteration should be stored correctly
+        assert result1.params.reflection_iteration == 0
+        assert result2.params.reflection_iteration == 2
 
     def test_safety_gating_depleted_caps_depth(self):
         """Depleted energy caps thinking depth to minimal."""
@@ -509,6 +564,41 @@ class TestCognitiveState:
         state.escalate_burnout()
         assert state.burnout_level == BurnoutLevel.RED
 
+    def test_reflection_count_serialization(self):
+        """reflection_count is properly serialized and deserialized."""
+        state = CognitiveState()
+        state.reflection_count = 2
+
+        # Serialize
+        data = state.to_dict()
+        assert data.get("reflection_count") == 2
+
+        # Deserialize
+        restored = CognitiveState.from_dict(data)
+        assert restored.reflection_count == 2
+
+    def test_reflection_count_in_snapshot(self):
+        """reflection_count is included in snapshot."""
+        state = CognitiveState()
+        state.reflection_count = 3
+
+        snapshot = state.snapshot()
+
+        # Snapshot should have the same reflection_count
+        assert snapshot.reflection_count == 3
+
+        # Modifying original should not affect snapshot
+        state.reflection_count = 10
+        assert snapshot.reflection_count == 3
+
+    def test_reflection_count_in_batch_update(self):
+        """reflection_count can be updated via batch_update."""
+        state = CognitiveState()
+        assert state.reflection_count == 0
+
+        state.batch_update({"reflection_count": 5})
+        assert state.reflection_count == 5
+
 
 # =============================================================================
 # Session Reset Logic Tests
@@ -624,6 +714,59 @@ class TestIntegration:
         # Should not raise
         json_str = json.dumps(result.to_dict())
         assert json_str is not None
+
+    def test_batch_invariance_orchestrator_level(self):
+        """
+        ThinkingMachines [He2025]: Same message → same routing checksum.
+
+        Full batch-invariance test at orchestrator level:
+        Two fresh sessions processing the same message should produce
+        identical routing checksums.
+        """
+        # Create two separate orchestrators
+        orchestrator1 = create_orchestrator()
+        orchestrator2 = create_orchestrator()
+
+        # Reset both to ensure clean state
+        orchestrator1.reset_session()
+        orchestrator2.reset_session()
+
+        # Process same message
+        result1 = orchestrator1.process_message("test message")
+        result2 = orchestrator2.process_message("test message")
+
+        # Routing checksums must match (batch-invariant)
+        assert result1.lock.params.checksum == result2.lock.params.checksum
+
+        # Session checksums should also match for first call (both at reflection_count=0)
+        assert result1.lock.params.session_checksum == result2.lock.params.session_checksum
+
+    def test_reflection_count_state_isolation(self):
+        """
+        Verify reflection_count is properly isolated in CognitiveState.
+
+        Processing multiple messages should increment reflection_count,
+        and reset_session should clear it.
+        """
+        orchestrator = create_orchestrator()
+        orchestrator.reset_session()
+
+        # Process first message - reflection_count starts at 0
+        result1 = orchestrator.process_message("message 1")
+        assert result1.lock.params.reflection_iteration == 0
+
+        # After processing, state should have reflection_count = 1
+        state = orchestrator.get_state()
+        assert state.reflection_count == 1
+
+        # Process second message - uses reflection_count from snapshot (1)
+        result2 = orchestrator.process_message("message 2")
+        assert result2.lock.params.reflection_iteration == 1
+
+        # Reset session should clear reflection_count
+        orchestrator.reset_session()
+        state = orchestrator.get_state()
+        assert state.reflection_count == 0
 
 
 if __name__ == "__main__":

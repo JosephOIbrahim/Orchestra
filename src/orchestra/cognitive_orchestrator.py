@@ -246,7 +246,8 @@ class CognitiveOrchestrator:
             altitude=snapshot.altitude,
             requested_depth=requested_depth,
             mode=snapshot.mode.value,
-            epistemic_tension=snapshot.epistemic_tension
+            epistemic_tension=snapshot.epistemic_tension,
+            reflection_count=snapshot.reflection_count  # Batch-invariance: from snapshot
         )
 
         logger.debug(f"  Lock: {lock.params.to_anchor()}, "
@@ -281,8 +282,17 @@ class CognitiveOrchestrator:
         # =================================================================
         # STEP 6: COMMIT STATE CHANGES
         # =================================================================
+        # Calculate new reflection_count (batch-invariance: update AFTER processing)
+        new_reflection_count = snapshot.reflection_count + 1
+
+        # Reset reflection count on early convergence
+        if lock.converged:
+            logger.info("Early convergence detected - resetting reflection count")
+            new_reflection_count = 0
+
         state_updates = {
             "exchange_count": snapshot.exchange_count + 1,
+            "reflection_count": new_reflection_count,  # Batch-invariance: increment after processing
             "convergence_attractor": convergence.attractor_basin.value,
             "epistemic_tension": convergence.epistemic_tension,
             "stable_exchanges": convergence.stable_exchanges

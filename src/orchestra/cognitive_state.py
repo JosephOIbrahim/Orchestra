@@ -157,6 +157,9 @@ class CognitiveState:
     epistemic_tension: float = 0.0
     stable_exchanges: int = 0
 
+    # MAX3 reflection tracking (moved from ParameterLocker for batch-invariance)
+    reflection_count: int = 0
+
     # Determinism
     seed: int = 42
 
@@ -191,6 +194,7 @@ class CognitiveState:
             convergence_attractor=self.convergence_attractor,
             epistemic_tension=self.epistemic_tension,
             stable_exchanges=self.stable_exchanges,
+            reflection_count=self.reflection_count,
             seed=self.seed
         )
 
@@ -208,7 +212,8 @@ class CognitiveState:
             'burnout_level', 'momentum_phase', 'energy_level', 'mode',
             'altitude', 'focus_level', 'urgency', 'exchange_count',
             'rapid_exchange_count', 'tasks_completed', 'tangent_budget',
-            'convergence_attractor', 'epistemic_tension', 'stable_exchanges'
+            'convergence_attractor', 'epistemic_tension', 'stable_exchanges',
+            'reflection_count'
         ]
 
         for field_name in UPDATE_ORDER:
@@ -374,6 +379,7 @@ class CognitiveState:
             "convergence_attractor": self.convergence_attractor,
             "epistemic_tension": self.epistemic_tension,
             "stable_exchanges": self.stable_exchanges,
+            "reflection_count": self.reflection_count,
             "seed": self.seed
         }
 
@@ -397,6 +403,7 @@ class CognitiveState:
             convergence_attractor=data.get("convergence_attractor", "focused"),
             epistemic_tension=data.get("epistemic_tension", 0.0),
             stable_exchanges=data.get("stable_exchanges", 0),
+            reflection_count=data.get("reflection_count", 0),
             seed=data.get("seed", 42)
         )
 
@@ -503,6 +510,7 @@ class CognitiveStateManager:
         self._state.momentum_phase = MomentumPhase.COLD_START
         self._state.stable_exchanges = 0
         self._state.epistemic_tension = 0.0
+        self._state.reflection_count = 0
 
         # Reset burnout to healthy (don't carry RED across sessions)
         if self._state.burnout_level in (BurnoutLevel.ORANGE, BurnoutLevel.RED):
