@@ -60,7 +60,7 @@ except ImportError:
 
 
 # Import our internal tracer for fallback
-from tracing import (
+from .tracing import (
     DistributedTracer,
     Span as InternalSpan,
     SpanStatus as InternalSpanStatus,
