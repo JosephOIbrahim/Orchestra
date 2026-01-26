@@ -769,5 +769,169 @@ class TestIntegration:
         assert state.reflection_count == 0
 
 
+# =============================================================================
+# Task Completion Detection Tests
+# =============================================================================
+
+class TestTaskCompletionDetection:
+    """Tests for task completion detection (Celebrator expert triggering)."""
+
+    def test_task_completed_signal_detection(self):
+        """PRISM detects task completion keywords."""
+        detector = create_detector()
+
+        # Test various completion phrases
+        completion_phrases = [
+            "Done! The feature is implemented.",
+            "Finished the refactoring.",
+            "It works now!",
+            "Fixed it, all tests pass.",
+            "Shipped the release.",
+        ]
+
+        for phrase in completion_phrases:
+            signals = detector.detect(phrase)
+            assert signals.task.get("completed", 0) > 0, f"Failed to detect completion in: {phrase}"
+            assert signals.task_completed(), f"task_completed() returned False for: {phrase}"
+
+    def test_no_false_positive_completion(self):
+        """Normal messages don't trigger completion detection."""
+        detector = create_detector()
+
+        normal_phrases = [
+            "Let's implement this feature.",
+            "Can you help me debug this?",
+            "What if we try a different approach?",
+        ]
+
+        for phrase in normal_phrases:
+            signals = detector.detect(phrase)
+            assert not signals.task_completed(), f"False positive completion for: {phrase}"
+
+    def test_celebrator_expert_triggers_on_completion(self):
+        """Celebrator expert routes correctly when task is completed."""
+        router = create_router()
+        detector = create_detector()
+
+        signals = detector.detect("Done! It works perfectly now.")
+        result = router.route(
+            signals=signals,
+            burnout=BurnoutLevel.GREEN,
+            energy=EnergyLevel.HIGH,
+            momentum=MomentumPhase.ROLLING,
+            mode="focused",
+            task_completed=signals.task_completed()
+        )
+
+        # Should route to Celebrator (priority 5)
+        assert result.expert == Expert.CELEBRATOR
+        assert "completed" in result.trigger or "task_completed" in result.trigger
+
+    def test_full_pipeline_task_completion(self):
+        """Full pipeline correctly detects and routes task completion."""
+        orchestrator = create_orchestrator()
+        orchestrator.reset_session()
+
+        result = orchestrator.process_message("Done! The feature is working now.")
+
+        # Should detect completion and route to Celebrator
+        assert result.signals.task_completed()
+        # Note: Celebrator only fires if no higher-priority experts match
+        # With GREEN/HIGH/ROLLING state, Celebrator should win
+        assert result.routing.expert in [Expert.CELEBRATOR, Expert.DIRECT]
+
+
+# =============================================================================
+# Dashboard Bridge Tests
+# =============================================================================
+
+class TestDashboardBridge:
+    """Tests for dashboard bridge state mapping."""
+
+    def test_decision_mode_protect_on_safety_redirect(self):
+        """Decision mode is 'protect' when safety gate fires."""
+        from orchestra.dashboard_bridge import _derive_decision_mode
+        from orchestra.prism_detector import SignalVector
+
+        # Create a mock NexusResult with safety redirect
+        mock_result = MagicMock()
+        mock_result.routing.safety_redirect = "validator"
+        mock_result.routing.expert = Expert.VALIDATOR
+
+        mode = _derive_decision_mode(mock_result)
+        assert mode == "protect"
+
+    def test_decision_mode_delegate_on_scaffolder(self):
+        """Decision mode is 'delegate' for Scaffolder expert."""
+        from orchestra.dashboard_bridge import _derive_decision_mode
+
+        mock_result = MagicMock()
+        mock_result.routing.safety_redirect = None
+        mock_result.routing.expert = Expert.SCAFFOLDER
+
+        mode = _derive_decision_mode(mock_result)
+        assert mode == "delegate"
+
+    def test_decision_mode_delegate_on_socratic(self):
+        """Decision mode is 'delegate' for Socratic expert."""
+        from orchestra.dashboard_bridge import _derive_decision_mode
+
+        mock_result = MagicMock()
+        mock_result.routing.safety_redirect = None
+        mock_result.routing.expert = Expert.SOCRATIC
+
+        mode = _derive_decision_mode(mock_result)
+        assert mode == "delegate"
+
+    def test_decision_mode_work_on_direct(self):
+        """Decision mode is 'work' for Direct expert."""
+        from orchestra.dashboard_bridge import _derive_decision_mode
+
+        mock_result = MagicMock()
+        mock_result.routing.safety_redirect = None
+        mock_result.routing.expert = Expert.DIRECT
+
+        mode = _derive_decision_mode(mock_result)
+        assert mode == "work"
+
+    def test_working_memory_estimation(self):
+        """Working memory estimation reflects active signals."""
+        from orchestra.dashboard_bridge import _estimate_working_memory
+
+        # Create mock result with various signals
+        mock_result = MagicMock()
+        mock_result.signals.emotional = {"frustrated": 0.5}  # 1 item
+        mock_result.signals.primary_task = "implement"  # 1 item
+        mock_result.signals.primary_domain = "webdev"  # 1 item
+        mock_result.signals.mode_detected = "exploring"  # 1 item (not default)
+
+        mock_state = MagicMock()
+        mock_state.tasks_completed = 1  # 1 item
+
+        memory = _estimate_working_memory(mock_result, mock_state)
+
+        # Should count multiple items (capped at 5)
+        assert 3 <= memory <= 5
+
+    def test_working_memory_caps_at_five(self):
+        """Working memory is capped at cognitive limit (5)."""
+        from orchestra.dashboard_bridge import _estimate_working_memory
+
+        # Create mock result with many signals
+        mock_result = MagicMock()
+        mock_result.signals.emotional = {"frustrated": 0.5, "anxious": 0.3, "overwhelmed": 0.4}
+        mock_result.signals.primary_task = "implement"
+        mock_result.signals.primary_domain = "webdev"
+        mock_result.signals.mode_detected = "exploring"
+
+        mock_state = MagicMock()
+        mock_state.tasks_completed = 10
+
+        memory = _estimate_working_memory(mock_result, mock_state)
+
+        # Should cap at 5
+        assert memory <= 5
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -76,6 +76,7 @@ SIGNAL_PATTERNS = {
         "plan": ["plan", "design", "architect", "structure", "organize"],
         "research": ["research", "find", "search", "learn", "investigate"],
         "review": ["review", "check", "verify", "validate", "test"],
+        "completed": ["done", "finished", "completed", "works now", "it works", "fixed it", "shipped", "deployed", "pushed"],
     },
     SignalCategory.ENERGY: {
         "depleted": ["exhausted", "burnt out", "done for today", "can't anymore"],
@@ -169,6 +170,14 @@ class SignalVector:
     def requires_intervention(self) -> bool:
         """Check if emotional state requires safety intervention."""
         return self.emotional_score >= 0.5
+
+    def task_completed(self) -> bool:
+        """
+        Check if task completion signals are present.
+
+        Used by Celebrator expert to trigger dopamine acknowledgment.
+        """
+        return self.task.get("completed", 0) > 0
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict."""

@@ -21,8 +21,83 @@ import logging
 
 from .cognitive_orchestrator import CognitiveOrchestrator, NexusResult, create_orchestrator
 from .cognitive_state import CognitiveState, BurnoutLevel, EnergyLevel, MomentumPhase
+from .expert_router import Expert
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# Decision Mode Derivation
+# =============================================================================
+
+def _derive_decision_mode(result: NexusResult) -> str:
+    """
+    Derive decision mode from routing result.
+
+    Decision modes (work/delegate/protect):
+    - protect: Safety gate fired, protecting user from overload
+    - delegate: Guidance/breakdown mode (Scaffolder, Socratic)
+    - work: Direct execution mode
+
+    Args:
+        result: NexusResult from pipeline
+
+    Returns:
+        "work", "delegate", or "protect"
+    """
+    # Safety redirect = protect mode
+    if result.routing.safety_redirect:
+        return "protect"
+
+    # Scaffolder/Socratic = delegate (guiding/breaking down)
+    if result.routing.expert in (Expert.SCAFFOLDER, Expert.SOCRATIC):
+        return "delegate"
+
+    # Restorer with crashed momentum = protect
+    if result.routing.expert == Expert.RESTORER:
+        return "protect"
+
+    # Default = work
+    return "work"
+
+
+def _estimate_working_memory(result: NexusResult, state: CognitiveState) -> int:
+    """
+    Estimate working memory load from active signals and state.
+
+    Based on cognitive science (Miller's Law): humans can hold 7±2 items.
+    We track active concerns as working memory load.
+
+    Args:
+        result: NexusResult from pipeline
+        state: Current CognitiveState
+
+    Returns:
+        Estimated working memory items (0-5+)
+    """
+    items = 0
+
+    # Active emotional concerns add cognitive load
+    if result.signals.emotional:
+        items += min(len(result.signals.emotional), 2)
+
+    # Active task adds 1 item
+    if result.signals.primary_task:
+        items += 1
+
+    # Domain context adds 1 item
+    if result.signals.primary_domain:
+        items += 1
+
+    # Mode tracking adds 1 item if not default
+    if result.signals.mode_detected and result.signals.mode_detected != "focused":
+        items += 1
+
+    # Tasks in progress add to load
+    if state.tasks_completed > 0:
+        items += min(state.tasks_completed, 2)
+
+    return min(items, 5)  # Cap at 5 (cognitive limit)
 
 
 # =============================================================================
@@ -46,13 +121,19 @@ def map_nexus_to_dashboard(result: NexusResult, state: CognitiveState) -> Dict[s
     # Get priority signal for display
     priority_cat, priority_sig, priority_score = result.signals.get_priority_signal()
 
+    # Derive decision mode from routing (work/delegate/protect)
+    decision_mode = _derive_decision_mode(result)
+
+    # Estimate working memory load from active signals
+    working_memory_used = _estimate_working_memory(result, state)
+
     return {
         # === EXISTING FIELDS (backward compatible) ===
         "burnout_level": state.burnout_level.value.upper(),
-        "decision_mode": "work",  # TODO: integrate with decision engine
+        "decision_mode": decision_mode,
         "momentum_phase": state.momentum_phase.value,
         "energy_level": state.energy_level.value,
-        "working_memory_used": 2,  # TODO: track
+        "working_memory_used": working_memory_used,
         "tangent_budget": state.tangent_budget,
         "altitude": _format_altitude(state.altitude.value),
         "paradigm": result.lock.params.paradigm,

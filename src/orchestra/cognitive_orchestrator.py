@@ -219,6 +219,9 @@ class CognitiveOrchestrator:
         # =================================================================
         logger.debug("Phase 2: CASCADE")
 
+        # Detect task completion from signals (enables Celebrator expert)
+        task_completed = signals.task_completed()
+
         routing = self.router.route(
             signals=signals,
             burnout=snapshot.burnout_level,
@@ -226,7 +229,7 @@ class CognitiveOrchestrator:
             momentum=snapshot.momentum_phase,
             mode=snapshot.mode.value,
             tangent_budget=snapshot.tangent_budget,
-            task_completed=False,  # TODO: detect from signals
+            task_completed=task_completed,
             caps_detected=caps_detected
         )
 
