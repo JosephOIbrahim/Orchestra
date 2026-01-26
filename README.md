@@ -1,23 +1,21 @@
 <p align="center">
-  <img src="logo.png" alt="Orchestra Logo" width="200"/>
+  <img src="logo.png" alt="Orchestra Logo" width="280"/>
 </p>
 
 <h1 align="center">Orchestra</h1>
 
 <p align="center">
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.1-Production%2FStable-success" alt="Production"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/tests-776%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/status-Production%2FStable-green" alt="Status"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
 </p>
 
 <p align="center"><strong>Cognitive safety layer for AI-assisted development</strong></p>
 
 <p align="center"><em>Deterministic behavior. Burnout protection. Built for neurodivergent brains.</em></p>
 
-```
-Same signals → Same routing → Same behavior
-```
+<p align="center"><code>Same signals → Same routing → Same behavior</code></p>
 
 ---
 
