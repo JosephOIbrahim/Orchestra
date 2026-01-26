@@ -74,12 +74,12 @@ class TestChaosEngineering:
             config=chaos_config
         )
 
-        # Make one agent fail
+        # Make moe_router fail (it always runs in WORK mode)
         async def failing_agent(task, context):
             raise Exception("Chaos: Agent exploded!")
 
-        original = orchestrator.agents["code_generator"].execute
-        orchestrator.agents["code_generator"].execute = failing_agent
+        original = orchestrator.agents["moe_router"].execute
+        orchestrator.agents["moe_router"].execute = failing_agent
 
         try:
             result = await orchestrator.orchestrate("Test isolation", {"seed": 42})
@@ -92,11 +92,11 @@ class TestChaosEngineering:
             assert len(successful_agents) > 0
 
             # Failed agent should be marked appropriately
-            code_gen_result = result["agent_results"].get("code_generator", {})
-            assert code_gen_result.get("status") in ["failed", "degraded"]
+            moe_result = result["agent_results"].get("moe_router", {})
+            assert moe_result.get("status") in ["failed", "degraded"]
 
         finally:
-            orchestrator.agents["code_generator"].execute = original
+            orchestrator.agents["moe_router"].execute = original
 
     @pytest.mark.asyncio
     async def test_circuit_breaker_cascade(self, temp_workspace, chaos_config):
@@ -160,26 +160,26 @@ class TestChaosEngineering:
             config=chaos_config
         )
 
-        # Make agent timeout
+        # Make moe_router timeout (it always runs in WORK mode)
         async def slow_agent(task, context):
             await asyncio.sleep(10)  # Will timeout
             return {"result": "too late"}
 
-        original = orchestrator.agents["world_modeler"].execute
-        orchestrator.agents["world_modeler"].execute = slow_agent
+        original = orchestrator.agents["moe_router"].execute
+        orchestrator.agents["moe_router"].execute = slow_agent
 
         try:
             result = await orchestrator.orchestrate("Timeout test", {"seed": 42})
 
-            # World modeler should timeout but system continues
-            world_result = result["agent_results"].get("world_modeler", {})
+            # moe_router should timeout but system continues
+            moe_result = result["agent_results"].get("moe_router", {})
             # Should be degraded (fallback) or failed (no fallback)
-            assert world_result.get("status") in ["failed", "degraded", "skipped"]
+            assert moe_result.get("status") in ["failed", "degraded", "skipped"]
 
             # Other agents should complete
             other_results = {
                 k: v for k, v in result["agent_results"].items()
-                if k != "world_modeler"
+                if k != "moe_router"
             }
             completed = [r for r in other_results.values() if r["status"] == "completed"]
             assert len(completed) > 0
@@ -258,7 +258,9 @@ class TestChaosEngineering:
         )
 
         # Simulate interrupted checkpoint by creating incomplete one
-        checkpoint_dir = temp_workspace / "checkpoints"
+        # Checkpoints are stored under state/checkpoints/
+        checkpoint_dir = temp_workspace / "state" / "checkpoints"
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
         incomplete_checkpoint = {
             "checkpoint_id": "test_incomplete_123",
             "iteration": 99,
@@ -374,22 +376,22 @@ class TestRecoveryScenarios:
         # First successful run to cache results
         await orchestrator.orchestrate("Cache results", {"seed": 42})
 
-        # Now make agent fail - should use cached result
+        # Now make moe_router fail (it always runs) - should use cached result
         async def failing(task, context):
             raise Exception("Failed after cache")
 
-        original = orchestrator.agents["self_reflector"].execute
-        orchestrator.agents["self_reflector"].execute = failing
+        original = orchestrator.agents["moe_router"].execute
+        orchestrator.agents["moe_router"].execute = failing
 
         try:
             result = await orchestrator.orchestrate("Use cached", {"seed": 43})
 
-            # Self reflector should be degraded (using cache)
-            self_result = result["agent_results"].get("self_reflector", {})
-            assert self_result.get("status") in ["degraded", "failed"]
+            # moe_router should be degraded (using cache)
+            moe_result = result["agent_results"].get("moe_router", {})
+            assert moe_result.get("status") in ["degraded", "failed"]
 
         finally:
-            orchestrator.agents["self_reflector"].execute = original
+            orchestrator.agents["moe_router"].execute = original
 
     @pytest.mark.asyncio
     async def test_circuit_breaker_recovery(self, temp_workspace, chaos_config):

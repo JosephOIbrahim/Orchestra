@@ -99,10 +99,11 @@ class TestOrchestrationE2E:
         assert result["agents_succeeded"] + result["agents_failed"] + result.get("agents_degraded", 0) + result.get("agents_skipped", 0) == result["agents_executed"]
 
         # Verify state file created
-        assert (temp_workspace / ".orchestrator-state.json").exists()
+        # State file is stored under state/ subdirectory
+        assert (temp_workspace / "state" / ".orchestrator-state.json").exists()
 
-        # Verify results directory has files
-        result_files = list((temp_workspace / "results").glob("*.json"))
+        # Verify results directory has files (under state/)
+        result_files = list((temp_workspace / "state" / "results").glob("*.json"))
         assert len(result_files) > 0
 
     @pytest.mark.asyncio
@@ -141,7 +142,8 @@ class TestOrchestrationE2E:
         result1 = await orchestrator1.orchestrate("Test recovery", {"seed": 42})
 
         # Verify state persisted
-        state_file = temp_workspace / ".orchestrator-state.json"
+        # State file is under state/ subdirectory
+        state_file = temp_workspace / "state" / ".orchestrator-state.json"
         assert state_file.exists()
 
         # Read persisted state
@@ -166,29 +168,29 @@ class TestOrchestrationE2E:
             config=test_config
         )
 
-        # Patch one agent to fail
-        original_execute = orchestrator.agents["world_modeler"].execute
+        # Patch moe_router to fail (it always runs in WORK mode)
+        original_execute = orchestrator.agents["moe_router"].execute
 
         async def failing_execute(task, context):
             raise Exception("Simulated failure")
 
-        orchestrator.agents["world_modeler"].execute = failing_execute
+        orchestrator.agents["moe_router"].execute = failing_execute
 
         try:
             result = await orchestrator.orchestrate(
-                "Test partial failure with world modeler",
+                "Test partial failure with moe router",
                 {"seed": 42}
             )
 
             # Should complete despite failure (with fallback)
-            assert "world_modeler" in result["agent_results"]
+            assert "moe_router" in result["agent_results"]
 
             # Check if fallback was used or agent failed
-            world_modeler_result = result["agent_results"]["world_modeler"]
-            assert world_modeler_result["status"] in ["failed", "degraded"]
+            moe_router_result = result["agent_results"]["moe_router"]
+            assert moe_router_result["status"] in ["failed", "degraded"]
 
         finally:
-            orchestrator.agents["world_modeler"].execute = original_execute
+            orchestrator.agents["moe_router"].execute = original_execute
 
     @pytest.mark.asyncio
     async def test_checkpoint_creation(self, temp_workspace, test_config):
@@ -200,8 +202,8 @@ class TestOrchestrationE2E:
 
         await orchestrator.orchestrate("Test checkpoint creation", {"seed": 42})
 
-        # Check checkpoint directory
-        checkpoint_files = list((temp_workspace / "checkpoints").glob("checkpoint_*.json"))
+        # Check checkpoint directory (under state/)
+        checkpoint_files = list((temp_workspace / "state" / "checkpoints").glob("checkpoint_*.json"))
         assert len(checkpoint_files) >= 1
 
         # Verify checkpoint structure
