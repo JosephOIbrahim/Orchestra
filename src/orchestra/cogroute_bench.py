@@ -634,7 +634,7 @@ class CogRouteBench:
                 for r in self.results
             ]
         }
-        path.write_text(json.dumps(data, indent=2))
+        path.write_text(json.dumps(data, indent=2, sort_keys=True))
         print(f"Results exported to: {path}")
 
 

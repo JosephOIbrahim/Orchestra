@@ -150,7 +150,7 @@ class OrchestrationCheckpoint:
         """Write data atomically (write to temp, then rename)."""
         temp_path = path.with_suffix('.tmp')
         try:
-            temp_path.write_text(json.dumps(data, indent=2, default=str), encoding='utf-8')
+            temp_path.write_text(json.dumps(data, indent=2, default=str, sort_keys=True), encoding='utf-8')
             temp_path.replace(path)
         except Exception as e:
             if temp_path.exists():

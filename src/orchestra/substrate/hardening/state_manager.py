@@ -229,7 +229,7 @@ class StateManager:
         # Write file
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            content = json.dumps(data, indent=2, default=str)
+            content = json.dumps(data, indent=2, default=str, sort_keys=True)
             path.write_text(content, encoding='utf-8')
             return StateResult(
                 success=True,
