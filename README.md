@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.1-Production%2FStable-success" alt="Production"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-777%20passed-brightgreen" alt="Tests"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.2-Production%2FStable-success" alt="Production"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-867%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
 </p>
@@ -60,7 +60,13 @@ Most tools optimize for *output*. Orchestra optimizes for *sustainable output*.
 ### Install
 
 ```bash
-pip install -e .
+# From source (recommended)
+git clone https://github.com/JosephOIbrahim/Orchestra.git
+cd Orchestra
+pip install -e ".[dev]"
+
+# From PyPI (coming soon)
+pip install cognitive-orchestra
 ```
 
 ### Integrate with Claude Code
@@ -142,6 +148,47 @@ The system protects you from yourself:
 
 ---
 
+## Knowledge Distillation Pipeline
+
+Orchestra includes a production-hardened pipeline for distilling documentation into searchable knowledge prims:
+
+```
+Documentation → Chunks → Queries → Answers → Prims → Triggers → Validation → USDA
+```
+
+### Features
+
+- **Checkpointing**: Resume after failures without reprocessing completed stages
+- **Pydantic Validation**: Robust LLM response parsing with automatic coercion
+- **Async Batch Processing**: Rate-limited parallel execution
+- **Hallucination Detection**: Multi-stage validation including LLM fact-checking
+- **Atomic Writes**: Safe file operations prevent corruption
+
+### Optional Frontier AI
+
+- **Self-Consistency Verification**: Multi-sample voting for claim validation
+- **Entailment Grounding**: NLI-based claim verification against sources
+
+### Usage
+
+```bash
+# Run the distillation pipeline
+python -m orchestra.substrate.knowledge.distillation.pipeline \
+    --corpus ./docs \
+    --output ./knowledge \
+    --model claude-sonnet-4-20250514
+
+# Resume from checkpoint after interruption
+python -m orchestra.substrate.knowledge.distillation.pipeline \
+    --corpus ./docs --output ./knowledge
+
+# Start fresh (ignore checkpoint)
+python -m orchestra.substrate.knowledge.distillation.pipeline \
+    --corpus ./docs --output ./knowledge --no-resume
+```
+
+---
+
 ## CLI Commands
 
 ```bash
@@ -191,13 +238,17 @@ All state lives in `~/.orchestra/`:
 
 ## Determinism Guarantees
 
-ThinkingMachines [He2025] compliance:
+[ThinkingMachines [He2025]](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) compliance:
 
 - **FIXED** evaluation order (5 phases, no reordering)
 - **FIXED** signal priority (emotional > mode > domain > task)
 - **FIXED** expert priority (Validator > Scaffolder > ... > Direct)
+- **FIXED** reduction order for floating-point accumulation
 - **LOCKED** parameters before generation
 - **REPRODUCIBLE** checksums (same input → same checksum)
+- **SORTED** iteration over sets and dictionaries
+
+Every file in the distillation pipeline includes `ThinkingMachines [He2025]` compliance comments where determinism matters.
 
 ---
 
@@ -206,8 +257,25 @@ ThinkingMachines [He2025] compliance:
 ### Testing
 
 ```bash
-pytest tests/test_cognitive_engine.py -v
+# Run all tests
+pytest
+
+# Run specific test suites
+pytest tests/test_cognitive_engine.py -v      # Core orchestration
+pytest tests/distillation/ -v                  # Knowledge distillation
+pytest -m chaos                                # Chaos engineering
+
+# Run with coverage
+pytest --cov=src/orchestra --cov-report=html
 ```
+
+### Test Suite
+
+| Category | Tests | Description |
+|----------|-------|-------------|
+| Core | 798 | Cognitive engine, routing, state |
+| Distillation | 69 | Pipeline, schemas, checkpointing |
+| **Total** | **867** | All passing |
 
 ### Direct API Usage
 
@@ -235,24 +303,28 @@ echo '{"user_prompt": "test"}' | python -m orchestra.hooks
 ```
 Orchestra/
 ├── src/orchestra/
-│   ├── cognitive_orchestrator.py  # 5-Phase NEXUS Pipeline
-│   ├── expert_router.py           # Cognitive Safety MoE (7 experts)
-│   ├── parameter_locker.py        # MAX3 + safety gating
-│   ├── convergence_tracker.py     # RC^+xi tracking
-│   ├── prism_detector.py          # Signal detection
-│   ├── cognitive_state.py         # State management
-│   ├── dashboard_bridge.py        # WebSocket sync
-│   ├── websocket_server.py        # Real-time dashboard
+│   ├── cognitive_orchestrator.py   # 5-Phase NEXUS Pipeline
+│   ├── expert_router.py            # Cognitive Safety MoE (7 experts)
+│   ├── parameter_locker.py         # MAX3 + safety gating
+│   ├── convergence_tracker.py      # RC^+xi tracking
+│   ├── prism_detector.py           # Signal detection
+│   ├── cognitive_state.py          # State management
+│   ├── substrate/
+│   │   └── knowledge/
+│   │       └── distillation/       # Knowledge distillation pipeline
+│   │           ├── pipeline.py     # Main orchestrator
+│   │           ├── checkpoint.py   # Resumability
+│   │           ├── validator.py    # Hallucination detection
+│   │           └── ...             # 18 modules
 │   ├── hooks/
-│   │   └── cognitive_hook.py      # Claude Code hook
+│   │   └── cognitive_hook.py       # Claude Code hook
 │   └── cli/
-│       └── main.py                # CLI entry point
-├── tests/                         # 766 tests (100% pass)
-│   ├── test_cognitive_engine.py   # Core orchestration
-│   ├── test_parameter_locker.py   # Safety gating
-│   ├── test_otel_adapter.py       # Observability
-│   └── ...                        # Integration, chaos, resilience
-└── pyproject.toml                 # v5.0.1
+│       └── main.py                 # CLI entry point
+├── tests/                          # 867 tests
+│   ├── test_cognitive_engine.py    # Core orchestration
+│   ├── distillation/               # Pipeline tests
+│   └── ...
+└── pyproject.toml
 ```
 
 ---
@@ -281,16 +353,20 @@ Orchestra is built for neurodivergent brains:
 
 ---
 
-## Installation
+## Installation Options
 
 ```bash
-# From PyPI
-pip install cognitive-orchestra
-
-# From source
-git clone https://github.com/JosephOIbrahim/Orchestra.git
-cd Orchestra
+# Basic install
 pip install -e .
+
+# With dev dependencies (testing, linting)
+pip install -e ".[dev]"
+
+# With TUI dashboard
+pip install -e ".[dev,tui]"
+
+# With distillation pipeline (LLM clients)
+pip install -e ".[dev,distillation]"
 ```
 
 ---
@@ -298,7 +374,7 @@ pip install -e .
 ## Credits
 
 - [USD](https://graphics.pixar.com/usd/) composition semantics for cognitive state
-- [ThinkingMachines](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) [He2025] for batch-invariance
+- [ThinkingMachines [He2025]](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) for batch-invariance principles
 
 ---
 
@@ -308,7 +384,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Orchestra v5.0.1 - Cognitive Engine for Claude Code*
+*Orchestra v5.0.2 - Cognitive Engine for Claude Code*
 
-[![PyPI](https://img.shields.io/pypi/v/cognitive-orchestra)](https://pypi.org/project/cognitive-orchestra/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

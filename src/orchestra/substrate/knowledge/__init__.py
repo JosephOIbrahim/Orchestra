@@ -12,10 +12,16 @@ ThinkingMachines [He2025] Compliance:
 - Deterministic retrieval (same path = same prim)
 - Consistent search ordering (alphabetical by path)
 - Reproducible results
+
+Submodules:
+- distillation: Automated pipeline for extracting KnowledgePrims from docs
 """
 
 from .schemas import KnowledgePrim, RetrievalResult
 from .retriever import KnowledgeRetriever
+
+# Import distillation submodule for convenient access
+from . import distillation
 
 # Module-level singleton
 _retriever: KnowledgeRetriever | None = None
@@ -46,4 +52,5 @@ __all__ = [
     "get_retriever",
     "retrieve",
     "search",
+    "distillation",
 ]
