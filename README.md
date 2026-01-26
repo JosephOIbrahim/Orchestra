@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="logo.png" alt="Orchestra Logo" width="280"/>
+  <img src="logo.png" alt="Orchestra Logo" width="400"/>
 </p>
-
-<h1 align="center">Orchestra</h1>
 
 <p align="center">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.1-Production%2FStable-success" alt="Production"></a>
