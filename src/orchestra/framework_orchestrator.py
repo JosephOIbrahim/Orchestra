@@ -1399,10 +1399,10 @@ class FrameworkOrchestrator:
 
         # Setup workspace paths
         self.workspace = workspace or self.config.workspace
-        self.workspace.mkdir(exist_ok=True)
+        self.workspace.mkdir(parents=True, exist_ok=True)
 
         self.results_dir = self.config.results_dir
-        self.results_dir.mkdir(exist_ok=True)
+        self.results_dir.mkdir(parents=True, exist_ok=True)
 
         self.state_file = self.config.state_file
 

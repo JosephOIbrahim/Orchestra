@@ -20,7 +20,7 @@ Tests:
 import pytest
 from typing import Dict, Any
 
-from schemas import (
+from orchestra.schemas import (
     DOMAIN_CONFIG_SCHEMA,
     PRINCIPLES_SCHEMA,
     STATE_FILE_SCHEMA,

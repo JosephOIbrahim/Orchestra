@@ -17,7 +17,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 import threading
 
-from tracing import (
+from orchestra.tracing import (
     SpanStatus,
     TraceContext,
     Span,

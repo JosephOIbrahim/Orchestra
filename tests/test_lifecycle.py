@@ -13,7 +13,7 @@ import asyncio
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from lifecycle import (
+from orchestra.lifecycle import (
     LifecycleManager,
     LifecycleState,
     ShutdownContext,

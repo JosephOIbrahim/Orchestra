@@ -19,7 +19,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch, MagicMock
 
-from checkpoint import (
+from orchestra.checkpoint import (
     CheckpointStatus,
     CheckpointData,
     OrchestrationCheckpoint,

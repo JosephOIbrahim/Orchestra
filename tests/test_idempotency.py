@@ -17,7 +17,7 @@ import time
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from idempotency import (
+from orchestra.idempotency import (
     ExecutionStatus,
     ExecutionRecord,
     IdempotencyManager,

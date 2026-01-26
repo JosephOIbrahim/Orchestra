@@ -14,7 +14,7 @@ import logging
 import pytest
 from unittest.mock import patch
 
-from logging_setup import (
+from orchestra.logging_setup import (
     JSONFormatter,
     TextFormatter,
     ContextAdapter,

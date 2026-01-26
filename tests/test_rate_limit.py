@@ -13,7 +13,7 @@ import asyncio
 import time
 import pytest
 
-from rate_limit import (
+from orchestra.rate_limit import (
     RateLimiter,
     RateLimitExceeded,
     RateLimiterStats,

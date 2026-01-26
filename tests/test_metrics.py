@@ -15,7 +15,7 @@ import pytest
 import threading
 from concurrent.futures import ThreadPoolExecutor
 
-from metrics import (
+from orchestra.metrics import (
     Counter,
     Histogram,
     Gauge,

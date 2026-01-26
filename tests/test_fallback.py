@@ -17,7 +17,7 @@ import time
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from fallback import (
+from orchestra.fallback import (
     CachedResult,
     FallbackResult,
     FallbackRegistry,

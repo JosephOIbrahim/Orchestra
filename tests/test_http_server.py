@@ -14,7 +14,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, AsyncMock
 
-from http_server import (
+from orchestra.http_server import (
     HTTPRequest,
     HTTPResponse,
     OperationalHTTPServer,

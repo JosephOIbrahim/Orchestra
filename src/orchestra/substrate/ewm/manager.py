@@ -89,7 +89,7 @@ class EWMManager:
             # Backup existing state
             if self._state_file.exists():
                 backup_dir = self.state_dir / "backups"
-                backup_dir.mkdir(exist_ok=True)
+                backup_dir.mkdir(parents=True, exist_ok=True)
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 backup_path = backup_dir / f"ewm_state_{timestamp}.json"
                 backup_path.write_text(

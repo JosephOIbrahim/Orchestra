@@ -17,7 +17,7 @@ import time
 import pytest
 from unittest.mock import MagicMock, AsyncMock, patch
 
-from bulkhead import (
+from orchestra.bulkhead import (
     BulkheadExecutor,
     BulkheadRejected,
     BulkheadTimeout,
