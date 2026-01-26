@@ -170,4 +170,4 @@ Orchestra is built for **neurodivergent brains**:
 
 ---
 
-*Orchestra v5.0.0 — Built for humans who think differently*
+*Orchestra v5.0.1 — Built for humans who think differently*

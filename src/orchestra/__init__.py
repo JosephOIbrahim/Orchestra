@@ -54,7 +54,7 @@ Environment Variables:
     FO_LOG_LEVEL - DEBUG, INFO, WARNING, ERROR
 """
 
-__version__ = "5.0.0"
+__version__ = "5.0.1"
 __author__ = "Framework Ecosystem Integration"
 
 # Core orchestrator

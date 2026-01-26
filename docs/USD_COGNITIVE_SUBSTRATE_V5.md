@@ -902,6 +902,6 @@ See SDK documentation for complete interface specifications.
 
 ---
 
-*Document Version: 5.0.0*
+*Document Version: 5.0.1*
 *Generated: 2026-01-20*
 *Classification: Academic Pre-Publication Draft*

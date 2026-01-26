@@ -256,7 +256,7 @@ Orchestra/
 │   ├── test_parameter_locker.py   # Safety gating
 │   ├── test_otel_adapter.py       # Observability
 │   └── ...                        # Integration, chaos, resilience
-└── pyproject.toml                 # v5.0.0
+└── pyproject.toml                 # v5.0.1
 ```
 
 ---
@@ -312,7 +312,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Orchestra v5.0.0 - Cognitive Engine for Claude Code*
+*Orchestra v5.0.1 - Cognitive Engine for Claude Code*
 
 [![PyPI](https://img.shields.io/pypi/v/cognitive-orchestra)](https://pypi.org/project/cognitive-orchestra/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
