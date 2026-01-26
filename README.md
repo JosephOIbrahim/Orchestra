@@ -15,11 +15,47 @@
 
 <p align="center"><em>Deterministic behavior. Burnout protection. Built for neurodivergent brains.</em></p>
 
-Orchestra is a cognitive engine that processes every message through a 5-Phase NEXUS Pipeline, providing deterministic expert routing and cognitive safety gating. Built on USD composition semantics and ThinkingMachines [He2025] batch-invariance principles.
-
 ```
 Same signals → Same routing → Same behavior
 ```
+
+---
+
+## Why Orchestra?
+
+You know the pattern:
+
+> **Hyperfocus → ship fast → crash hard → forget where you were → start over**
+
+AI-assisted development makes this worse. You build at the speed of thought—until you can't think anymore. The AI doesn't know you're running on empty. It keeps generating, you keep accepting, and then you hit the wall.
+
+**Orchestra is the guardrail you can't build for yourself.**
+
+It sits between you and the AI, tracking what you can't track in the moment: your energy, your momentum, your approaching burnout. It adapts the AI's behavior to your actual capacity—not the capacity you wish you had.
+
+| What you're experiencing | What Orchestra does |
+|--------------------------|---------------------|
+| Depleted but pushing through | Blocks deep analysis, offers easy wins |
+| Frustrated and spiraling | Empathy first, solutions second |
+| Lost the thread | Resurfaces your goal and context |
+| Hyperfocused for hours | Gentle checkpoint: "still good?" |
+| In flow, shipping fast | Disappears. Stays out of your way. |
+
+**This isn't productivity software. It's cognitive sustainability.**
+
+### What's Novel
+
+Most tools optimize for *output*. Orchestra optimizes for *sustainable output*.
+
+- **Your state overrides your requests.** Ask for deep analysis while depleted? You get minimal. Safety gating isn't optional.
+
+- **Emotional signals outrank task signals.** Frustrated + exploring = empathy first. The routing priority is fixed: human needs before task completion.
+
+- **Behavior is deterministic.** Same input, same routing, every time. No more "why is the AI different today?" The uncertainty tax is gone.
+
+- **Memory is external.** Sessions persist. Context survives. You pick up where you left off, not where you vaguely remember being.
+
+*Built for brains that burn bright and need structure to fly.*
 
 ---
 
