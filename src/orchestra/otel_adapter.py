@@ -242,6 +242,10 @@ class OTelSpanWrapper:
 
     def set_status(self, status: str, message: str = None) -> None:
         """Set span status."""
+        if not _otel_available:
+            # OTel not installed, just log
+            logger.debug(f"Span status: {status} - {message or ''}")
+            return
         if status == "ok":
             self._span.set_status(Status(StatusCode.OK))
         elif status == "error":
