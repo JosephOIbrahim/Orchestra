@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cognitive-orchestra"
-version = "5.0.0"
+version = "5.0.1"
 description = "Cognitive orchestration system with work/delegate/protect decision model"
 readme = "README.md"
 license = {text = "MIT"}
