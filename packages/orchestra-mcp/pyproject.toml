@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "orchestra-mcp"
 version = "1.0.0"
-description = "MCP server for Orchestra cognitive safety layer"
+description = "MCP server for Orchestra cognitive safety layer - ThinkingMachines [He2025] compliant"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
@@ -17,7 +17,11 @@ keywords = [
     "model-context-protocol",
     "orchestra",
     "cognitive",
-    "safety"
+    "safety",
+    "claude",
+    "anthropic",
+    "llm",
+    "thinkingmachines"
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -28,12 +32,21 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
 dependencies = [
-    "cognitive-orchestra>=5.0.0",
+    "cognitive-orchestra>=5.0.1",
     "mcp>=1.0.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/JosephOIbrahim/Orchestra"
+Documentation = "https://github.com/JosephOIbrahim/Orchestra#readme"
+Repository = "https://github.com/JosephOIbrahim/Orchestra"
+Issues = "https://github.com/JosephOIbrahim/Orchestra/issues"
 
 [project.optional-dependencies]
 dev = [
