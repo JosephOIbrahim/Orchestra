@@ -67,9 +67,6 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to == 'pypi')
-    environment:
-      name: pypi
-      url: https://pypi.org/p/cognitive-orchestra
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
