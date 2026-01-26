@@ -244,4 +244,4 @@ The theoretical frameworks and research cited above are the intellectual propert
 
 ---
 
-*Orchestra v5.0.0 — Cognitive Engine for Claude Code*
+*Orchestra v5.0.1 — Cognitive Engine for Claude Code*
