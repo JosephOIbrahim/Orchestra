@@ -98,7 +98,7 @@ class EWMManager:
                 )
 
             # Write new state
-            content = json.dumps(self._state.to_dict(), indent=2)
+            content = json.dumps(self._state.to_dict(), indent=2, sort_keys=True)
             self._state_file.write_text(content, encoding='utf-8')
             logger.debug("Saved EWM state to disk")
         except Exception as e:
@@ -108,7 +108,7 @@ class EWMManager:
         """Save projects to disk."""
         if self._state.friction:
             try:
-                content = json.dumps(self._state.friction.to_dict(), indent=2)
+                content = json.dumps(self._state.friction.to_dict(), indent=2, sort_keys=True)
                 self._projects_file.write_text(content, encoding='utf-8')
             except Exception as e:
                 logger.error(f"Failed to save projects: {e}")

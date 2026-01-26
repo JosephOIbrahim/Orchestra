@@ -39,3 +39,4 @@ npm-debug.log*
 # Handoff files (session-specific)
 HANDOFF.md
 HANDOFF_QUICK.md
+.hypothesis/

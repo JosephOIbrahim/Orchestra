@@ -243,7 +243,7 @@ class HandoffManager:
 
         # Save JSON for machine parsing
         self._last_session_json.write_text(
-            json.dumps(doc.to_dict(), indent=2),
+            json.dumps(doc.to_dict(), indent=2, sort_keys=True),
             encoding='utf-8'
         )
 

@@ -100,7 +100,7 @@ class JSONFormatter(logging.Formatter):
                 'traceback': self.formatException(record.exc_info)
             }
 
-        return json.dumps(log_data, default=str)
+        return json.dumps(log_data, default=str, sort_keys=True)
 
 
 class TextFormatter(logging.Formatter):
