@@ -362,7 +362,7 @@ class WebSocketServer:
     async def _send_state(self, writer: asyncio.StreamWriter) -> None:
         """Send current state to a client."""
         try:
-            data = json.dumps(self._state.to_dict()).encode()
+            data = json.dumps(self._state.to_dict(), sort_keys=True).encode()
             await self._send_frame(writer, 0x1, data)  # Text frame
         except Exception as e:
             logger.error(f"Error sending state: {e}")

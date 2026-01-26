@@ -49,8 +49,6 @@ jobs:
     environment:
       name: testpypi
       url: https://test.pypi.org/p/cognitive-orchestra
-    permissions:
-      id-token: write
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -62,6 +60,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
   publish-pypi:
     needs: build
@@ -70,8 +69,6 @@ jobs:
     environment:
       name: pypi
       url: https://pypi.org/p/cognitive-orchestra
-    permissions:
-      id-token: write
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
@@ -81,3 +78,5 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
