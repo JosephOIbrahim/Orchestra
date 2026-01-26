@@ -94,7 +94,8 @@ class TestContracts:
 
         await orchestrator.orchestrate("State schema test", {"seed": 42})
 
-        state_file = temp_workspace / ".orchestrator-state.json"
+        # State is persisted under workspace/state/ subdirectory
+        state_file = temp_workspace / "state" / ".orchestrator-state.json"
         state_data = json.loads(state_file.read_text())
 
         # Required fields
@@ -184,7 +185,8 @@ class TestContracts:
 
         await orchestrator.orchestrate("Checkpoint schema test", {"seed": 42})
 
-        checkpoint_files = list((temp_workspace / "checkpoints").glob("checkpoint_*.json"))
+        # Checkpoints are stored under workspace/state/checkpoints/
+        checkpoint_files = list((temp_workspace / "state" / "checkpoints").glob("checkpoint_*.json"))
         assert len(checkpoint_files) >= 1
 
         for cp_file in checkpoint_files:

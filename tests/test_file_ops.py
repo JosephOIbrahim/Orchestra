@@ -62,8 +62,9 @@ class TestAtomicWriteJson:
             class NotSerializable:
                 pass
 
+            # Pass default=None to disable str fallback and trigger error
             with pytest.raises(AtomicWriteError):
-                atomic_write_json(path, {"obj": NotSerializable()})
+                atomic_write_json(path, {"obj": NotSerializable()}, default=None)
 
             # File should not exist
             assert not path.exists()
@@ -320,8 +321,9 @@ class TestAtomicWriteErrorHandling:
         with TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "test.json"
 
+            # Pass default=None to disable str fallback and trigger error
             with pytest.raises(AtomicWriteError) as exc_info:
-                atomic_write_json(path, {"func": lambda x: x})
+                atomic_write_json(path, {"func": lambda x: x}, default=None)
 
             assert "Failed to serialize" in str(exc_info.value)
 
@@ -330,8 +332,9 @@ class TestAtomicWriteErrorHandling:
         with TemporaryDirectory() as tmpdir:
             path = Path(tmpdir) / "test.json"
 
+            # Pass default=None to disable str fallback and trigger error
             try:
-                atomic_write_json(path, {"bad": object()})
+                atomic_write_json(path, {"bad": object()}, default=None)
             except AtomicWriteError:
                 pass
 
@@ -371,8 +374,9 @@ class TestAtomicWriteIntegration:
             atomic_write_json(path, {"version": 1})
 
             # Attempt to write invalid data (should fail at serialization)
+            # Pass default=None to disable str fallback and trigger error
             try:
-                atomic_write_json(path, {"bad": lambda: None})
+                atomic_write_json(path, {"bad": lambda: None}, default=None)
             except AtomicWriteError:
                 pass
 

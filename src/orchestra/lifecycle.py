@@ -19,6 +19,11 @@ from typing import Any, Callable, Coroutine, Dict, List, Optional
 logger = logging.getLogger(__name__)
 
 
+def _get_handler_name(handler: Callable) -> str:
+    """Get handler name safely for logging."""
+    return getattr(handler, '__name__', repr(handler))
+
+
 class LifecycleState(Enum):
     """Orchestrator lifecycle states."""
     STARTING = "starting"
@@ -115,7 +120,7 @@ class LifecycleManager:
             handler: Async function taking ShutdownContext
         """
         self._shutdown_handlers.append(handler)
-        logger.debug(f"Registered shutdown handler: {handler.__name__}")
+        logger.debug(f"Registered shutdown handler: {_get_handler_name(handler)}")
 
     def register_sync_shutdown_handler(
         self,
@@ -128,7 +133,7 @@ class LifecycleManager:
             handler: Function taking ShutdownContext
         """
         self._sync_shutdown_handlers.append(handler)
-        logger.debug(f"Registered sync shutdown handler: {handler.__name__}")
+        logger.debug(f"Registered sync shutdown handler: {_get_handler_name(handler)}")
 
     def track_task(self, task: asyncio.Task) -> None:
         """
@@ -249,22 +254,22 @@ class LifecycleManager:
         # Run async shutdown handlers (reverse order)
         for handler in reversed(self._shutdown_handlers):
             try:
-                logger.debug(f"Running shutdown handler: {handler.__name__}")
+                logger.debug(f"Running shutdown handler: {_get_handler_name(handler)}")
                 await asyncio.wait_for(
                     handler(context),
                     timeout=self.handler_timeout
                 )
             except asyncio.TimeoutError:
-                logger.warning(f"Shutdown handler {handler.__name__} timed out")
+                logger.warning(f"Shutdown handler {_get_handler_name(handler)} timed out")
             except Exception as e:
-                logger.error(f"Shutdown handler {handler.__name__} failed: {e}")
+                logger.error(f"Shutdown handler {_get_handler_name(handler)} failed: {e}")
 
         # Run sync shutdown handlers
         for handler in reversed(self._sync_shutdown_handlers):
             try:
                 handler(context)
             except Exception as e:
-                logger.error(f"Sync shutdown handler {handler.__name__} failed: {e}")
+                logger.error(f"Sync shutdown handler {_get_handler_name(handler)} failed: {e}")
 
         self.state = LifecycleState.STOPPED
         logger.info("Shutdown complete")

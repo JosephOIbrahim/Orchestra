@@ -87,16 +87,16 @@ class TestOrchestratorConfig:
 
     def test_default_values(self):
         """Should have sensible defaults."""
-        with patch.dict(os.environ, {}, clear=True):
-            config = OrchestratorConfig()
+        # Don't clear=True as it removes HOME which breaks Path.home() on Windows
+        config = OrchestratorConfig()
 
-            assert config.agent_timeout == 30.0
-            assert config.orchestration_timeout == 120.0
-            assert config.max_retries == 3
-            assert config.circuit_breaker_threshold == 5
-            assert config.max_task_length == 10000
-            assert config.log_level == 'INFO'
-            assert config.log_format == 'text'
+        assert config.agent_timeout == 30.0
+        assert config.orchestration_timeout == 120.0
+        assert config.max_retries == 3
+        assert config.circuit_breaker_threshold == 5
+        assert config.max_task_length == 10000
+        assert config.log_level == 'INFO'
+        assert config.log_format == 'text'
 
     def test_env_override_timeout(self):
         """Should override timeouts from env vars."""
@@ -126,9 +126,11 @@ class TestOrchestratorConfig:
             config = OrchestratorConfig()
 
             assert config.workspace == Path('/test/workspace')
-            assert config.domains_path == Path('/test/workspace/domains')
-            assert config.frameworks_path == Path('/test/workspace/frameworks')
-            assert config.results_dir == Path('/test/workspace/results')
+            # domains and frameworks are under config/ subdirectory
+            assert config.domains_path == Path('/test/workspace/config/domains')
+            assert config.frameworks_path == Path('/test/workspace/config/frameworks')
+            # results_dir is under state/ subdirectory
+            assert config.results_dir == Path('/test/workspace/state/results')
 
     def test_custom_domain_path(self):
         """Should allow custom domain path override."""

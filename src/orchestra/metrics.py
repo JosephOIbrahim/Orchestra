@@ -93,10 +93,12 @@ class Histogram:
             if key not in self._bucket_counts:
                 self._bucket_counts[key] = [0] * len(self.buckets)
 
-            # Update bucket counts
+            # Update bucket counts - only increment the first matching bucket
+            # Export handles cumulative summing (Prometheus histogram semantics)
             for i, bucket in enumerate(self.buckets):
                 if value <= bucket:
                     self._bucket_counts[key][i] += 1
+                    break
 
             # Update sum and count
             self._sum[key] += value

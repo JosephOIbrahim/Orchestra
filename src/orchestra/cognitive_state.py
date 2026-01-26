@@ -547,6 +547,37 @@ class CognitiveStateManager:
         """Get immutable snapshot of current state."""
         return self.get_state().snapshot()
 
+    def get_resolved_value(self, key: str, default: Any = None) -> Any:
+        """
+        Get a resolved value from cognitive state with fallback default.
+
+        This method provides the API contract expected by AgentCoordinator
+        for extracting state values with graceful degradation.
+
+        ThinkingMachines [He2025] Compliance:
+        - Deterministic: Same key + same state → same value
+        - Batch-invariant: No side effects on read
+
+        Args:
+            key: Attribute name on CognitiveState
+            default: Fallback value if attribute missing or None
+
+        Returns:
+            Resolved value or default
+        """
+        state = self.get_state()
+
+        # Handle enum fields - return their value
+        value = getattr(state, key, None)
+        if value is None:
+            return default
+
+        # Resolve enums to their string values for compatibility
+        if hasattr(value, 'value'):
+            return value.value
+
+        return value
+
     def batch_update(self, updates: Dict[str, Any]) -> None:
         """Apply batch updates and save."""
         state = self.get_state()

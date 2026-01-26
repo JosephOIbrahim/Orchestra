@@ -169,28 +169,30 @@ class TestBulkheadExecutorExecution:
     @pytest.mark.asyncio
     async def test_execute_isolated_queue_rejection(self):
         """Should reject when queue is full."""
+        # queue_size_per_agent=2 means: 1 executing + 1 waiting = 2 total in queue
+        # When a third task arrives, it should be rejected
         bulkhead = BulkheadExecutor(
             max_concurrent=1,
-            queue_size_per_agent=1,
+            queue_size_per_agent=2,
             acquire_timeout=0.1
         )
 
         async def slow_task():
             await asyncio.sleep(1.0)
 
-        # Start first task (takes the slot)
+        # Start first task (takes the slot, queue=1)
         task1 = asyncio.create_task(
             bulkhead.execute_isolated("agent", slow_task())
         )
-        await asyncio.sleep(0.01)  # Let it start
+        await asyncio.sleep(0.05)  # Let it start and acquire the slot
 
-        # Second task enters queue
+        # Second task enters queue (queue=2, waiting for semaphore)
         task2 = asyncio.create_task(
             bulkhead.execute_isolated("agent", slow_task())
         )
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.05)  # Let it enter the queue
 
-        # Third should be rejected (queue full)
+        # Third should be rejected (queue full at 2)
         with pytest.raises(BulkheadRejected) as exc_info:
             await bulkhead.execute_isolated("agent", slow_task())
 

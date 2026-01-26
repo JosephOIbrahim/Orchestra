@@ -733,7 +733,7 @@ class Mycelium:
             "weights": self.expert_weights.copy(),
             "learning_rate": self.learning_rate,
             "outcomes_recorded": len(self.outcomes),
-            "recent_outcomes": self.outcomes[-5:] if self.outcomes else []
+            "recent_outcomes": list(self.outcomes)[-5:] if self.outcomes else []
         }
 
 
