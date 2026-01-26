@@ -1,11 +1,19 @@
-# Orchestra
+<p align="center">
+  <img src="logo.png" alt="Orchestra Logo" width="200"/>
+</p>
 
-[![Tests](https://img.shields.io/badge/tests-766%20passed-brightgreen)](tests/)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status](https://img.shields.io/badge/status-Production%2FStable-green)](CHANGELOG.md)
+<h1 align="center">Orchestra</h1>
 
-**Cognitive orchestration for Claude Code with deterministic behavior.**
+<p align="center">
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-766%20passed-brightgreen" alt="Tests"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/status-Production%2FStable-green" alt="Status"></a>
+</p>
+
+<p align="center"><strong>Cognitive safety layer for AI-assisted development</strong></p>
+
+<p align="center"><em>Deterministic behavior. Burnout protection. Built for neurodivergent brains.</em></p>
 
 Orchestra is a cognitive engine that processes every message through a 5-Phase NEXUS Pipeline, providing deterministic expert routing and cognitive safety gating. Built on USD composition semantics and ThinkingMachines [He2025] batch-invariance principles.
 
