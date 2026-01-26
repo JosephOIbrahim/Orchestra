@@ -151,7 +151,7 @@ class TestOTelSpanWrapper:
 
         mock_otel_span.add_event.assert_called_once_with("test_event", {})
 
-    @patch('orchestra.otel_adapter._otel_available', True)
+    @pytest.mark.skipif(not _otel_available, reason="OTel not installed")
     def test_set_status_ok(self, mock_otel_span):
         """Should set OK status."""
         wrapper = OTelSpanWrapper(mock_otel_span)
@@ -160,7 +160,7 @@ class TestOTelSpanWrapper:
 
         mock_otel_span.set_status.assert_called_once()
 
-    @patch('orchestra.otel_adapter._otel_available', True)
+    @pytest.mark.skipif(not _otel_available, reason="OTel not installed")
     def test_set_status_error(self, mock_otel_span):
         """Should set error status with message."""
         wrapper = OTelSpanWrapper(mock_otel_span)
