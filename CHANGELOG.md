@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `orchestra install-hook` - Claude Code integration
   - `orchestra set` - State management
 
-- **Test Suite**: 766 tests covering
+- **Test Suite**: 776 tests covering
   - Core orchestration
   - Safety gating (burnout/energy → depth caps)
   - Parameter locking determinism

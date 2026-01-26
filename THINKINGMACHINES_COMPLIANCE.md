@@ -1,7 +1,7 @@
 # ThinkingMachines [He2025] Batch-Invariance Compliance Report
 
 **Date:** 2026-01-23
-**Codebase:** Orchestra (Framework Orchestrator)
+**Codebase:** Orchestra
 **Reference:** https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/
 
 ---
