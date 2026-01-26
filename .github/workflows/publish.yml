@@ -86,8 +86,18 @@ jobs:
           name: cognitive-orchestra-dist
           path: dist/
 
+      - name: Verify secret is set
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "$PYPI_TOKEN" ]; then
+            echo "Error: PYPI_API_TOKEN secret is empty or not set"
+            exit 1
+          fi
+          echo "Secret is set (length: ${#PYPI_TOKEN})"
+
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+        run: twine upload --verbose dist/*
