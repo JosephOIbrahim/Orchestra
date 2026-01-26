@@ -1,5 +1,10 @@
 # Orchestra
 
+[![Tests](https://img.shields.io/badge/tests-766%20passed-brightgreen)](tests/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Status](https://img.shields.io/badge/status-Production%2FStable-green)](CHANGELOG.md)
+
 **Cognitive orchestration for Claude Code with deterministic behavior.**
 
 Orchestra is a cognitive engine that processes every message through a 5-Phase NEXUS Pipeline, providing deterministic expert routing and cognitive safety gating. Built on USD composition semantics and ThinkingMachines [He2025] batch-invariance principles.
@@ -202,8 +207,11 @@ Orchestra/
 │   │   └── cognitive_hook.py      # Claude Code hook
 │   └── cli/
 │       └── main.py                # CLI entry point
-├── tests/
-│   └── test_cognitive_engine.py   # 36 tests
+├── tests/                         # 766 tests (100% pass)
+│   ├── test_cognitive_engine.py   # Core orchestration
+│   ├── test_parameter_locker.py   # Safety gating
+│   ├── test_otel_adapter.py       # Observability
+│   └── ...                        # Integration, chaos, resilience
 └── pyproject.toml                 # v5.0.0
 ```
 
@@ -225,7 +233,8 @@ Orchestra is built for neurodivergent brains:
 
 | Document | Description |
 |----------|-------------|
-| [QUICKSTART](docs/QUICKSTART.md) | 2-minute setup guide for artists & TDs |
+| [CHANGELOG](CHANGELOG.md) | Version history and release notes |
+| [QUICKSTART](docs/QUICKSTART.md) | 2-minute setup guide |
 | [ARCHITECTURE](docs/ARCHITECTURE.md) | Technical deep-dive |
 | [CONTRIBUTING](CONTRIBUTING.md) | Development guidelines |
 | [CITATIONS](CITATIONS.md) | Academic references |
