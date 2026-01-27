@@ -34,15 +34,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed accumulation order (COMPONENT_ORDER constant for confidence scoring)
   - Added `deterministic_checksum` to PipelineStats
 
-- **69 New Distillation Tests**
+- **118 New Distillation Tests**
   - Batch invariance tests (hash determinism, iteration order, checksum reproducibility)
   - Pydantic schema tests (coercion, edge cases, malformed responses)
   - Async executor tests (rate limiting, concurrency, timeouts)
   - Checkpoint tests (save/load, resume, atomic writes)
+  - Frontier AI tests (self-consistency verification, entailment grounding)
+  - Pipeline integration tests (E2E, determinism, error handling)
 
 ### Changed
 
-- Test count: 798 → 867 (all passing)
+- Test count: 798 → 917 (all passing)
 - Updated README with Knowledge Distillation section
 - Added `distillation` optional dependency group in pyproject.toml
 

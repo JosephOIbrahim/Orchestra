@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.2-Production%2FStable-success" alt="Production"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-867%20passed-brightgreen" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-917%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
 </p>
@@ -273,9 +273,9 @@ pytest --cov=src/orchestra --cov-report=html
 
 | Category | Tests | Description |
 |----------|-------|-------------|
-| Core | 798 | Cognitive engine, routing, state |
-| Distillation | 69 | Pipeline, schemas, checkpointing |
-| **Total** | **867** | All passing |
+| Core | 799 | Cognitive engine, routing, state |
+| Distillation | 118 | Pipeline, schemas, checkpointing, Frontier AI |
+| **Total** | **917** | All passing |
 
 ### Direct API Usage
 
