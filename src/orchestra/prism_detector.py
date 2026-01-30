@@ -41,12 +41,18 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 class SignalCategory(Enum):
-    """Signal categories in FIXED priority order."""
+    """
+    Signal categories in FIXED priority order.
+
+    v6.0.0: Added GROUNDING between EMOTIONAL and MODE
+    for physics/oracle query routing.
+    """
     EMOTIONAL = 1   # Highest priority - safety first
-    MODE = 2        # Cognitive mode switches
-    DOMAIN = 3      # Domain-specific signals
-    TASK = 4        # Task type signals
-    ENERGY = 5      # Energy level signals
+    GROUNDING = 2   # v6.0.0: Oracle/physics queries (ACCESS > LEARN)
+    MODE = 3        # Cognitive mode switches
+    DOMAIN = 4      # Domain-specific signals
+    TASK = 5        # Task type signals
+    ENERGY = 6      # Energy level signals
 
 
 # Signal patterns - evaluated in category order
@@ -57,6 +63,18 @@ SIGNAL_PATTERNS = {
         "stuck": ["stuck", "blocked", "can't figure", "don't understand", "confused"],
         "anxious": ["anxious", "worried", "nervous", "stress"],
         "angry": ["angry", "pissed", "furious"],  # Higher severity
+    },
+    # v6.0.0: GROUNDING signals for oracle/physics routing
+    SignalCategory.GROUNDING: {
+        "physics": ["position", "velocity", "acceleration", "collision", "bounce",
+                    "trajectory", "momentum", "gravity", "force", "mass", "friction"],
+        "simulate": ["simulate", "simulation", "predict", "forecast", "step", "frame",
+                     "render", "bake", "houdini", "bullet", "rbd", "rigid body"],
+        "calculate": ["calculate", "compute", "solve", "equation", "formula", "math",
+                      "distance", "angle", "result", "value"],
+        "factual": ["what is", "define", "who is", "when did", "where is", "verify",
+                    "fact check", "true or false"],
+        "oracle_needed": ["ground truth", "exact", "precise", "accurate", "deterministic"],
     },
     SignalCategory.MODE: {
         "exploring": ["what if", "explore", "brainstorm", "ideas", "consider", "might"],
@@ -115,8 +133,11 @@ class SignalVector:
     Detected signals organized by category.
 
     Maintains FIXED structure for deterministic processing.
+
+    v6.0.0: Added grounding signals for oracle routing.
     """
     emotional: Dict[str, float] = field(default_factory=dict)
+    grounding: Dict[str, float] = field(default_factory=dict)  # v6.0.0
     mode: Dict[str, float] = field(default_factory=dict)
     domain: Dict[str, float] = field(default_factory=dict)
     task: Dict[str, float] = field(default_factory=dict)
@@ -124,6 +145,8 @@ class SignalVector:
 
     # Aggregate scores
     emotional_score: float = 0.0
+    grounding_score: float = 0.0  # v6.0.0: Aggregate grounding signal strength
+    grounding_type: Optional[str] = None  # v6.0.0: physics|simulate|calculate|factual
     mode_detected: Optional[str] = None
     primary_domain: Optional[str] = None
     primary_task: Optional[str] = None
@@ -138,7 +161,9 @@ class SignalVector:
 
     def get_priority_signal(self) -> Tuple[SignalCategory, str, float]:
         """
-        Get highest priority signal (emotional > mode > domain > task > energy).
+        Get highest priority signal (emotional > grounding > mode > domain > task > energy).
+
+        v6.0.0: Added grounding between emotional and mode.
 
         Returns:
             (category, signal_name, score) tuple
@@ -147,6 +172,10 @@ class SignalVector:
         if self.emotional and max(self.emotional.values()) > 0:
             top_emotional = max(self.emotional.items(), key=lambda x: x[1])
             return (SignalCategory.EMOTIONAL, top_emotional[0], top_emotional[1])
+
+        # v6.0.0: Grounding signals (physics, simulate, etc.)
+        if self.grounding_type and self.grounding_score > 0:
+            return (SignalCategory.GROUNDING, self.grounding_type, self.grounding_score)
 
         if self.mode_detected:
             score = self.mode.get(self.mode_detected, 0.5)
@@ -183,11 +212,14 @@ class SignalVector:
         """Serialize to dict."""
         return {
             "emotional": self.emotional,
+            "grounding": self.grounding,  # v6.0.0
             "mode": self.mode,
             "domain": self.domain,
             "task": self.task,
             "energy": self.energy,
             "emotional_score": self.emotional_score,
+            "grounding_score": self.grounding_score,  # v6.0.0
+            "grounding_type": self.grounding_type,  # v6.0.0
             "mode_detected": self.mode_detected,
             "primary_domain": self.primary_domain,
             "primary_task": self.primary_task,
@@ -202,6 +234,14 @@ class SignalVector:
             }
         }
 
+    def requires_grounding(self) -> bool:
+        """
+        v6.0.0: Check if query requires oracle grounding.
+
+        Returns True if physics/simulate/calculate signals detected.
+        """
+        return self.grounding_score >= 0.3 and self.grounding_type in ("physics", "simulate")
+
 
 # =============================================================================
 # PRISM Signal Detector
@@ -215,9 +255,10 @@ class PRISMDetector:
     maintaining ThinkingMachines [He2025] batch-invariance.
     """
 
-    # FIXED evaluation order - NEVER change
+    # FIXED evaluation order - NEVER change (v6.0.0: Added GROUNDING)
     SIGNAL_PRIORITY = [
         SignalCategory.EMOTIONAL,
+        SignalCategory.GROUNDING,  # v6.0.0: Oracle/physics routing
         SignalCategory.MODE,
         SignalCategory.DOMAIN,
         SignalCategory.TASK,
@@ -286,6 +327,12 @@ class PRISMDetector:
                 result.emotional = category_results
                 result.emotional_score = self._calculate_emotional_score(category_results)
 
+            elif category == SignalCategory.GROUNDING:
+                # v6.0.0: Grounding signal detection
+                result.grounding = category_results
+                result.grounding_type = self._get_primary(category_results)
+                result.grounding_score = self._calculate_grounding_score(category_results)
+
             elif category == SignalCategory.MODE:
                 result.mode = category_results
                 result.mode_detected = self._get_primary(category_results)
@@ -348,6 +395,37 @@ class PRISMDetector:
             severity = EMOTIONAL_SEVERITY.get(signal, 0.5)
             weighted_sum += score * severity
             weight_total += severity
+
+        if weight_total == 0:
+            return 0.0
+
+        return min(weighted_sum / weight_total, 1.0)
+
+    def _calculate_grounding_score(self, grounding_signals: Dict[str, float]) -> float:
+        """
+        v6.0.0: Calculate aggregate grounding score.
+
+        Physics and simulate signals weight more heavily than factual/calculate.
+        """
+        if not grounding_signals:
+            return 0.0
+
+        # Priority weights for grounding categories
+        grounding_weights = {
+            "physics": 1.0,      # Highest - definitely needs oracle
+            "simulate": 0.9,    # High - simulation queries
+            "oracle_needed": 0.85,  # Explicit request
+            "calculate": 0.6,   # Medium - might use oracle
+            "factual": 0.4,     # Lower - knowledge retrieval
+        }
+
+        weighted_sum = 0.0
+        weight_total = 0.0
+
+        for signal, score in grounding_signals.items():
+            weight = grounding_weights.get(signal, 0.5)
+            weighted_sum += score * weight
+            weight_total += weight
 
         if weight_total == 0:
             return 0.0

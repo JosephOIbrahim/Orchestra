@@ -160,6 +160,15 @@ class CognitiveState:
     # MAX3 reflection tracking (moved from ParameterLocker for batch-invariance)
     reflection_count: int = 0
 
+    # v6.0.0: Grounding state tracking
+    grounding_mode: str = "learn"  # learn | access | hybrid
+    grounding_budget: int = 5  # Oracle queries remaining
+    oracle_cache_age: int = 0  # Seconds since last oracle query
+    evidence_chain_length: int = 0  # Length of current evidence chain
+    hallucination_score: float = 0.0  # Last detected hallucination risk
+    last_oracle_latency: float = 0.0  # Last oracle query latency (ms)
+    grounding_queries_total: int = 0  # Total oracle queries this session
+
     # Determinism
     seed: int = 42
 
@@ -195,6 +204,14 @@ class CognitiveState:
             epistemic_tension=self.epistemic_tension,
             stable_exchanges=self.stable_exchanges,
             reflection_count=self.reflection_count,
+            # v6.0.0: Grounding fields
+            grounding_mode=self.grounding_mode,
+            grounding_budget=self.grounding_budget,
+            oracle_cache_age=self.oracle_cache_age,
+            evidence_chain_length=self.evidence_chain_length,
+            hallucination_score=self.hallucination_score,
+            last_oracle_latency=self.last_oracle_latency,
+            grounding_queries_total=self.grounding_queries_total,
             seed=self.seed
         )
 
@@ -207,13 +224,17 @@ class CognitiveState:
         Args:
             updates: Dict of field names to new values
         """
-        # FIXED evaluation order for updates
+        # FIXED evaluation order for updates (v6.0.0: added grounding fields)
         UPDATE_ORDER = [
             'burnout_level', 'momentum_phase', 'energy_level', 'mode',
             'altitude', 'focus_level', 'urgency', 'exchange_count',
             'rapid_exchange_count', 'tasks_completed', 'tangent_budget',
             'convergence_attractor', 'epistemic_tension', 'stable_exchanges',
-            'reflection_count'
+            'reflection_count',
+            # v6.0.0: Grounding fields
+            'grounding_mode', 'grounding_budget', 'oracle_cache_age',
+            'evidence_chain_length', 'hallucination_score', 'last_oracle_latency',
+            'grounding_queries_total'
         ]
 
         for field_name in UPDATE_ORDER:
@@ -380,6 +401,14 @@ class CognitiveState:
             "epistemic_tension": self.epistemic_tension,
             "stable_exchanges": self.stable_exchanges,
             "reflection_count": self.reflection_count,
+            # v6.0.0: Grounding fields
+            "grounding_mode": self.grounding_mode,
+            "grounding_budget": self.grounding_budget,
+            "oracle_cache_age": self.oracle_cache_age,
+            "evidence_chain_length": self.evidence_chain_length,
+            "hallucination_score": self.hallucination_score,
+            "last_oracle_latency": self.last_oracle_latency,
+            "grounding_queries_total": self.grounding_queries_total,
             "seed": self.seed
         }
 
@@ -404,6 +433,14 @@ class CognitiveState:
             epistemic_tension=data.get("epistemic_tension", 0.0),
             stable_exchanges=data.get("stable_exchanges", 0),
             reflection_count=data.get("reflection_count", 0),
+            # v6.0.0: Grounding fields
+            grounding_mode=data.get("grounding_mode", "learn"),
+            grounding_budget=data.get("grounding_budget", 5),
+            oracle_cache_age=data.get("oracle_cache_age", 0),
+            evidence_chain_length=data.get("evidence_chain_length", 0),
+            hallucination_score=data.get("hallucination_score", 0.0),
+            last_oracle_latency=data.get("last_oracle_latency", 0.0),
+            grounding_queries_total=data.get("grounding_queries_total", 0),
             seed=data.get("seed", 42)
         )
 
@@ -494,7 +531,7 @@ class CognitiveStateManager:
         """
         Reset session-specific fields while preserving preferences.
 
-        Resets: exchange counts, session timing, momentum, tangent budget
+        Resets: exchange counts, session timing, momentum, tangent budget, grounding
         Preserves: focus_level, urgency, seed (user preferences)
         """
         if self._state is None:
@@ -511,6 +548,15 @@ class CognitiveStateManager:
         self._state.stable_exchanges = 0
         self._state.epistemic_tension = 0.0
         self._state.reflection_count = 0
+
+        # v6.0.0: Reset grounding fields
+        self._state.grounding_mode = "learn"
+        self._state.grounding_budget = 5
+        self._state.oracle_cache_age = 0
+        self._state.evidence_chain_length = 0
+        self._state.hallucination_score = 0.0
+        self._state.last_oracle_latency = 0.0
+        self._state.grounding_queries_total = 0
 
         # Reset burnout to healthy (don't carry RED across sessions)
         if self._state.burnout_level in (BurnoutLevel.ORANGE, BurnoutLevel.RED):

@@ -26,7 +26,7 @@ Constitutional Principles:
 
 import hashlib
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Tuple, List
+from typing import Optional, Dict, Any, Tuple, List, Union
 from enum import Enum
 import logging
 
@@ -42,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 class Expert(Enum):
     """Intervention experts in FIXED priority order."""
+    # ADHD_MoE Experts (1-7)
     VALIDATOR = "validator"      # 1 - Safety/emotional
     SCAFFOLDER = "scaffolder"    # 2 - Reducing overwhelm
     RESTORER = "restorer"        # 3 - Recovery
@@ -49,6 +50,12 @@ class Expert(Enum):
     CELEBRATOR = "celebrator"    # 5 - Win/dopamine
     SOCRATIC = "socratic"        # 6 - Exploration
     DIRECT = "direct"            # 7 - Minimal friction
+
+    # v6.0.0: GROUNDING_MoE Experts (G1-G4)
+    ORACLE_RESOLVER = "oracle_resolver"    # G1 - Reconcile oracle conflicts
+    EVIDENCE_BUILDER = "evidence_builder"  # G2 - Build evidence chains
+    CONFIDENCE_ADJ = "confidence_adj"      # G3 - Adjust confidence on hallucination
+    ACCESS_GATEKEEPER = "access_gatekeeper"  # G4 - Route to grounding layer
 
 
 # Expert trigger conditions (evaluated in FIXED order)
@@ -105,6 +112,37 @@ EXPERT_PRIORITY = [
     Expert.DIRECT
 ]
 
+# v6.0.0: GROUNDING_MoE priority order (evaluated separately from ADHD_MoE)
+GROUNDING_EXPERT_PRIORITY = [
+    Expert.ORACLE_RESOLVER,    # G1 - Highest grounding priority
+    Expert.EVIDENCE_BUILDER,   # G2
+    Expert.CONFIDENCE_ADJ,     # G3
+    Expert.ACCESS_GATEKEEPER,  # G4
+]
+
+# v6.0.0: GROUNDING_MoE trigger conditions
+GROUNDING_EXPERT_TRIGGERS = {
+    Expert.ORACLE_RESOLVER: {
+        "signals": ["oracle_conflict", "mismatch", "inconsistent", "disagree"],
+        "grounding_types": ["physics", "simulate"],
+        "description": "Reconcile conflicting oracle sources"
+    },
+    Expert.EVIDENCE_BUILDER: {
+        "signals": ["cite_needed", "source_request", "prove", "evidence", "justify"],
+        "description": "Build evidence chain from claims to sources"
+    },
+    Expert.CONFIDENCE_ADJ: {
+        "signals": ["hallucination_detected", "speculation", "uncertain", "might be wrong"],
+        "hallucination_score_threshold": 0.5,
+        "description": "Adjust confidence and add caveats"
+    },
+    Expert.ACCESS_GATEKEEPER: {
+        "signals": ["oracle_required", "need ground truth", "verify", "check simulation"],
+        "grounding_types": ["physics", "simulate", "oracle_needed"],
+        "description": "Route query to grounding layer for oracle access"
+    }
+}
+
 
 # =============================================================================
 # Routing Result
@@ -116,6 +154,7 @@ class RoutingResult:
     Result of expert routing.
 
     Contains the selected expert, trigger reason, and gate status.
+    v6.0.0: Added grounding expert routing.
     """
     expert: Expert
     trigger: str
@@ -123,6 +162,11 @@ class RoutingResult:
     safety_gate_pass: bool = True
     safety_redirect: Optional[str] = None
     priority_index: int = 7  # 1-7, lower = higher priority
+
+    # v6.0.0: Grounding expert (can be active alongside ADHD_MoE expert)
+    grounding_expert: Optional[Expert] = None
+    grounding_trigger: Optional[str] = None
+    requires_grounding: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for WebSocket."""
@@ -132,7 +176,11 @@ class RoutingResult:
             "constitutional_pass": self.constitutional_pass,
             "safety_gate_pass": self.safety_gate_pass,
             "safety_redirect": self.safety_redirect,
-            "priority_index": self.priority_index
+            "priority_index": self.priority_index,
+            # v6.0.0: Grounding fields
+            "grounding_expert": self.grounding_expert.value if self.grounding_expert else None,
+            "grounding_trigger": self.grounding_trigger,
+            "requires_grounding": self.requires_grounding
         }
 
 
@@ -149,11 +197,14 @@ class ExpertRouter:
     - First-match-wins semantics
     - Safety gates for constitutional compliance
     - Deterministic routing (same inputs → same output)
+
+    v6.0.0: Added GROUNDING_MoE expert routing for oracle queries.
     """
 
     def __init__(self):
         """Initialize router."""
         self._last_routing: Optional[RoutingResult] = None
+        self._last_grounding_routing: Optional[Tuple[Expert, str]] = None
 
     def route(
         self,
@@ -164,12 +215,14 @@ class ExpertRouter:
         mode: str = "focused",
         tangent_budget: int = 5,
         task_completed: bool = False,
-        caps_detected: bool = False
+        caps_detected: bool = False,
+        hallucination_score: float = 0.0  # v6.0.0
     ) -> RoutingResult:
         """
         Route to expert based on signals and state.
 
         ThinkingMachines [He2025]: Fixed evaluation order, first-match-wins.
+        v6.0.0: Added GROUNDING_MoE expert routing.
 
         Args:
             signals: PRISM signal vector
@@ -180,6 +233,7 @@ class ExpertRouter:
             tangent_budget: Remaining tangent budget
             task_completed: Whether a task was just completed
             caps_detected: Whether ALL CAPS was detected
+            hallucination_score: v6.0.0 - Hallucination detection score
 
         Returns:
             RoutingResult with selected expert and reasoning
@@ -226,6 +280,13 @@ class ExpertRouter:
                     safety_gate_pass=True,
                     priority_index=priority_idx
                 )
+
+                # v6.0.0: Check for GROUNDING_MoE expert (runs in parallel)
+                grounding_result = self._route_grounding(signals, hallucination_score)
+                if grounding_result:
+                    result.grounding_expert, result.grounding_trigger = grounding_result
+                    result.requires_grounding = True
+
                 self._last_routing = result
                 logger.info(f"CognitiveSafetyMoE → {expert.value} (priority {priority_idx}): {trigger}")
                 return result
@@ -237,6 +298,13 @@ class ExpertRouter:
             constitutional_pass=constitutional_pass,
             priority_index=7
         )
+
+        # v6.0.0: Check for GROUNDING_MoE expert (runs in parallel)
+        grounding_result = self._route_grounding(signals, hallucination_score)
+        if grounding_result:
+            result.grounding_expert, result.grounding_trigger = grounding_result
+            result.requires_grounding = True
+
         self._last_routing = result
         return result
 
@@ -394,19 +462,90 @@ class ExpertRouter:
 
         return None
 
+    def _route_grounding(
+        self,
+        signals: SignalVector,
+        hallucination_score: float = 0.0
+    ) -> Optional[Tuple[Expert, str]]:
+        """
+        v6.0.0: Route to GROUNDING_MoE expert if needed.
+
+        Evaluates grounding signals to determine if oracle access is required.
+        Runs in parallel with ADHD_MoE routing.
+
+        Args:
+            signals: PRISM signal vector with grounding signals
+            hallucination_score: Detected hallucination score
+
+        Returns:
+            Tuple of (Expert, trigger) or None if no grounding needed
+        """
+        # Check if grounding signals present
+        if not hasattr(signals, 'grounding') or not signals.grounding:
+            # Check for hallucination-triggered confidence adjustment
+            if hallucination_score >= 0.5:
+                return (Expert.CONFIDENCE_ADJ, f"hallucination_score_{hallucination_score:.2f}")
+            return None
+
+        grounding_type = getattr(signals, 'grounding_type', None)
+        grounding_score = getattr(signals, 'grounding_score', 0.0)
+
+        # Evaluate GROUNDING_MoE experts in FIXED priority order
+        for expert in GROUNDING_EXPERT_PRIORITY:
+            triggers = GROUNDING_EXPERT_TRIGGERS.get(expert, {})
+
+            # Check grounding types
+            if "grounding_types" in triggers:
+                if grounding_type in triggers["grounding_types"]:
+                    return (expert, f"grounding_type_{grounding_type}")
+
+            # Check hallucination threshold
+            if "hallucination_score_threshold" in triggers:
+                threshold = triggers["hallucination_score_threshold"]
+                if hallucination_score >= threshold:
+                    return (expert, f"hallucination_score_{hallucination_score:.2f}")
+
+            # Check text signals
+            if "signals" in triggers:
+                for sig in triggers["signals"]:
+                    if signals.grounding.get(sig, 0) > 0:
+                        return (expert, f"grounding_signal_{sig}")
+
+        # High grounding score → route to ACCESS_GATEKEEPER
+        if grounding_score >= 0.5:
+            return (Expert.ACCESS_GATEKEEPER, f"grounding_score_{grounding_score:.2f}")
+
+        return None
+
     def get_last_routing(self) -> Optional[RoutingResult]:
         """Get the last routing result."""
         return self._last_routing
 
     def get_expert_info(self, expert: Expert) -> Dict[str, Any]:
-        """Get information about an expert."""
-        triggers = EXPERT_TRIGGERS.get(expert, {})
-        return {
-            "name": expert.value,
-            "priority": EXPERT_PRIORITY.index(expert) + 1,
-            "description": triggers.get("description", ""),
-            "triggers": {k: v for k, v in triggers.items() if k != "description"}
-        }
+        """Get information about an expert (ADHD_MoE or GROUNDING_MoE)."""
+        # Check ADHD_MoE first
+        if expert in EXPERT_PRIORITY:
+            triggers = EXPERT_TRIGGERS.get(expert, {})
+            return {
+                "name": expert.value,
+                "priority": EXPERT_PRIORITY.index(expert) + 1,
+                "type": "adhd_moe",
+                "description": triggers.get("description", ""),
+                "triggers": {k: v for k, v in triggers.items() if k != "description"}
+            }
+
+        # v6.0.0: Check GROUNDING_MoE
+        if expert in GROUNDING_EXPERT_PRIORITY:
+            triggers = GROUNDING_EXPERT_TRIGGERS.get(expert, {})
+            return {
+                "name": expert.value,
+                "priority": GROUNDING_EXPERT_PRIORITY.index(expert) + 1,
+                "type": "grounding_moe",
+                "description": triggers.get("description", ""),
+                "triggers": {k: v for k, v in triggers.items() if k != "description"}
+            }
+
+        return {"name": expert.value, "type": "unknown"}
 
 
 # =============================================================================
@@ -420,5 +559,8 @@ def create_router() -> ExpertRouter:
 
 __all__ = [
     'Expert', 'RoutingResult', 'ExpertRouter',
-    'EXPERT_TRIGGERS', 'EXPERT_PRIORITY', 'create_router'
+    'EXPERT_TRIGGERS', 'EXPERT_PRIORITY',
+    # v6.0.0: GROUNDING_MoE exports
+    'GROUNDING_EXPERT_TRIGGERS', 'GROUNDING_EXPERT_PRIORITY',
+    'create_router'
 ]

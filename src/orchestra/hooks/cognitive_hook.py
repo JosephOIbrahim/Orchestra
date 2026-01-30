@@ -6,6 +6,9 @@ Orchestra Cognitive Engine Hook for Claude Code
 This hook runs on every UserPromptSubmit event and processes the message
 through the 5-Phase NEXUS Pipeline.
 
+Integrates with USD Cognitive Substrate tier loading system for context
+efficiency (83% reduction in base context load).
+
 Usage:
     python -m orchestra.hooks < input.json
 
@@ -18,10 +21,12 @@ ThinkingMachines [He2025] Compliance:
 Output:
 - systemMessage with execution anchor and expert guidance
 - hookSpecificOutput with full pipeline result
+- Tier regeneration notifications when substrate changes
 """
 
 import json
 import sys
+from pathlib import Path
 
 try:
     from ..cognitive_orchestrator import CognitiveOrchestrator, create_orchestrator
@@ -45,6 +50,36 @@ except ImportError:
 # Singleton instances
 _orchestrator = None
 _bridge = None
+_tier_hook = None
+
+
+def get_tier_hook():
+    """Get or create singleton tier hook (lazy load)."""
+    global _tier_hook
+    if _tier_hook is None:
+        try:
+            # Add substrate tools to path
+            substrate_tools = Path.home() / ".claude" / "substrate" / "tools"
+            if str(substrate_tools) not in sys.path:
+                sys.path.insert(0, str(substrate_tools))
+
+            from tier_loader import TierHookIntegration
+            _tier_hook = TierHookIntegration()
+        except ImportError:
+            _tier_hook = False  # Mark as unavailable
+    return _tier_hook if _tier_hook else None
+
+
+def check_tier_notification():
+    """Check for pending tier regeneration notifications."""
+    tier_hook = get_tier_hook()
+    if tier_hook:
+        try:
+            notification = tier_hook._check_pending_notification()
+            return notification
+        except Exception:
+            pass
+    return None
 
 
 def get_orchestrator():
@@ -103,12 +138,24 @@ def process_message(user_prompt, context=None):
 
         system_message = f"{anchor}\n\n{guidance}"
 
+        # Check for tier regeneration notifications
+        tier_notification = check_tier_notification()
+        if tier_notification:
+            system_message = tier_notification + "\n\n" + system_message
+
+        # Build hook output
+        hook_output = {
+            "hookEventName": "UserPromptSubmit",
+            "additionalContext": f"Orchestra: expert={result.routing.expert.value}, tension={result.convergence.epistemic_tension:.2f}"
+        }
+
+        # Add tier notification flag if present
+        if tier_notification:
+            hook_output["tierRegenerationNotified"] = True
+
         return {
             "systemMessage": system_message,
-            "hookSpecificOutput": {
-                "hookEventName": "UserPromptSubmit",
-                "additionalContext": f"Orchestra: expert={result.routing.expert.value}, tension={result.convergence.epistemic_tension:.2f}"
-            }
+            "hookSpecificOutput": hook_output
         }
 
     except Exception as e:

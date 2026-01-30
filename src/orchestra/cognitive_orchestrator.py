@@ -2,27 +2,34 @@
 Cognitive Orchestrator
 ======================
 
-Ties together all cognitive modules in the 5-Phase NEXUS Pipeline.
+Ties together all cognitive modules in the 8-Phase NEXUS Pipeline.
 
-Pipeline:
-1. DETECT  - PRISM signal extraction
-2. CASCADE - Constitutional/safety gates + Cognitive Safety MoE expert routing
-3. LOCK    - Parameter locking with MAX3 bounds
-4. EXECUTE - Decision engine routing (work/delegate/protect)
-5. UPDATE  - RC^+xi convergence tracking
+Pipeline (v6.0.0):
+0.  RETRIEVE  - Knowledge check for factual queries (fast path)
+0b. CLASSIFY  - Determine source mode (LEARN|ACCESS|HYBRID)
+0c. GROUND    - Query oracle if ACCESS/HYBRID mode
+1.  DETECT    - PRISM signal extraction (grounding-aware)
+2.  CASCADE   - Constitutional/safety gates + Cognitive Safety MoE + GROUNDING_MoE
+3.  LOCK      - Parameter locking with MAX3 bounds + source_mode
+4.  EXECUTE   - Decision engine routing (work/delegate/protect)
+5.  UPDATE    - RC^+xi convergence tracking + grounding metrics
 
 ThinkingMachines [He2025] Compliance:
 - State snapshot BEFORE processing (batch-invariance)
-- FIXED evaluation order (5 phases, no reordering)
-- FIXED signal priority (emotional > mode > domain > task)
-- FIXED expert priority (Validator > ... > Direct)
+- FIXED evaluation order (8 phases, no reordering)
+- FIXED signal priority (emotional > grounding > mode > domain > task)
+- FIXED expert priority (Validator > ... > Direct, GROUNDING_MoE parallel)
 - LOCKED parameters during generation
 - Deterministic checksums
+- Time-windowed oracle determinism
+
+Reference: [GWM2026] "Grounded World Models: Deterministic Physics Reasoning"
+Core Thesis: "LLMs don't need to LEARN physics—they need ACCESS to physics"
 
 Usage:
     orchestrator = CognitiveOrchestrator()
     result = orchestrator.process_message("help me implement this feature")
-    print(result.to_anchor())  # [EXEC:a3f2b8|direct|Cortex|30000ft|standard]
+    print(result.to_anchor())  # [EXEC:a3f2b8|direct|Cortex|30000ft|standard|learn:na]
 """
 
 import time
@@ -43,6 +50,10 @@ from .cognitive_state import (
     CognitiveState, CognitiveStateManager, BurnoutLevel, EnergyLevel,
     MomentumPhase, CognitiveMode, Altitude
 )
+# v6.0.0: Grounding Layer
+from .grounding_bridge import (
+    GroundingBridge, GroundingResult, SourceMode, create_grounding_bridge
+)
 
 logger = logging.getLogger(__name__)
 
@@ -54,21 +65,24 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NexusResult:
     """
-    Complete result from the 5-Phase NEXUS Pipeline.
+    Complete result from the 8-Phase NEXUS Pipeline (v6.0.0).
 
     Contains all phase outputs for dashboard visualization and logging.
     """
+    # Phase 0b/0c: GROUNDING (v6.0.0)
+    grounding: Optional[GroundingResult] = None
+
     # Phase 1: DETECT
-    signals: SignalVector
+    signals: SignalVector = None
 
     # Phase 2: CASCADE
-    routing: RoutingResult
+    routing: RoutingResult = None
 
     # Phase 3: LOCK
-    lock: LockResult
+    lock: LockResult = None
 
     # Phase 5: UPDATE
-    convergence: ConvergenceResult
+    convergence: ConvergenceResult = None
 
     # Metadata
     timestamp: float = field(default_factory=time.time)
@@ -76,41 +90,68 @@ class NexusResult:
     state_checksum: str = ""
 
     def to_anchor(self) -> str:
-        """Get anchor string for embedding in responses."""
-        return self.lock.params.to_anchor()
+        """
+        Get anchor string for embedding in responses.
+
+        v6.0.0 format: [EXEC:checksum|expert|paradigm|altitude|depth|grounding]
+        """
+        base_anchor = self.lock.params.to_anchor() if self.lock else "[EXEC:unknown]"
+
+        # v6.0.0: Append grounding component
+        if self.grounding:
+            grounding_str = self.grounding.to_anchor_component()
+            # Insert grounding into anchor format
+            if base_anchor.endswith("]"):
+                base_anchor = base_anchor[:-1] + f"|{grounding_str}]"
+
+        return base_anchor
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for WebSocket/dashboard."""
-        return {
+        result = {
+            # Phase 0b/0c: GROUNDING (v6.0.0)
+            "source_mode": self.grounding.source_mode.value if self.grounding else "learn",
+            "grounding_type": self.signals.grounding_type if self.signals else None,  # From PRISM signals
+            "oracle_id": self.grounding.oracle_id if self.grounding else None,
+            "oracle_latency_ms": self.grounding.oracle_latency_ms if self.grounding else 0.0,
+            "grounding_confidence": self.grounding.confidence if self.grounding else 0.0,
+            "hallucination_score": self.grounding.hallucination_score if self.grounding else 0.0,
+            "grounding_budget_remaining": self.grounding.grounding_budget_remaining if self.grounding else 5,
+
             # Phase 1: DETECT - PRISM signals
-            "signals_emotional": self._get_top_signal(self.signals.emotional),
-            "signals_mode": self.signals.mode_detected,
-            "signals_domain": list(self.signals.domain.keys()) if self.signals.domain else None,
-            "signals_task": self.signals.primary_task,
+            "signals_emotional": self._get_top_signal(self.signals.emotional) if self.signals else None,
+            "signals_grounding": self.signals.grounding_type if self.signals else None,  # v6.0.0
+            "signals_mode": self.signals.mode_detected if self.signals else None,
+            "signals_domain": list(self.signals.domain.keys()) if self.signals and self.signals.domain else None,
+            "signals_task": self.signals.primary_task if self.signals else None,
             "current_phase": "execute",  # After processing, we're at execute
 
             # Phase 2: CASCADE - Expert routing
-            "constitutional_pass": self.routing.constitutional_pass,
-            "safety_gate_pass": self.routing.safety_gate_pass,
-            "safety_redirect": self.routing.safety_redirect,
-            "selected_expert": self.routing.expert.value,
-            "expert_trigger": self.routing.trigger,
+            "constitutional_pass": self.routing.constitutional_pass if self.routing else True,
+            "safety_gate_pass": self.routing.safety_gate_pass if self.routing else True,
+            "safety_redirect": self.routing.safety_redirect if self.routing else None,
+            "selected_expert": self.routing.expert.value if self.routing else "direct",
+            "expert_trigger": self.routing.trigger if self.routing else "default",
+            # v6.0.0: Grounding expert
+            "grounding_expert": self.routing.grounding_expert.value if self.routing and self.routing.grounding_expert else None,
+            "grounding_trigger": self.routing.grounding_trigger if self.routing else None,
+            "requires_grounding": self.routing.requires_grounding if self.routing else False,
 
             # Phase 3: LOCK - Parameter locking
-            "lock_status": self.lock.status.value,
-            "reflection_iteration": self.lock.params.reflection_iteration,
-            "locked_expert": self.lock.params.expert,
-            "locked_paradigm": self.lock.params.paradigm,
-            "locked_altitude": self.lock.params.altitude,
-            "locked_think_depth": self.lock.params.think_depth,
-            "lock_checksum": self.lock.params.checksum,
+            "lock_status": self.lock.status.value if self.lock else "pending",
+            "reflection_iteration": self.lock.params.reflection_iteration if self.lock else 0,
+            "locked_expert": self.lock.params.expert if self.lock else "direct",
+            "locked_paradigm": self.lock.params.paradigm if self.lock else "Cortex",
+            "locked_altitude": self.lock.params.altitude if self.lock else "30000ft",
+            "locked_think_depth": self.lock.params.think_depth if self.lock else "standard",
+            "lock_checksum": self.lock.params.checksum if self.lock else "",
 
             # Phase 5: UPDATE - Convergence
-            "epistemic_tension": self.convergence.epistemic_tension,
+            "epistemic_tension": self.convergence.epistemic_tension if self.convergence else 0.0,
             "epsilon": 0.1,
-            "attractor_basin": self.convergence.attractor_basin.value,
-            "stable_exchanges": self.convergence.stable_exchanges,
-            "converged": self.convergence.converged,
+            "attractor_basin": self.convergence.attractor_basin.value if self.convergence else "focused",
+            "stable_exchanges": self.convergence.stable_exchanges if self.convergence else 0,
+            "converged": self.convergence.converged if self.convergence else False,
             "feedback_active": True,
 
             # Metadata
@@ -118,6 +159,8 @@ class NexusResult:
             "processing_time_ms": self.processing_time_ms,
             "state_checksum": self.state_checksum
         }
+
+        return result
 
     def _get_top_signal(self, signals: Dict[str, float]) -> Optional[str]:
         """Get top signal from dict."""
@@ -149,7 +192,8 @@ class CognitiveOrchestrator:
         detector: Optional[PRISMDetector] = None,
         router: Optional[ExpertRouter] = None,
         locker: Optional[ParameterLocker] = None,
-        tracker: Optional[ConvergenceTracker] = None
+        tracker: Optional[ConvergenceTracker] = None,
+        grounding_bridge: Optional[GroundingBridge] = None  # v6.0.0
     ):
         """
         Initialize orchestrator with cognitive modules.
@@ -160,12 +204,14 @@ class CognitiveOrchestrator:
             router: Expert router (creates default if None)
             locker: Parameter locker (creates default if None)
             tracker: Convergence tracker (creates default if None)
+            grounding_bridge: v6.0.0 - Grounding layer bridge (creates default if None)
         """
         self.state_manager = state_manager or CognitiveStateManager()
         self.detector = detector or create_detector()
         self.router = router or create_router()
         self.locker = locker or create_locker()
         self.tracker = tracker or create_tracker()
+        self.grounding = grounding_bridge or create_grounding_bridge()  # v6.0.0
 
         self._last_result: Optional[NexusResult] = None
 
@@ -176,17 +222,20 @@ class CognitiveOrchestrator:
         requested_depth: ThinkDepth = ThinkDepth.STANDARD
     ) -> NexusResult:
         """
-        Process a message through the 5-Phase NEXUS Pipeline.
+        Process a message through the 8-Phase NEXUS Pipeline (v6.0.0).
 
         ThinkingMachines [He2025]: Fixed evaluation order, deterministic routing.
+        [GWM2026]: Grounding layer for ACCESS > LEARN paradigm.
+
+        Pipeline: 0→0b→0c→1→2→3→4→5
 
         Args:
             message: The user message to process
-            context: Optional context (active domain, etc.)
+            context: Optional context (active domain, query_type, query_params, etc.)
             requested_depth: User-requested thinking depth
 
         Returns:
-            NexusResult with all phase outputs
+            NexusResult with all phase outputs including grounding
         """
         start_time = time.time()
         context = context or {}
@@ -201,7 +250,27 @@ class CognitiveOrchestrator:
         logger.info(f"NEXUS Pipeline starting: state={state_checksum}")
 
         # =================================================================
-        # PHASE 1: DETECT (PRISM Signal Extraction)
+        # PHASE 0b: CLASSIFY (v6.0.0 - Determine Source Mode)
+        # =================================================================
+        logger.debug("Phase 0b: CLASSIFY")
+
+        grounding_result = self.grounding.process_grounding(message, context)
+
+        logger.debug(f"  Source mode: {grounding_result.source_mode.value}, "
+                     f"signals: {len(grounding_result.grounding_signals)}")
+
+        # =================================================================
+        # PHASE 0c: GROUND (v6.0.0 - Query Oracle if ACCESS/HYBRID)
+        # =================================================================
+        # Note: Grounding is already handled in process_grounding if context
+        # includes query_type. Additional oracle queries can be made here.
+
+        if grounding_result.is_grounded():
+            logger.debug(f"Phase 0c: GROUND - oracle={grounding_result.oracle_id}, "
+                         f"latency={grounding_result.oracle_latency_ms:.1f}ms")
+
+        # =================================================================
+        # PHASE 1: DETECT (PRISM Signal Extraction - Grounding-Aware)
         # =================================================================
         logger.debug("Phase 1: DETECT")
 
@@ -230,7 +299,8 @@ class CognitiveOrchestrator:
             mode=snapshot.mode.value,
             tangent_budget=snapshot.tangent_budget,
             task_completed=task_completed,
-            caps_detected=caps_detected
+            caps_detected=caps_detected,
+            hallucination_score=grounding_result.hallucination_score  # v6.0.0
         )
 
         logger.debug(f"  Routing: expert={routing.expert.value}, "
@@ -250,7 +320,8 @@ class CognitiveOrchestrator:
             requested_depth=requested_depth,
             mode=snapshot.mode.value,
             epistemic_tension=snapshot.epistemic_tension,
-            reflection_count=snapshot.reflection_count  # Batch-invariance: from snapshot
+            reflection_count=snapshot.reflection_count,  # Batch-invariance: from snapshot
+            source_mode=grounding_result.source_mode.value  # v6.0.0
         )
 
         logger.debug(f"  Lock: {lock.params.to_anchor()}, "
@@ -320,6 +391,7 @@ class CognitiveOrchestrator:
         processing_time = (time.time() - start_time) * 1000
 
         result = NexusResult(
+            grounding=grounding_result,  # v6.0.0: Phases 0b/0c
             signals=signals,
             routing=routing,
             lock=lock,
@@ -347,6 +419,7 @@ class CognitiveOrchestrator:
         self.locker.reset()
         self.tracker.reset()
         self.state_manager.reset()
+        self.grounding.reset_budget()  # v6.0.0: Reset grounding budget
         self._last_result = None
         logger.info("Session reset")
 

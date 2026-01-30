@@ -92,11 +92,14 @@ class LockedParams:
     - `checksum`: Routing-only checksum (excludes reflection_iteration)
     - `session_checksum`: Full checksum including iteration (for debugging)
     - Same routing params → same checksum regardless of reflection count
+
+    v6.0.0: Added source_mode for grounding layer integration.
     """
     expert: str
     paradigm: str
     altitude: str
     think_depth: str
+    source_mode: str = "learn"  # v6.0.0: learn | access | hybrid
     checksum: str = ""
     session_checksum: str = ""  # Includes reflection_iteration for debugging
     reflection_iteration: int = 0
@@ -117,12 +120,14 @@ class LockedParams:
         Same routing decision → same checksum regardless of iteration.
 
         ThinkingMachines [He2025]: Same inputs → same outputs → same checksums
+        v6.0.0: Includes source_mode in checksum
         """
         data = json.dumps({
             "expert": self.expert,
             "paradigm": self.paradigm,
             "altitude": self.altitude,
             "think_depth": self.think_depth,
+            "source_mode": self.source_mode,  # v6.0.0
             # NOTE: reflection_iteration intentionally excluded for batch-invariance
         }, sort_keys=True)
         return hashlib.md5(data.encode()).hexdigest()[:6]
@@ -138,6 +143,7 @@ class LockedParams:
             "paradigm": self.paradigm,
             "altitude": self.altitude,
             "think_depth": self.think_depth,
+            "source_mode": self.source_mode,  # v6.0.0
             "reflection_iteration": self.reflection_iteration
         }, sort_keys=True)
         return hashlib.md5(data.encode()).hexdigest()[:6]
@@ -146,9 +152,9 @@ class LockedParams:
         """
         Format as anchor string for embedding in responses.
 
-        Format: [EXEC:{checksum}|{expert}|{paradigm}|{altitude}|{think_depth}]
+        v6.0.0 Format: [EXEC:{checksum}|{expert}|{paradigm}|{altitude}|{think_depth}|{source_mode}]
         """
-        return f"[EXEC:{self.checksum}|{self.expert}|{self.paradigm}|{self.altitude}|{self.think_depth}]"
+        return f"[EXEC:{self.checksum}|{self.expert}|{self.paradigm}|{self.altitude}|{self.think_depth}|{self.source_mode}]"
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for WebSocket."""
@@ -157,6 +163,7 @@ class LockedParams:
             "paradigm": self.paradigm,
             "altitude": self.altitude,
             "think_depth": self.think_depth,
+            "source_mode": self.source_mode,  # v6.0.0
             "checksum": self.checksum,
             "session_checksum": self.session_checksum,
             "reflection_iteration": self.reflection_iteration,
@@ -226,7 +233,8 @@ class ParameterLocker:
         requested_depth: ThinkDepth = ThinkDepth.STANDARD,
         mode: str = "focused",
         epistemic_tension: float = 0.0,
-        reflection_count: int = 0
+        reflection_count: int = 0,
+        source_mode: str = "learn"  # v6.0.0
     ) -> LockResult:
         """
         Lock parameters for generation.
@@ -234,6 +242,7 @@ class ParameterLocker:
         ThinkingMachines [He2025]: Parameters locked BEFORE generation.
         Batch-invariance: reflection_count passed from state snapshot,
         not stored as instance state.
+        [GWM2026]: source_mode locks grounding decision.
 
         Args:
             routing: Result from expert router
@@ -244,6 +253,7 @@ class ParameterLocker:
             mode: Current cognitive mode (for paradigm selection)
             epistemic_tension: Current epistemic tension (for early stop)
             reflection_count: Current reflection count (from CognitiveState snapshot)
+            source_mode: v6.0.0 - Grounding source mode (learn|access|hybrid)
 
         Returns:
             LockResult with locked parameters
@@ -283,6 +293,7 @@ class ParameterLocker:
             paradigm=paradigm.value,
             altitude=self._format_altitude(altitude),
             think_depth=actual_depth.value,
+            source_mode=source_mode,  # v6.0.0
             reflection_iteration=reflection_count
         )
 

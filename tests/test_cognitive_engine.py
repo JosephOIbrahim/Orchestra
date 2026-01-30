@@ -448,11 +448,12 @@ class TestCognitiveOrchestrator:
         result = orchestrator.process_message("test")
 
         anchor = result.to_anchor()
-        # Format: [EXEC:checksum|expert|paradigm|altitude|depth]
+        # v6.0.0 Format: [EXEC:checksum|expert|paradigm|altitude|depth|source_mode|grounding]
         assert anchor.startswith("[EXEC:")
         assert anchor.endswith("]")
         parts = anchor[6:-1].split("|")
-        assert len(parts) == 5
+        # v6.0.0: 7 parts (checksum, expert, paradigm, altitude, depth, source_mode, grounding_component)
+        assert len(parts) == 7
 
     def test_determinism_same_message_same_checksum(self):
         """Same message produces same checksum (determinism)."""
