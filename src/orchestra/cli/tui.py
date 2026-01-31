@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Orchestra TUI Dashboard - Full Terminal UI
+Orchestra TUI Dashboard - Full Terminal UI (v7.0.0)
 
 Usage:
   orchestra              # Launch TUI dashboard
@@ -12,6 +12,7 @@ Keyboard:
   r           - Refresh
   1-4         - Set burnout level (for testing)
   w/d/p       - Set mode work/delegate/protect (for testing)
+  b           - Toggle plasticity window (BCM learning)
 
 Requirements:
   pip install rich
@@ -36,8 +37,9 @@ try:
 except ImportError:
     RICH_AVAILABLE = False
 
-# State file location
+# State file locations
 STATE_FILE = Path.home() / ".orchestra" / "state" / "cognitive_state.json"
+BCM_TRAIL_FILE = Path.home() / ".orchestra" / "bcm" / "default" / "trail.json"
 
 # Color mappings
 BURNOUT_STYLES = {
@@ -69,6 +71,39 @@ ENERGY_VISUAL = {
 }
 
 
+def read_bcm_state() -> dict:
+    """Read BCM trail state from file."""
+    default = {
+        "bcm_confidence": 0.0,
+        "bcm_plasticity_active": False,
+        "bcm_version": "v0.1.0",
+        "bcm_expert_confidences": {}
+    }
+
+    if not BCM_TRAIL_FILE.exists():
+        return default
+
+    try:
+        with open(BCM_TRAIL_FILE) as f:
+            data = json.load(f)
+            # Calculate average confidence from expert trails
+            trails = data.get("trails", {})
+            if trails:
+                total_strength = sum(t.get("strength", 0.0) for t in trails.values())
+                avg_confidence = min(1.0, total_strength / max(len(trails), 1))
+            else:
+                avg_confidence = 0.0
+
+            return {
+                "bcm_confidence": avg_confidence,
+                "bcm_plasticity_active": data.get("plasticity_state", {}).get("window_open", False),
+                "bcm_version": data.get("version", "v0.1.0"),
+                "bcm_expert_confidences": {k: v.get("strength", 0.0) for k, v in trails.items()}
+            }
+    except Exception:
+        return default
+
+
 def read_state() -> dict:
     """Read cognitive state from file."""
     default = {
@@ -84,14 +119,18 @@ def read_state() -> dict:
     }
 
     if not STATE_FILE.exists():
-        return default
+        cognitive_state = default
+    else:
+        try:
+            with open(STATE_FILE) as f:
+                data = json.load(f)
+                cognitive_state = {**default, **data}
+        except Exception:
+            cognitive_state = default
 
-    try:
-        with open(STATE_FILE) as f:
-            data = json.load(f)
-            return {**default, **data}
-    except Exception:
-        return default
+    # Merge BCM state
+    bcm_state = read_bcm_state()
+    return {**cognitive_state, **bcm_state}
 
 
 def write_state(state: dict) -> None:
@@ -99,6 +138,38 @@ def write_state(state: dict) -> None:
     STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(STATE_FILE, "w") as f:
         json.dump(state, f, indent=2)
+
+
+def toggle_bcm_plasticity() -> None:
+    """Toggle BCM plasticity window state."""
+    if not BCM_TRAIL_FILE.exists():
+        # Create default trail file with plasticity enabled
+        BCM_TRAIL_FILE.parent.mkdir(parents=True, exist_ok=True)
+        data = {
+            "version": "v0.1.0",
+            "trails": {},
+            "plasticity_state": {"window_open": True, "reason": "manual_toggle"}
+        }
+    else:
+        try:
+            with open(BCM_TRAIL_FILE) as f:
+                data = json.load(f)
+            # Toggle plasticity state
+            plasticity = data.get("plasticity_state", {})
+            current = plasticity.get("window_open", False)
+            data["plasticity_state"] = {
+                "window_open": not current,
+                "reason": "manual_toggle"
+            }
+        except Exception:
+            data = {
+                "version": "v0.1.0",
+                "trails": {},
+                "plasticity_state": {"window_open": True, "reason": "manual_toggle"}
+            }
+
+    with open(BCM_TRAIL_FILE, "w") as f:
+        json.dump(data, f, indent=2)
 
 
 def create_dashboard(state: dict, console: Console) -> Layout:
@@ -193,6 +264,28 @@ def create_dashboard(state: dict, console: Console) -> Layout:
 
     metrics.add_row("ALTITUDE", alt_text, "PARADIGM", paradigm_text)
 
+    # Row 4: BCM Confidence + BCM Status (v7.0.0)
+    bcm_confidence = state.get("bcm_confidence", 0.0)
+    bcm_plasticity = state.get("bcm_plasticity_active", False)
+    bcm_version = state.get("bcm_version", "v0.1.0")
+
+    bcm_pct = int(bcm_confidence * 100)
+    bcm_bar_filled = bcm_pct // 10
+    bcm_bar = "█" * bcm_bar_filled + "░" * (10 - bcm_bar_filled)
+
+    bcm_conf_text = Text()
+    bcm_conf_text.append(bcm_bar, style="cyan" if bcm_pct >= 50 else "dim")
+    bcm_conf_text.append(f" {bcm_pct}%", style="dim")
+
+    bcm_status_text = Text()
+    if bcm_plasticity:
+        bcm_status_text.append("◈ PLASTIC ", style="yellow bold")
+    else:
+        bcm_status_text.append("◇ STABLE ", style="green")
+    bcm_status_text.append(bcm_version, style="dim")
+
+    metrics.add_row("BCM CONFIDENCE", bcm_conf_text, "BCM STATUS", bcm_status_text)
+
     metrics_panel = Panel(
         metrics,
         title="[dim]COGNITIVE STATE[/dim]",
@@ -218,7 +311,9 @@ def create_dashboard(state: dict, console: Console) -> Layout:
     footer_text.append("1-4", style="bold")
     footer_text.append(" burnout  ", style="dim")
     footer_text.append("w/d/p", style="bold")
-    footer_text.append(" mode", style="dim")
+    footer_text.append(" mode  ", style="dim")
+    footer_text.append("b", style="bold")
+    footer_text.append(" bcm", style="dim")
 
     footer = Panel(
         Align.center(footer_text),
@@ -324,6 +419,9 @@ def run_tui(watch: bool = False):
                     elif key == 'p':
                         state["decision_mode"] = "protect"
                         write_state(state)
+                    elif key == 'b':
+                        # Toggle BCM plasticity window
+                        toggle_bcm_plasticity()
 
         except Exception as e:
             console.print(f"[red]Error: {e}[/red]")

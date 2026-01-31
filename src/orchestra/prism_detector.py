@@ -234,6 +234,41 @@ class SignalVector:
             }
         }
 
+    def get_signal_fingerprint(self) -> Dict[str, str]:
+        """
+        v7.0.0: Get compact fingerprint of detected signals for BCM tracking.
+
+        Returns a dict of category -> primary signal for reliability tracking.
+        Used to correlate signals with routing outcomes.
+
+        Returns:
+            Dict mapping category names to primary detected signals
+        """
+        fingerprint = {}
+
+        # Capture primary signal per category (deterministic order)
+        if self.emotional:
+            top_emotional = max(self.emotional.items(), key=lambda x: x[1])
+            if top_emotional[1] > 0:
+                fingerprint["emotional"] = top_emotional[0]
+
+        if self.grounding_type:
+            fingerprint["grounding"] = self.grounding_type
+
+        if self.mode_detected:
+            fingerprint["mode"] = self.mode_detected
+
+        if self.primary_domain:
+            fingerprint["domain"] = self.primary_domain
+
+        if self.primary_task:
+            fingerprint["task"] = self.primary_task
+
+        if self.energy_state:
+            fingerprint["energy"] = self.energy_state
+
+        return fingerprint
+
     def requires_grounding(self) -> bool:
         """
         v6.0.0: Check if query requires oracle grounding.

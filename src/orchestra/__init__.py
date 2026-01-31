@@ -54,7 +54,7 @@ Environment Variables:
     FO_LOG_LEVEL - DEBUG, INFO, WARNING, ERROR
 """
 
-__version__ = "5.0.1"
+__version__ = "7.0.0"
 __author__ = "Framework Ecosystem Integration"
 
 # Core orchestrator
@@ -388,6 +388,29 @@ from .dashboard_bridge import (
 # v7.0 USD Cognitive Substrate Runtime
 # ============================================================================
 
+# BCM Stigmergic Reinforcement Learning (v7.0.0)
+from .bcm_trail import (
+    BCMConfig,
+    Trail,
+    PlasticityState,
+    OrchestraTrail,
+    calculate_theta_m,
+    calculate_saturation_factor,
+    apply_decay,
+    reinforce_trail,
+)
+
+from .bcm_integration import (
+    BCMPipelineAdapter,
+    load_trail,
+    save_trail,
+    get_trail_path,
+    trail_exists,
+    create_adapter,
+    integrate_with_state,
+    BCM_STATE_DIR,
+)
+
 # Substrate Runtime (extracted from cognitive-orchestrator)
 from .substrate import (
     # Knowledge - O(1) factual retrieval
@@ -679,6 +702,24 @@ __all__ = [
     # ========================================
     # v7.0 USD Cognitive Substrate Runtime
     # ========================================
+
+    # BCM Stigmergic Reinforcement Learning
+    "BCMConfig",
+    "Trail",
+    "PlasticityState",
+    "OrchestraTrail",
+    "calculate_theta_m",
+    "calculate_saturation_factor",
+    "apply_decay",
+    "reinforce_trail",
+    "BCMPipelineAdapter",
+    "load_trail",
+    "save_trail",
+    "get_trail_path",
+    "trail_exists",
+    "create_adapter",
+    "integrate_with_state",
+    "BCM_STATE_DIR",
 
     # Knowledge - O(1) factual retrieval
     "KnowledgePrim",

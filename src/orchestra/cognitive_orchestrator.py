@@ -239,6 +239,8 @@ class CognitiveOrchestrator:
         self.bcm = bcm_adapter or create_adapter(session_id, load=True)  # v7.0.0
 
         self._last_result: Optional[NexusResult] = None
+        # v7.0.0: Pending signal fingerprints for BCM reliability tracking
+        self._pending_signal_fingerprints: list = []
 
     def process_message(
         self,
@@ -313,6 +315,11 @@ class CognitiveOrchestrator:
 
         logger.debug(f"  Signals: emotional={signals.emotional_score:.2f}, "
                      f"mode={signals.mode_detected}, task={signals.primary_task}")
+
+        # v7.0.0: Capture signal fingerprint for BCM reliability tracking
+        # Batch-invariance: fingerprint captured but NOT used during processing
+        signal_fingerprint = signals.get_signal_fingerprint()
+        self._pending_signal_fingerprints.append(signal_fingerprint)
 
         # =================================================================
         # PHASE 2: CASCADE (Expert Routing)
@@ -429,6 +436,37 @@ class CognitiveOrchestrator:
         self.state_manager.batch_update(state_updates)
 
         # =================================================================
+        # STEP 6c: PLASTICITY AUTO-TRIGGERS (v7.0.0)
+        # =================================================================
+        # Determinism: Same state → same trigger decision
+        # Plasticity affects learning rate, NOT routing (ThinkingMachines compliance)
+
+        plasticity_active = self.bcm.is_plasticity_active()
+
+        # Auto-OPEN on crash + ORANGE conditions
+        if (snapshot.momentum_phase == MomentumPhase.CRASHED and
+            snapshot.burnout_level == BurnoutLevel.ORANGE and
+            not plasticity_active):
+            self.open_plasticity_window(
+                "auto_crash_recovery",
+                divergence=min(1.0, convergence.epistemic_tension * 2)
+            )
+            logger.info("Auto-opened plasticity window: crash + ORANGE condition")
+
+        # Auto-OPEN on RED burnout (emergency learning mode)
+        elif (snapshot.burnout_level == BurnoutLevel.RED and
+              not plasticity_active):
+            self.open_plasticity_window("auto_red_burnout", divergence=1.0)
+            logger.info("Auto-opened plasticity window: RED burnout condition")
+
+        # Auto-CLOSE on stable convergence (3+ stable exchanges)
+        elif (convergence.converged and
+              plasticity_active and
+              convergence.stable_exchanges >= 3):
+            self.close_plasticity_window()
+            logger.info("Auto-closed plasticity window: stable convergence achieved")
+
+        # =================================================================
         # BUILD RESULT
         # =================================================================
         processing_time = (time.time() - start_time) * 1000
@@ -538,7 +576,23 @@ class CognitiveOrchestrator:
                     converged=self._last_result.convergence.converged
                 )
 
-            logger.debug(f"BCM outcome recorded: expert={expert}, success={success}")
+            # v7.0.0: Record signal outcomes for reliability tracking
+            signal_count = 0
+            for fingerprint in self._pending_signal_fingerprints:
+                # Record each signal category separately
+                for category, signal_name in fingerprint.items():
+                    self.bcm.record_signal_outcome(
+                        category=category,
+                        signal_name=signal_name,
+                        correct=success
+                    )
+                    signal_count += 1
+
+            # Clear pending fingerprints after recording
+            self._pending_signal_fingerprints.clear()
+
+            logger.debug(f"BCM outcome recorded: expert={expert}, success={success}, "
+                         f"signals={signal_count}")
 
     def flush_bcm_trail(self) -> tuple[int, bool]:
         """
