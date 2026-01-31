@@ -5,6 +5,69 @@ All notable changes to Orchestra will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.0] - 2026-01-31
+
+### Added
+
+- **BCM Stigmergic Reinforcement Learning**: Bienenstock-Cooper-Munro learning rule for expert routing
+  - Trail confidence tracks expert success rates over time
+  - Plasticity windows boost learning during crash recovery or burnout
+  - Signal reliability correlates detected signals with routing outcomes
+  - **Critical:** BCM is metadata only—never changes routing order (ThinkingMachines compliance preserved)
+
+- **Plasticity Auto-Triggers**: Automatic plasticity window management
+  - Auto-OPEN on `momentum=crashed` + `burnout=ORANGE`
+  - Auto-OPEN on `burnout=RED` (emergency learning mode, divergence=1.0)
+  - Auto-CLOSE on convergence + 3 stable exchanges
+
+- **Signal Reliability Tracking**: Fingerprint-based signal outcome correlation
+  - `SignalVector.get_signal_fingerprint()` captures compact signal representation
+  - Outcomes recorded via `record_outcome(success)` method
+  - Batch-invariant: fingerprints captured but not used during processing
+
+- **TUI Dashboard BCM Metrics**: New Row 4 with BCM visualization
+  - BCM confidence bar chart with percentage
+  - BCM status indicator (`◈ PLASTIC` yellow or `◇ STABLE` green)
+  - `b` keyboard shortcut to toggle plasticity window manually
+
+- **Hook Integration Tests**: 17 new tests for BCM + hook compliance
+  - `TestHookLoadsBCMTrail`: Trail loading on first message
+  - `TestHookIncludesBCMAnchor`: Anchor BCM metadata verification
+  - `TestDeterminismThroughHook`: Same input → same routing
+  - `TestBCMDoesntChangeRoutingOrder`: Trail data is metadata only
+  - `TestThinkingMachinesCompliance`: Fixed priority order, queued updates
+
+- **BCM Public API Exports**: Full BCM module access via `orchestra` package
+  - `BCMConfig`, `Trail`, `PlasticityState`, `OrchestraTrail`
+  - `BCMPipelineAdapter`, `load_trail`, `save_trail`, `get_trail_path`
+  - Helper functions: `calculate_theta_m`, `calculate_saturation_factor`, `apply_decay`, `reinforce_trail`
+
+### Changed
+
+- **Domain Focus**: AI Research and cognitive substrate development (primary)
+  - VFX payloads (USD/Houdini/Karma/Nuke) moved to extension modules
+  - Not bundled by default—reduces base context load
+  - Keeps Orchestra focused on core mission: cognitive safety for AI-assisted development
+
+- **Pipeline**: 5-Phase → 8-Phase NEXUS Pipeline
+  - Phase 0: RETRIEVE (knowledge check, fast path)
+  - Phase 0b: CLASSIFY (source mode: LEARN/ACCESS/HYBRID)
+  - Phase 0c: GROUND (oracle query if ACCESS/HYBRID)
+  - Phases 1-5 unchanged
+
+- **State Schema**: 37 core fields + 7 BCM fields = 44 total
+  - BCM trail persistence at `~/.orchestra/bcm/trail_{session}.json`
+
+- Test count: 917 → 1047 (all passing)
+  - 66 BCM integration tests
+  - 17 hook integration tests
+  - 118 distillation tests (carried from 5.0.2)
+
+### Fixed
+
+- Floating-point comparison in BCM trail loading tests (use `pytest.approx`)
+- Trail file path resolution for session-based persistence
+
 ## [5.0.2] - 2026-01-26
 
 ### Added
