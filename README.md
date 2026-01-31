@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.2-Production%2FStable-success" alt="Production"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-917%20passed-brightgreen" alt="Tests"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v7.0.0-Production%2FStable-success" alt="Production"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-1047%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
 </p>
@@ -80,35 +80,80 @@ That's it. Every message now passes through the cognitive engine.
 
 ---
 
+## What's New in v7.0.0
+
+### BCM Stigmergic Reinforcement Learning
+
+Orchestra now learns from routing outcomes using the **Bienenstock-Cooper-Munro (BCM)** learning rule:
+
+- **Trail confidence** tracks expert success rates over time
+- **Plasticity windows** boost learning during crash recovery or burnout
+- **Signal reliability** correlates detected signals with routing outcomes
+
+**Critical:** BCM is **metadata only**—it never changes routing order. ThinkingMachines compliance preserved.
+
+### TUI Dashboard Enhancements
+
+```
+BCM CONFIDENCE  ████████░░ 85%    BCM STATUS  ◇ STABLE v0.1.0
+```
+
+Press `b` to toggle plasticity window manually.
+
+### Plasticity Auto-Triggers
+
+| Condition | Action |
+|-----------|--------|
+| `momentum=crashed` + `burnout=ORANGE` | Auto-open plasticity window |
+| `burnout=RED` | Emergency learning mode (divergence=1.0) |
+| `converged` + 3 stable exchanges | Auto-close plasticity window |
+
+### Domain Focus
+
+v7.0.0 focuses on **AI Research** and **cognitive substrate** development. VFX payloads (USD/Houdini/Karma/Nuke) have been moved to extension modules and are no longer bundled by default. This reduces the base context load and keeps Orchestra focused on its core mission: cognitive safety for AI-assisted development.
+
+---
+
 ## What It Does
 
-Every message you send to Claude Code:
+Every message you send to Claude Code passes through the **8-Phase NEXUS Pipeline**:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 0: RETRIEVE                                                           │
+│   Knowledge check for factual queries (fast path, can short-circuit)        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ PHASE 0b: CLASSIFY                                                          │
+│   Determine source mode: LEARN | ACCESS | HYBRID                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ PHASE 0c: GROUND                                                            │
+│   Query oracle if ACCESS/HYBRID mode (grounding layer)                      │
+└───────────────────────────┬─────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 1: DETECT                                                             │
-│   PRISM extracts signals: emotional > mode > domain > task                  │
+│   PRISM extracts signals: emotional > grounding > mode > domain > task      │
 └───────────────────────────┬─────────────────────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 2: CASCADE                                                            │
-│   Safety gates + Cognitive Safety MoE routing (7 experts, first-match-wins) │
+│   Safety gates + Cognitive Safety MoE (7 experts) + BCM trail metadata      │
 └───────────────────────────┬─────────────────────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 3: LOCK                                                               │
-│   MAX3 bounded reflection + cognitive safety gating + deterministic checksum│
+│   MAX3 bounded reflection + safety gating + BCM depth optimization          │
 └───────────────────────────┬─────────────────────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 4: EXECUTE                                                            │
 │   Claude generates response with locked parameters                          │
-│   Anchor: [EXEC:a3f2b8|direct|Cortex|30000ft|standard]                      │
+│   Anchor: [EXEC:a3f2b8|direct|Cortex|30000ft|standard|learn:na]             │
 └───────────────────────────┬─────────────────────────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ PHASE 5: UPDATE                                                             │
-│   RC^+xi convergence tracking → attractor basins                            │
+│   RC^+xi convergence tracking + BCM trail updates (queued, batch-invariant) │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -229,7 +274,9 @@ All state lives in `~/.orchestra/`:
 ```
 ~/.orchestra/
 ├── state/
-│   └── cognitive_state.json    # 37 fields, all 5 phases
+│   └── cognitive_state.json    # 44 fields (37 core + 7 BCM)
+├── bcm/
+│   └── trail_{session}.json    # BCM trail persistence
 └── config/
     └── orchestra.json          # User preferences (future)
 ```
@@ -240,15 +287,16 @@ All state lives in `~/.orchestra/`:
 
 [ThinkingMachines [He2025]](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) compliance:
 
-- **FIXED** evaluation order (5 phases, no reordering)
-- **FIXED** signal priority (emotional > mode > domain > task)
+- **FIXED** evaluation order (8 phases, no reordering)
+- **FIXED** signal priority (emotional > grounding > mode > domain > task)
 - **FIXED** expert priority (Validator > Scaffolder > ... > Direct)
 - **FIXED** reduction order for floating-point accumulation
 - **LOCKED** parameters before generation
 - **REPRODUCIBLE** checksums (same input → same checksum)
 - **SORTED** iteration over sets and dictionaries
+- **QUEUED** BCM updates (flushed AFTER processing, never during)
 
-Every file in the distillation pipeline includes `ThinkingMachines [He2025]` compliance comments where determinism matters.
+Every file includes `ThinkingMachines [He2025]` compliance comments where determinism matters.
 
 ---
 
@@ -274,8 +322,11 @@ pytest --cov=src/orchestra --cov-report=html
 | Category | Tests | Description |
 |----------|-------|-------------|
 | Core | 799 | Cognitive engine, routing, state |
+| BCM Integration | 66 | Trail, routing, locking, convergence |
+| Hook Integration | 17 | ThinkingMachines compliance through hook |
 | Distillation | 118 | Pipeline, schemas, checkpointing, Frontier AI |
-| **Total** | **917** | All passing |
+| Grounding | 48 | Oracle routing, evidence tracking |
+| **Total** | **1047** | All passing |
 
 ### Direct API Usage
 
@@ -303,12 +354,15 @@ echo '{"user_prompt": "test"}' | python -m orchestra.hooks
 ```
 Orchestra/
 ├── src/orchestra/
-│   ├── cognitive_orchestrator.py   # 5-Phase NEXUS Pipeline
+│   ├── cognitive_orchestrator.py   # 8-Phase NEXUS Pipeline
 │   ├── expert_router.py            # Cognitive Safety MoE (7 experts)
 │   ├── parameter_locker.py         # MAX3 + safety gating
 │   ├── convergence_tracker.py      # RC^+xi tracking
-│   ├── prism_detector.py           # Signal detection
-│   ├── cognitive_state.py          # State management
+│   ├── prism_detector.py           # Signal detection + fingerprinting
+│   ├── cognitive_state.py          # State management (44 fields)
+│   ├── bcm_trail.py                # BCM stigmergic learning
+│   ├── bcm_integration.py          # BCM pipeline adapter
+│   ├── grounding_bridge.py         # Grounding layer (ACCESS/LEARN)
 │   ├── substrate/
 │   │   └── knowledge/
 │   │       └── distillation/       # Knowledge distillation pipeline
@@ -319,9 +373,12 @@ Orchestra/
 │   ├── hooks/
 │   │   └── cognitive_hook.py       # Claude Code hook
 │   └── cli/
-│       └── main.py                 # CLI entry point
-├── tests/                          # 867 tests
+│       ├── main.py                 # CLI entry point
+│       └── tui.py                  # TUI dashboard with BCM metrics
+├── tests/                          # 1047 tests
 │   ├── test_cognitive_engine.py    # Core orchestration
+│   ├── test_bcm_integration.py     # BCM integration
+│   ├── test_hook_bcm_integration.py # Hook + BCM compliance
 │   ├── distillation/               # Pipeline tests
 │   └── ...
 └── pyproject.toml
@@ -384,6 +441,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Orchestra v5.0.2 - Cognitive Engine for Claude Code*
+*Orchestra v7.0.0 - Cognitive Safety Layer for Claude Code*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
