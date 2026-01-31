@@ -4,15 +4,15 @@ Cognitive Orchestrator
 
 Ties together all cognitive modules in the 8-Phase NEXUS Pipeline.
 
-Pipeline (v6.0.0):
+Pipeline (v7.0.0):
 0.  RETRIEVE  - Knowledge check for factual queries (fast path)
 0b. CLASSIFY  - Determine source mode (LEARN|ACCESS|HYBRID)
 0c. GROUND    - Query oracle if ACCESS/HYBRID mode
 1.  DETECT    - PRISM signal extraction (grounding-aware)
-2.  CASCADE   - Constitutional/safety gates + Cognitive Safety MoE + GROUNDING_MoE
-3.  LOCK      - Parameter locking with MAX3 bounds + source_mode
+2.  CASCADE   - Constitutional/safety gates + Cognitive Safety MoE + GROUNDING_MoE + BCM trail
+3.  LOCK      - Parameter locking with MAX3 bounds + source_mode + BCM depth optimization
 4.  EXECUTE   - Decision engine routing (work/delegate/protect)
-5.  UPDATE    - RC^+xi convergence tracking + grounding metrics
+5.  UPDATE    - RC^+xi convergence tracking + grounding metrics + BCM trail updates
 
 ThinkingMachines [He2025] Compliance:
 - State snapshot BEFORE processing (batch-invariance)
@@ -22,9 +22,16 @@ ThinkingMachines [He2025] Compliance:
 - LOCKED parameters during generation
 - Deterministic checksums
 - Time-windowed oracle determinism
+- v7.0.0: BCM trail updates QUEUED during processing, applied AFTER (batch-invariant)
 
 Reference: [GWM2026] "Grounded World Models: Deterministic Physics Reasoning"
 Core Thesis: "LLMs don't need to LEARN physics—they need ACCESS to physics"
+
+v7.0.0: BCM Integration
+- Trail loaded at pipeline start (lazy)
+- Trail confidence passed as METADATA to routing/locking/convergence
+- Trail NEVER affects selection ORDER (ThinkingMachines compliance)
+- Outcome recording queued, flushed at session end
 
 Usage:
     orchestrator = CognitiveOrchestrator()
@@ -54,6 +61,8 @@ from .cognitive_state import (
 from .grounding_bridge import (
     GroundingBridge, GroundingResult, SourceMode, create_grounding_bridge
 )
+# v7.0.0: BCM Trail Integration
+from .bcm_integration import BCMPipelineAdapter, create_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +74,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class NexusResult:
     """
-    Complete result from the 8-Phase NEXUS Pipeline (v6.0.0).
+    Complete result from the 8-Phase NEXUS Pipeline (v7.0.0).
 
     Contains all phase outputs for dashboard visualization and logging.
     """
@@ -88,6 +97,10 @@ class NexusResult:
     timestamp: float = field(default_factory=time.time)
     processing_time_ms: float = 0.0
     state_checksum: str = ""
+
+    # v7.0.0: BCM Trail metadata (aggregated from all phases)
+    bcm_trail_version: str = ""
+    bcm_trail_enhanced: bool = False
 
     def to_anchor(self) -> str:
         """
@@ -157,7 +170,14 @@ class NexusResult:
             # Metadata
             "timestamp": self.timestamp,
             "processing_time_ms": self.processing_time_ms,
-            "state_checksum": self.state_checksum
+            "state_checksum": self.state_checksum,
+
+            # v7.0.0: BCM Trail metadata
+            "bcm_trail_version": self.bcm_trail_version,
+            "bcm_trail_enhanced": self.bcm_trail_enhanced,
+            "bcm_routing_confidence": self.routing.bcm_confidence if self.routing else 1.0,
+            "bcm_lock_optimized": self.lock.bcm_optimized if self.lock else False,
+            "bcm_convergence_enhanced": self.convergence.bcm_enhanced if self.convergence else False
         }
 
         return result
@@ -193,7 +213,9 @@ class CognitiveOrchestrator:
         router: Optional[ExpertRouter] = None,
         locker: Optional[ParameterLocker] = None,
         tracker: Optional[ConvergenceTracker] = None,
-        grounding_bridge: Optional[GroundingBridge] = None  # v6.0.0
+        grounding_bridge: Optional[GroundingBridge] = None,  # v6.0.0
+        bcm_adapter: Optional[BCMPipelineAdapter] = None,  # v7.0.0
+        session_id: str = "default"  # v7.0.0
     ):
         """
         Initialize orchestrator with cognitive modules.
@@ -205,6 +227,8 @@ class CognitiveOrchestrator:
             locker: Parameter locker (creates default if None)
             tracker: Convergence tracker (creates default if None)
             grounding_bridge: v6.0.0 - Grounding layer bridge (creates default if None)
+            bcm_adapter: v7.0.0 - BCM trail adapter (creates default if None)
+            session_id: v7.0.0 - Session ID for BCM trail persistence
         """
         self.state_manager = state_manager or CognitiveStateManager()
         self.detector = detector or create_detector()
@@ -212,6 +236,7 @@ class CognitiveOrchestrator:
         self.locker = locker or create_locker()
         self.tracker = tracker or create_tracker()
         self.grounding = grounding_bridge or create_grounding_bridge()  # v6.0.0
+        self.bcm = bcm_adapter or create_adapter(session_id, load=True)  # v7.0.0
 
         self._last_result: Optional[NexusResult] = None
 
@@ -248,6 +273,12 @@ class CognitiveOrchestrator:
         state_checksum = snapshot.checksum()
 
         logger.info(f"NEXUS Pipeline starting: state={state_checksum}")
+
+        # =================================================================
+        # STEP 0a (v7.0.0): LOAD BCM TRAIL (Lazy loading)
+        # =================================================================
+        trail = self.bcm.ensure_loaded()
+        logger.debug(f"BCM trail loaded: version={trail.version if trail else 'none'}")
 
         # =================================================================
         # PHASE 0b: CLASSIFY (v6.0.0 - Determine Source Mode)
@@ -300,7 +331,8 @@ class CognitiveOrchestrator:
             tangent_budget=snapshot.tangent_budget,
             task_completed=task_completed,
             caps_detected=caps_detected,
-            hallucination_score=grounding_result.hallucination_score  # v6.0.0
+            hallucination_score=grounding_result.hallucination_score,  # v6.0.0
+            trail=trail  # v7.0.0: BCM trail for confidence metadata
         )
 
         logger.debug(f"  Routing: expert={routing.expert.value}, "
@@ -312,6 +344,9 @@ class CognitiveOrchestrator:
         # =================================================================
         logger.debug("Phase 3: LOCK")
 
+        # Determine task type from signals for BCM depth optimization
+        task_type = signals.primary_task if signals else ""
+
         lock = self.locker.lock(
             routing=routing,
             burnout=snapshot.burnout_level,
@@ -321,7 +356,9 @@ class CognitiveOrchestrator:
             mode=snapshot.mode.value,
             epistemic_tension=snapshot.epistemic_tension,
             reflection_count=snapshot.reflection_count,  # Batch-invariance: from snapshot
-            source_mode=grounding_result.source_mode.value  # v6.0.0
+            source_mode=grounding_result.source_mode.value,  # v6.0.0
+            trail=trail,  # v7.0.0: BCM trail for depth optimization
+            task_type=task_type  # v7.0.0: Task type for depth history lookup
         )
 
         logger.debug(f"  Lock: {lock.params.to_anchor()}, "
@@ -345,7 +382,8 @@ class CognitiveOrchestrator:
             paradigm=paradigm,
             burnout=snapshot.burnout_level,
             momentum=snapshot.momentum_phase,
-            altitude=snapshot.altitude
+            altitude=snapshot.altitude,
+            trail=trail  # v7.0.0: BCM trail for attractor preferences
         )
 
         logger.debug(f"  Convergence: xi={convergence.epistemic_tension:.3f}, "
@@ -369,7 +407,12 @@ class CognitiveOrchestrator:
             "reflection_count": new_reflection_count,  # Batch-invariance: increment after processing
             "convergence_attractor": convergence.attractor_basin.value,
             "epistemic_tension": convergence.epistemic_tension,
-            "stable_exchanges": convergence.stable_exchanges
+            "stable_exchanges": convergence.stable_exchanges,
+            # v7.0.0: BCM trail state
+            "bcm_trail_version": trail.version if trail else "",
+            "bcm_expert_confidence": self.bcm.get_all_expert_confidences(),
+            "bcm_plasticity_active": self.bcm.is_plasticity_active(),
+            "bcm_last_update": trail.last_update if trail else 0.0
         }
 
         # Update mode based on signals
@@ -397,7 +440,10 @@ class CognitiveOrchestrator:
             lock=lock,
             convergence=convergence,
             processing_time_ms=processing_time,
-            state_checksum=state_checksum
+            state_checksum=state_checksum,
+            # v7.0.0: BCM Trail metadata
+            bcm_trail_version=trail.version if trail else "",
+            bcm_trail_enhanced=routing.bcm_enhanced if routing else False
         )
 
         self._last_result = result
@@ -420,6 +466,10 @@ class CognitiveOrchestrator:
         self.tracker.reset()
         self.state_manager.reset()
         self.grounding.reset_budget()  # v6.0.0: Reset grounding budget
+        # v7.0.0: Flush and save BCM trail before reset
+        updates, saved = self.bcm.flush_and_save()
+        if updates > 0:
+            logger.info(f"BCM trail: {updates} updates flushed, saved={saved}")
         self._last_result = None
         logger.info("Session reset")
 
@@ -446,6 +496,82 @@ class CognitiveOrchestrator:
         state = self.state_manager.get_state()
         state.complete_task()
         self.state_manager.save()
+
+    # =========================================================================
+    # v7.0.0: BCM Trail Methods
+    # =========================================================================
+
+    def record_outcome(
+        self,
+        success: bool,
+        latency_ms: float = 0.0,
+        task_type: str = "",
+        depth: str = ""
+    ) -> None:
+        """
+        Record outcome for BCM trail learning.
+
+        v7.0.0: Queue outcome for batch update (ThinkingMachines compliance).
+        Updates are applied on session end or explicit flush.
+
+        Args:
+            success: Whether the routing was successful
+            latency_ms: Response latency
+            task_type: Task type
+            depth: Thinking depth used
+        """
+        if self._last_result and self._last_result.routing:
+            expert = self._last_result.routing.expert.value
+            self.bcm.record_expert_outcome(
+                expert=expert,
+                success=success,
+                latency_ms=latency_ms,
+                task_type=task_type,
+                depth=depth
+            )
+
+            # Also record convergence outcome
+            if self._last_result.convergence:
+                attractor = self._last_result.convergence.attractor_basin.value
+                self.bcm.record_attractor_outcome(
+                    attractor=attractor,
+                    converged=self._last_result.convergence.converged
+                )
+
+            logger.debug(f"BCM outcome recorded: expert={expert}, success={success}")
+
+    def flush_bcm_trail(self) -> tuple[int, bool]:
+        """
+        Flush queued BCM updates and save trail.
+
+        v7.0.0: Apply all queued updates to trail and persist.
+
+        Returns:
+            Tuple of (updates_applied, save_successful)
+        """
+        return self.bcm.flush_and_save()
+
+    def get_bcm_trail(self):
+        """Get the BCM trail (for inspection/debugging)."""
+        return self.bcm.get_trail()
+
+    def open_plasticity_window(self, trigger: str, divergence: float = 0.5) -> None:
+        """
+        Open BCM plasticity window (e.g., after crash).
+
+        v7.0.0: Boosts learning rate for trail updates.
+
+        Args:
+            trigger: What triggered the window (e.g., "crashed", "red_burnout")
+            divergence: Divergence level (0.0-1.0)
+        """
+        self.bcm.open_plasticity_window(trigger, divergence)
+        logger.info(f"BCM plasticity window opened: trigger={trigger}, divergence={divergence}")
+
+    def close_plasticity_window(self) -> None:
+        """Close BCM plasticity window."""
+        self.bcm.close_plasticity_window()
+        logger.info("BCM plasticity window closed")
 
 
 # =============================================================================

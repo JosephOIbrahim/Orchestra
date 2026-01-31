@@ -18,17 +18,25 @@ ThinkingMachines [He2025] Compliance:
 - Fixed attractor definitions
 - Deterministic tension calculation
 - Reproducible convergence detection
+
+v7.0.0 BCM Integration:
+- Trail can provide attractor preference history
+- Preferences are METADATA ONLY - do NOT change attractor detection
+- Recording outcomes for trail learning
 """
 
 import math
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from enum import Enum
 import logging
 
 from .expert_router import Expert
 from .parameter_locker import Paradigm
 from .cognitive_state import BurnoutLevel, MomentumPhase, Altitude
+
+if TYPE_CHECKING:
+    from .bcm_trail import OrchestraTrail
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +124,11 @@ class ConvergenceResult:
     tension_color: str
     attractor_distance: Dict[str, float] = field(default_factory=dict)
 
+    # v7.0.0: BCM Trail attractor preference metadata
+    bcm_attractor_preferences: Dict[str, float] = field(default_factory=dict)
+    bcm_trail_version: str = ""
+    bcm_enhanced: bool = False
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for WebSocket."""
         return {
@@ -124,7 +137,11 @@ class ConvergenceResult:
             "stable_exchanges": self.stable_exchanges,
             "converged": self.converged,
             "tension_color": self.tension_color,
-            "attractor_distance": self.attractor_distance
+            "attractor_distance": self.attractor_distance,
+            # v7.0.0: BCM metadata
+            "bcm_attractor_preferences": self.bcm_attractor_preferences,
+            "bcm_trail_version": self.bcm_trail_version,
+            "bcm_enhanced": self.bcm_enhanced
         }
 
 
@@ -201,10 +218,14 @@ class ConvergenceTracker:
         paradigm: Paradigm,
         burnout: BurnoutLevel,
         momentum: MomentumPhase,
-        altitude: Altitude
+        altitude: Altitude,
+        trail: Optional['OrchestraTrail'] = None  # v7.0.0
     ) -> ConvergenceResult:
         """
         Update convergence tracking with new state.
+
+        v7.0.0: Added trail parameter for BCM attractor preferences.
+        IMPORTANT: Trail data is METADATA ONLY - does NOT change attractor detection.
 
         Args:
             expert: Current expert
@@ -212,6 +233,7 @@ class ConvergenceTracker:
             burnout: Current burnout level
             momentum: Current momentum phase
             altitude: Current altitude
+            trail: v7.0.0 - BCM trail for attractor preferences (optional)
 
         Returns:
             ConvergenceResult with tension and convergence status
@@ -260,13 +282,22 @@ class ConvergenceTracker:
         if len(self._tension_history) > 100:
             self._tension_history = self._tension_history[-100:]
 
+        # =================================================================
+        # STEP 6 (v7.0.0): Apply BCM trail metadata
+        # =================================================================
+        bcm_metadata = self._apply_bcm_metadata(trail)
+
         result = ConvergenceResult(
             epistemic_tension=tension,
             attractor_basin=self._current_attractor,
             stable_exchanges=min(self._stable_count, self.STABLE_REQUIRED),
             converged=converged,
             tension_color=get_tension_color(tension),
-            attractor_distance=attractor_distances
+            attractor_distance=attractor_distances,
+            # v7.0.0: BCM metadata
+            bcm_attractor_preferences=bcm_metadata["attractor_preferences"],
+            bcm_trail_version=bcm_metadata["trail_version"],
+            bcm_enhanced=bcm_metadata["enhanced"]
         )
 
         logger.debug(
@@ -367,6 +398,47 @@ class ConvergenceTracker:
                 closest = attractor
 
         return (closest, distances)
+
+    def _apply_bcm_metadata(
+        self,
+        trail: Optional['OrchestraTrail']
+    ) -> Dict[str, Any]:
+        """
+        v7.0.0: Apply BCM trail metadata to convergence result.
+
+        IMPORTANT: This method adds METADATA ONLY.
+        It does NOT affect attractor detection or convergence calculation.
+
+        ThinkingMachines [He2025] Compliance:
+        - Trail data is read-only during this phase
+        - Decision is deterministic given same inputs
+        - No side effects on trail during convergence tracking
+
+        Args:
+            trail: BCM trail (optional)
+
+        Returns:
+            Dict with BCM metadata:
+            - attractor_preferences: Dict mapping attractor names to success rates
+            - trail_version: Trail version string
+            - enhanced: Whether BCM data was available
+        """
+        # Default: no trail
+        result = {
+            "attractor_preferences": {},
+            "trail_version": "",
+            "enhanced": False
+        }
+
+        if trail is None:
+            return result
+
+        # Get attractor preferences from trail
+        result["attractor_preferences"] = trail.get_attractor_preferences()
+        result["trail_version"] = trail.version
+        result["enhanced"] = True
+
+        return result
 
     def get_tension_trend(self) -> str:
         """

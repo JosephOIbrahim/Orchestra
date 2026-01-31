@@ -9,6 +9,7 @@ Features:
 - Cognitive safety gating (state overrides user requests)
 - Deterministic checksum computation
 - Parameter freezing for batch-invariance
+- v7.0.0: BCM trail-informed depth optimization
 
 ThinkingMachines [He2025] Compliance:
 - Parameters LOCKED before generation
@@ -20,17 +21,25 @@ Cognitive Safety Gating (from CLAUDE.md):
 - low energy → standard thinking
 - RED/ORANGE burnout → standard thinking
 - high energy → ultradeep allowed (if requested)
+
+v7.0.0 BCM Integration:
+- Trail can suggest optimal depth based on historical performance
+- Safety gates ALWAYS take precedence over trail suggestions
+- Trail optimization = within_safety_bounds(trail_suggestion)
 """
 
 import hashlib
 import json
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, TYPE_CHECKING
 from enum import Enum
 import logging
 
 from .expert_router import Expert, RoutingResult
 from .cognitive_state import BurnoutLevel, EnergyLevel, Altitude
+
+if TYPE_CHECKING:
+    from .bcm_trail import OrchestraTrail
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +193,12 @@ class LockResult:
     original_depth: Optional[str] = None  # Depth before safety cap
     converged: bool = False  # True if early convergence detected (xi < epsilon)
 
+    # v7.0.0: BCM Trail optimization metadata
+    bcm_optimized: bool = False  # True if trail influenced depth selection
+    bcm_suggested_depth: Optional[str] = None  # Trail's suggested depth
+    bcm_trail_version: str = ""  # Trail version used
+    bcm_depth_history_count: int = 0  # Number of depth samples in trail
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict."""
         return {
@@ -191,7 +206,12 @@ class LockResult:
             "params": self.params.to_dict(),
             "safety_capped": self.safety_capped,
             "original_depth": self.original_depth,
-            "converged": self.converged
+            "converged": self.converged,
+            # v7.0.0: BCM metadata
+            "bcm_optimized": self.bcm_optimized,
+            "bcm_suggested_depth": self.bcm_suggested_depth,
+            "bcm_trail_version": self.bcm_trail_version,
+            "bcm_depth_history_count": self.bcm_depth_history_count
         }
 
 
@@ -234,7 +254,9 @@ class ParameterLocker:
         mode: str = "focused",
         epistemic_tension: float = 0.0,
         reflection_count: int = 0,
-        source_mode: str = "learn"  # v6.0.0
+        source_mode: str = "learn",  # v6.0.0
+        trail: Optional['OrchestraTrail'] = None,  # v7.0.0
+        task_type: str = ""  # v7.0.0
     ) -> LockResult:
         """
         Lock parameters for generation.
@@ -243,6 +265,9 @@ class ParameterLocker:
         Batch-invariance: reflection_count passed from state snapshot,
         not stored as instance state.
         [GWM2026]: source_mode locks grounding decision.
+
+        v7.0.0: Trail-informed depth optimization within safety bounds.
+        IMPORTANT: Safety gates ALWAYS take precedence over trail suggestions.
 
         Args:
             routing: Result from expert router
@@ -254,6 +279,8 @@ class ParameterLocker:
             epistemic_tension: Current epistemic tension (for early stop)
             reflection_count: Current reflection count (from CognitiveState snapshot)
             source_mode: v6.0.0 - Grounding source mode (learn|access|hybrid)
+            trail: v7.0.0 - BCM trail for depth optimization (optional)
+            task_type: v7.0.0 - Task type for trail-based depth lookup
 
         Returns:
             LockResult with locked parameters
@@ -269,6 +296,35 @@ class ParameterLocker:
         actual_depth, safety_capped = self._apply_safety_gating(
             requested_depth, burnout, energy
         )
+
+        # =================================================================
+        # STEP 2b (v7.0.0): Apply BCM trail optimization WITHIN safety bounds
+        # =================================================================
+        bcm_metadata = self._apply_bcm_depth_optimization(
+            actual_depth=actual_depth,
+            safety_cap=self._get_max_depth(burnout, energy),
+            expert=routing.expert.value,
+            task_type=task_type,
+            trail=trail
+        )
+
+        # If trail provided a better depth within safety bounds, use it
+        if bcm_metadata["optimized"] and bcm_metadata["suggested_depth"]:
+            suggested = bcm_metadata["suggested_depth"]
+            depth_order = [ThinkDepth.MINIMAL, ThinkDepth.STANDARD, ThinkDepth.DEEP, ThinkDepth.ULTRADEEP]
+            depth_map = {d.value: d for d in depth_order}
+
+            if suggested in depth_map:
+                suggested_depth = depth_map[suggested]
+                suggested_idx = depth_order.index(suggested_depth)
+                current_idx = depth_order.index(actual_depth)
+                cap_idx = depth_order.index(self._get_max_depth(burnout, energy))
+
+                # Trail can adjust within safety bounds (never exceed cap)
+                if suggested_idx <= cap_idx:
+                    # Use trail suggestion (within safety bounds)
+                    actual_depth = suggested_depth
+                    logger.info(f"BCM trail adjusted depth: {suggested} (within safety cap)")
 
         # =================================================================
         # STEP 3: Check MAX3 and epsilon stopping
@@ -302,7 +358,12 @@ class ParameterLocker:
             params=params,
             safety_capped=safety_capped,
             original_depth=requested_depth.value if safety_capped else None,
-            converged=converged
+            converged=converged,
+            # v7.0.0: BCM metadata
+            bcm_optimized=bcm_metadata["optimized"],
+            bcm_suggested_depth=bcm_metadata["suggested_depth"],
+            bcm_trail_version=bcm_metadata["trail_version"],
+            bcm_depth_history_count=bcm_metadata["depth_history_count"]
         )
 
         self._current_lock = result
@@ -365,6 +426,92 @@ class ParameterLocker:
             return (max_allowed, True)
 
         return (requested, False)
+
+    def _apply_bcm_depth_optimization(
+        self,
+        actual_depth: ThinkDepth,
+        safety_cap: ThinkDepth,
+        expert: str,
+        task_type: str,
+        trail: Optional['OrchestraTrail']
+    ) -> Dict[str, Any]:
+        """
+        v7.0.0: Apply BCM trail-informed depth optimization.
+
+        CRITICAL: Safety cap is NEVER exceeded. Trail can only suggest
+        depths within the already-determined safety bounds.
+
+        ThinkingMachines [He2025] Compliance:
+        - Trail data is read-only during this phase
+        - Decision is deterministic given same inputs
+        - No side effects on trail during locking
+
+        Args:
+            actual_depth: Current depth after safety gating
+            safety_cap: Maximum allowed depth from safety gating
+            expert: Expert name
+            task_type: Task type for depth lookup
+            trail: BCM trail (optional)
+
+        Returns:
+            Dict with BCM metadata:
+            - optimized: bool - Whether trail influenced decision
+            - suggested_depth: str or None - Trail's suggestion
+            - trail_version: str - Trail version
+            - depth_history_count: int - Number of depth samples
+        """
+        # Default: no trail or no optimization
+        result = {
+            "optimized": False,
+            "suggested_depth": None,
+            "trail_version": "",
+            "depth_history_count": 0
+        }
+
+        if trail is None:
+            return result
+
+        # Set version from trail
+        result["trail_version"] = trail.version
+
+        # Build the key for depth history lookup (format: "expert:task_type")
+        depth_key = f"{expert}:{task_type}" if task_type else expert
+
+        # Check if trail has depth history for this expert
+        if not trail.has_depth_data(expert, task_type if task_type else None):
+            return result
+
+        # Get depth history count
+        if depth_key in trail.depth_history:
+            result["depth_history_count"] = len(trail.depth_history[depth_key])
+
+        # Get trail's optimal depth suggestion
+        # Pass safety_cap.value as string (trail expects string depths)
+        suggested = trail.get_optimal_depth(
+            expert=expert,
+            task_type=task_type,
+            fallback=actual_depth.value,
+            safety_cap=safety_cap.value
+        )
+
+        if suggested:
+            result["suggested_depth"] = suggested
+
+            # Only mark as optimized if suggestion differs from current
+            # and is within safety bounds
+            depth_order = ["minimal", "standard", "deep", "ultradeep"]
+            if suggested in depth_order:
+                suggested_idx = depth_order.index(suggested)
+                cap_idx = depth_order.index(safety_cap.value)
+
+                if suggested_idx <= cap_idx:
+                    result["optimized"] = True
+                    logger.debug(
+                        f"BCM trail suggests {suggested} for {expert}/{task_type} "
+                        f"(within cap {safety_cap.value})"
+                    )
+
+        return result
 
     def _get_max_depth(self, burnout: BurnoutLevel, energy: EnergyLevel) -> ThinkDepth:
         """

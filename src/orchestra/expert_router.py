@@ -26,12 +26,15 @@ Constitutional Principles:
 
 import hashlib
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Tuple, List, Union
+from typing import Optional, Dict, Any, Tuple, List, Union, TYPE_CHECKING
 from enum import Enum
 import logging
 
 from .prism_detector import SignalVector, SignalCategory
 from .cognitive_state import BurnoutLevel, EnergyLevel, MomentumPhase
+
+if TYPE_CHECKING:
+    from .bcm_trail import OrchestraTrail
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +158,7 @@ class RoutingResult:
 
     Contains the selected expert, trigger reason, and gate status.
     v6.0.0: Added grounding expert routing.
+    v7.0.0: Added BCM trail confidence metadata.
     """
     expert: Expert
     trigger: str
@@ -168,6 +172,13 @@ class RoutingResult:
     grounding_trigger: Optional[str] = None
     requires_grounding: bool = False
 
+    # v7.0.0: BCM Trail confidence metadata
+    # Note: These are METADATA ONLY - they do NOT affect expert selection order
+    bcm_confidence: float = 1.0  # Trail-based confidence for selected expert [0.0-1.0]
+    bcm_expert_confidences: Dict[str, float] = field(default_factory=dict)  # All expert confidences
+    bcm_trail_version: str = ""  # Trail version for reproducibility
+    bcm_enhanced: bool = False  # Whether BCM data was available
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dict for WebSocket."""
         return {
@@ -180,7 +191,12 @@ class RoutingResult:
             # v6.0.0: Grounding fields
             "grounding_expert": self.grounding_expert.value if self.grounding_expert else None,
             "grounding_trigger": self.grounding_trigger,
-            "requires_grounding": self.requires_grounding
+            "requires_grounding": self.requires_grounding,
+            # v7.0.0: BCM fields
+            "bcm_confidence": self.bcm_confidence,
+            "bcm_expert_confidences": self.bcm_expert_confidences,
+            "bcm_trail_version": self.bcm_trail_version,
+            "bcm_enhanced": self.bcm_enhanced
         }
 
 
@@ -216,13 +232,15 @@ class ExpertRouter:
         tangent_budget: int = 5,
         task_completed: bool = False,
         caps_detected: bool = False,
-        hallucination_score: float = 0.0  # v6.0.0
+        hallucination_score: float = 0.0,  # v6.0.0
+        trail: Optional['OrchestraTrail'] = None  # v7.0.0: BCM trail for confidence metadata
     ) -> RoutingResult:
         """
         Route to expert based on signals and state.
 
         ThinkingMachines [He2025]: Fixed evaluation order, first-match-wins.
         v6.0.0: Added GROUNDING_MoE expert routing.
+        v7.0.0: Added BCM trail confidence metadata (does NOT affect routing order).
 
         Args:
             signals: PRISM signal vector
@@ -234,6 +252,7 @@ class ExpertRouter:
             task_completed: Whether a task was just completed
             caps_detected: Whether ALL CAPS was detected
             hallucination_score: v6.0.0 - Hallucination detection score
+            trail: v7.0.0 - BCM trail for confidence metadata (optional)
 
         Returns:
             RoutingResult with selected expert and reasoning
@@ -251,6 +270,8 @@ class ExpertRouter:
         safety_result = self._check_safety_gate(burnout, energy, signals, caps_detected)
 
         if safety_result is not None:
+            # v7.0.0: Add BCM confidence metadata to safety result
+            self._apply_bcm_metadata(safety_result, trail)
             self._last_routing = safety_result
             logger.info(f"Safety gate → {safety_result.expert.value}: {safety_result.trigger}")
             return safety_result
@@ -287,6 +308,9 @@ class ExpertRouter:
                     result.grounding_expert, result.grounding_trigger = grounding_result
                     result.requires_grounding = True
 
+                # v7.0.0: Add BCM confidence metadata
+                self._apply_bcm_metadata(result, trail)
+
                 self._last_routing = result
                 logger.info(f"CognitiveSafetyMoE → {expert.value} (priority {priority_idx}): {trigger}")
                 return result
@@ -304,6 +328,9 @@ class ExpertRouter:
         if grounding_result:
             result.grounding_expert, result.grounding_trigger = grounding_result
             result.requires_grounding = True
+
+        # v7.0.0: Add BCM confidence metadata
+        self._apply_bcm_metadata(result, trail)
 
         self._last_routing = result
         return result
@@ -461,6 +488,53 @@ class ExpertRouter:
             return "task_completed"
 
         return None
+
+    def _apply_bcm_metadata(
+        self,
+        result: RoutingResult,
+        trail: Optional['OrchestraTrail']
+    ) -> None:
+        """
+        v7.0.0: Apply BCM trail confidence metadata to routing result.
+
+        IMPORTANT: This method adds METADATA ONLY. It does NOT affect
+        expert selection, which is determined by FIXED priority order.
+
+        ThinkingMachines [He2025] Compliance:
+        - BCM data is informational/observational
+        - Same routing order regardless of trail state
+        - Confidence values are for downstream use (UI, logging, learning)
+
+        Args:
+            result: RoutingResult to enhance with BCM metadata
+            trail: Optional BCM trail (if None, defaults are used)
+        """
+        if trail is None:
+            # No trail available - use defaults
+            result.bcm_confidence = 1.0
+            result.bcm_expert_confidences = {}
+            result.bcm_trail_version = ""
+            result.bcm_enhanced = False
+            return
+
+        # Get confidence for selected expert
+        result.bcm_confidence = trail.get_expert_confidence(result.expert.value)
+
+        # Get all expert confidences for downstream use
+        result.bcm_expert_confidences = {
+            expert.value: trail.get_expert_confidence(expert.value)
+            for expert in EXPERT_PRIORITY
+        }
+
+        # Track trail version for reproducibility
+        result.bcm_trail_version = trail.version
+        result.bcm_enhanced = True
+
+        logger.debug(
+            f"BCM metadata: expert={result.expert.value}, "
+            f"confidence={result.bcm_confidence:.2f}, "
+            f"trail_version={result.bcm_trail_version}"
+        )
 
     def _route_grounding(
         self,

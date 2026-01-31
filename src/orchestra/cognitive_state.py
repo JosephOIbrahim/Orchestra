@@ -169,6 +169,12 @@ class CognitiveState:
     last_oracle_latency: float = 0.0  # Last oracle query latency (ms)
     grounding_queries_total: int = 0  # Total oracle queries this session
 
+    # v7.0.0: BCM Trail state (stigmergic reinforcement)
+    bcm_trail_version: str = ""  # Trail version for reproducibility
+    bcm_expert_confidence: Dict[str, float] = field(default_factory=dict)  # Expert confidence scores
+    bcm_plasticity_active: bool = False  # Plasticity window open
+    bcm_last_update: float = 0.0  # Timestamp of last trail update
+
     # Determinism
     seed: int = 42
 
@@ -212,6 +218,11 @@ class CognitiveState:
             hallucination_score=self.hallucination_score,
             last_oracle_latency=self.last_oracle_latency,
             grounding_queries_total=self.grounding_queries_total,
+            # v7.0.0: BCM fields
+            bcm_trail_version=self.bcm_trail_version,
+            bcm_expert_confidence=self.bcm_expert_confidence.copy(),
+            bcm_plasticity_active=self.bcm_plasticity_active,
+            bcm_last_update=self.bcm_last_update,
             seed=self.seed
         )
 
@@ -224,7 +235,7 @@ class CognitiveState:
         Args:
             updates: Dict of field names to new values
         """
-        # FIXED evaluation order for updates (v6.0.0: added grounding fields)
+        # FIXED evaluation order for updates (v7.0.0: added BCM fields)
         UPDATE_ORDER = [
             'burnout_level', 'momentum_phase', 'energy_level', 'mode',
             'altitude', 'focus_level', 'urgency', 'exchange_count',
@@ -234,7 +245,10 @@ class CognitiveState:
             # v6.0.0: Grounding fields
             'grounding_mode', 'grounding_budget', 'oracle_cache_age',
             'evidence_chain_length', 'hallucination_score', 'last_oracle_latency',
-            'grounding_queries_total'
+            'grounding_queries_total',
+            # v7.0.0: BCM fields
+            'bcm_trail_version', 'bcm_expert_confidence', 'bcm_plasticity_active',
+            'bcm_last_update'
         ]
 
         for field_name in UPDATE_ORDER:
@@ -409,6 +423,11 @@ class CognitiveState:
             "hallucination_score": self.hallucination_score,
             "last_oracle_latency": self.last_oracle_latency,
             "grounding_queries_total": self.grounding_queries_total,
+            # v7.0.0: BCM fields
+            "bcm_trail_version": self.bcm_trail_version,
+            "bcm_expert_confidence": self.bcm_expert_confidence,
+            "bcm_plasticity_active": self.bcm_plasticity_active,
+            "bcm_last_update": self.bcm_last_update,
             "seed": self.seed
         }
 
@@ -441,6 +460,11 @@ class CognitiveState:
             hallucination_score=data.get("hallucination_score", 0.0),
             last_oracle_latency=data.get("last_oracle_latency", 0.0),
             grounding_queries_total=data.get("grounding_queries_total", 0),
+            # v7.0.0: BCM fields
+            bcm_trail_version=data.get("bcm_trail_version", ""),
+            bcm_expert_confidence=data.get("bcm_expert_confidence", {}),
+            bcm_plasticity_active=data.get("bcm_plasticity_active", False),
+            bcm_last_update=data.get("bcm_last_update", 0.0),
             seed=data.get("seed", 42)
         )
 
@@ -557,6 +581,10 @@ class CognitiveStateManager:
         self._state.hallucination_score = 0.0
         self._state.last_oracle_latency = 0.0
         self._state.grounding_queries_total = 0
+
+        # v7.0.0: BCM fields are NOT reset (trail persists across sessions)
+        # Only reset plasticity state
+        self._state.bcm_plasticity_active = False
 
         # Reset burnout to healthy (don't carry RED across sessions)
         if self._state.burnout_level in (BurnoutLevel.ORANGE, BurnoutLevel.RED):
