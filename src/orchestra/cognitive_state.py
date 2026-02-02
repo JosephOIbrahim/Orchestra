@@ -174,6 +174,41 @@ class CognitiveState:
     bcm_expert_confidence: Dict[str, float] = field(default_factory=dict)  # Expert confidence scores
     bcm_plasticity_active: bool = False  # Plasticity window open
     bcm_last_update: float = 0.0  # Timestamp of last trail update
+    bcm_plasticity_sigma: float = 0.0  # Learning rate multiplier (0.0 - 1.0)
+    bcm_plasticity_trigger: str = ""  # crash_recovery | red_burnout | manual | null
+    bcm_trail_checksum: str = ""  # SHA-256 of trail state
+
+    # v7.1.0: Batch Invariance State (ThinkingMachines [He2025] compliance)
+    cognitive_tile_size: int = 32  # FIXED, never changes
+    determinism_mode: str = "strict"  # strict | relaxed | none
+    aggregation_strategy: str = "max"  # max | mean | weighted_mean | decay_mean | threshold_filter
+    aggregation_order: str = "id_ascending"  # id_ascending | confidence_descending | chronological | hash
+    template_match_order: str = "lexicographic"  # lexicographic | priority | chronological | hash
+    deterministic_hash: str = ""  # SHA-256 of expanded state
+    hash_seed: int = 0xCAFEBABE  # Fixed seed for hash operations
+    conflict_resolution: str = "newest_wins"  # newest_wins | highest_confidence | manual | merge
+
+    # v7.1.0: Temporal Coherence
+    temporal_epoch: int = 0  # Unix timestamp
+    session_id: str = ""  # UUID for session tracking
+    schema_version: str = "7.1.0"  # State schema version
+    template_version: str = ""  # Per-instance template version
+    migration_path: List[str] = field(default_factory=list)  # Chain of migrations applied
+
+    # v7.1.0: Session Lifecycle
+    session_lifecycle_state: str = "initializing"  # initializing | active | suspending | archived
+    session_start_time_iso: str = ""  # ISO8601 timestamp
+    session_duration: int = 0  # Seconds
+    parent_session_id: str = ""  # For resumed sessions
+    last_checkpoint_hash: str = ""  # Hash of last checkpoint
+
+    # v7.1.0: Mycelium Arc state (peer-to-peer composition - Patent Claim 5)
+    mycelium_enabled: bool = True  # Enable horizontal composition
+    mycelium_peer_id: str = ""  # This agent's peer ID in the arc
+    mycelium_peer_count: int = 0  # Number of connected peers
+    mycelium_aggregated_burnout: str = "green"  # SAFETY-MAX from peers
+    mycelium_aggregated_tension: float = 0.0  # ADDITIVE from peers
+    mycelium_last_sync: float = 0.0  # Last peer state sync timestamp
 
     # Determinism
     seed: int = 42
@@ -223,6 +258,37 @@ class CognitiveState:
             bcm_expert_confidence=self.bcm_expert_confidence.copy(),
             bcm_plasticity_active=self.bcm_plasticity_active,
             bcm_last_update=self.bcm_last_update,
+            bcm_plasticity_sigma=self.bcm_plasticity_sigma,
+            bcm_plasticity_trigger=self.bcm_plasticity_trigger,
+            bcm_trail_checksum=self.bcm_trail_checksum,
+            # v7.1.0: Batch Invariance fields
+            cognitive_tile_size=self.cognitive_tile_size,
+            determinism_mode=self.determinism_mode,
+            aggregation_strategy=self.aggregation_strategy,
+            aggregation_order=self.aggregation_order,
+            template_match_order=self.template_match_order,
+            deterministic_hash=self.deterministic_hash,
+            hash_seed=self.hash_seed,
+            conflict_resolution=self.conflict_resolution,
+            # v7.1.0: Temporal Coherence
+            temporal_epoch=self.temporal_epoch,
+            session_id=self.session_id,
+            schema_version=self.schema_version,
+            template_version=self.template_version,
+            migration_path=self.migration_path.copy(),
+            # v7.1.0: Session Lifecycle
+            session_lifecycle_state=self.session_lifecycle_state,
+            session_start_time_iso=self.session_start_time_iso,
+            session_duration=self.session_duration,
+            parent_session_id=self.parent_session_id,
+            last_checkpoint_hash=self.last_checkpoint_hash,
+            # v7.1.0: Mycelium Arc fields
+            mycelium_enabled=self.mycelium_enabled,
+            mycelium_peer_id=self.mycelium_peer_id,
+            mycelium_peer_count=self.mycelium_peer_count,
+            mycelium_aggregated_burnout=self.mycelium_aggregated_burnout,
+            mycelium_aggregated_tension=self.mycelium_aggregated_tension,
+            mycelium_last_sync=self.mycelium_last_sync,
             seed=self.seed
         )
 
@@ -235,7 +301,7 @@ class CognitiveState:
         Args:
             updates: Dict of field names to new values
         """
-        # FIXED evaluation order for updates (v7.0.0: added BCM fields)
+        # FIXED evaluation order for updates (v7.1.0: added batch invariance fields)
         UPDATE_ORDER = [
             'burnout_level', 'momentum_phase', 'energy_level', 'mode',
             'altitude', 'focus_level', 'urgency', 'exchange_count',
@@ -248,7 +314,21 @@ class CognitiveState:
             'grounding_queries_total',
             # v7.0.0: BCM fields
             'bcm_trail_version', 'bcm_expert_confidence', 'bcm_plasticity_active',
-            'bcm_last_update'
+            'bcm_last_update', 'bcm_plasticity_sigma', 'bcm_plasticity_trigger',
+            'bcm_trail_checksum',
+            # v7.1.0: Batch Invariance fields
+            'cognitive_tile_size', 'determinism_mode', 'aggregation_strategy',
+            'aggregation_order', 'template_match_order', 'deterministic_hash',
+            'hash_seed', 'conflict_resolution',
+            # v7.1.0: Temporal Coherence fields
+            'temporal_epoch', 'session_id', 'schema_version', 'template_version',
+            'migration_path',
+            # v7.1.0: Session Lifecycle fields
+            'session_lifecycle_state', 'session_start_time_iso', 'session_duration',
+            'parent_session_id', 'last_checkpoint_hash',
+            # v7.1.0: Mycelium Arc fields
+            'mycelium_enabled', 'mycelium_peer_id', 'mycelium_peer_count',
+            'mycelium_aggregated_burnout', 'mycelium_aggregated_tension', 'mycelium_last_sync'
         ]
 
         for field_name in UPDATE_ORDER:
@@ -428,6 +508,37 @@ class CognitiveState:
             "bcm_expert_confidence": self.bcm_expert_confidence,
             "bcm_plasticity_active": self.bcm_plasticity_active,
             "bcm_last_update": self.bcm_last_update,
+            "bcm_plasticity_sigma": self.bcm_plasticity_sigma,
+            "bcm_plasticity_trigger": self.bcm_plasticity_trigger,
+            "bcm_trail_checksum": self.bcm_trail_checksum,
+            # v7.1.0: Batch Invariance fields
+            "cognitive_tile_size": self.cognitive_tile_size,
+            "determinism_mode": self.determinism_mode,
+            "aggregation_strategy": self.aggregation_strategy,
+            "aggregation_order": self.aggregation_order,
+            "template_match_order": self.template_match_order,
+            "deterministic_hash": self.deterministic_hash,
+            "hash_seed": self.hash_seed,
+            "conflict_resolution": self.conflict_resolution,
+            # v7.1.0: Temporal Coherence
+            "temporal_epoch": self.temporal_epoch,
+            "session_id": self.session_id,
+            "schema_version": self.schema_version,
+            "template_version": self.template_version,
+            "migration_path": self.migration_path,
+            # v7.1.0: Session Lifecycle
+            "session_lifecycle_state": self.session_lifecycle_state,
+            "session_start_time_iso": self.session_start_time_iso,
+            "session_duration": self.session_duration,
+            "parent_session_id": self.parent_session_id,
+            "last_checkpoint_hash": self.last_checkpoint_hash,
+            # v7.1.0: Mycelium Arc fields
+            "mycelium_enabled": self.mycelium_enabled,
+            "mycelium_peer_id": self.mycelium_peer_id,
+            "mycelium_peer_count": self.mycelium_peer_count,
+            "mycelium_aggregated_burnout": self.mycelium_aggregated_burnout,
+            "mycelium_aggregated_tension": self.mycelium_aggregated_tension,
+            "mycelium_last_sync": self.mycelium_last_sync,
             "seed": self.seed
         }
 
@@ -465,6 +576,37 @@ class CognitiveState:
             bcm_expert_confidence=data.get("bcm_expert_confidence", {}),
             bcm_plasticity_active=data.get("bcm_plasticity_active", False),
             bcm_last_update=data.get("bcm_last_update", 0.0),
+            bcm_plasticity_sigma=data.get("bcm_plasticity_sigma", 0.0),
+            bcm_plasticity_trigger=data.get("bcm_plasticity_trigger", ""),
+            bcm_trail_checksum=data.get("bcm_trail_checksum", ""),
+            # v7.1.0: Batch Invariance fields
+            cognitive_tile_size=data.get("cognitive_tile_size", 32),
+            determinism_mode=data.get("determinism_mode", "strict"),
+            aggregation_strategy=data.get("aggregation_strategy", "max"),
+            aggregation_order=data.get("aggregation_order", "id_ascending"),
+            template_match_order=data.get("template_match_order", "lexicographic"),
+            deterministic_hash=data.get("deterministic_hash", ""),
+            hash_seed=data.get("hash_seed", 0xCAFEBABE),
+            conflict_resolution=data.get("conflict_resolution", "newest_wins"),
+            # v7.1.0: Temporal Coherence
+            temporal_epoch=data.get("temporal_epoch", 0),
+            session_id=data.get("session_id", ""),
+            schema_version=data.get("schema_version", "7.1.0"),
+            template_version=data.get("template_version", ""),
+            migration_path=data.get("migration_path", []),
+            # v7.1.0: Session Lifecycle
+            session_lifecycle_state=data.get("session_lifecycle_state", "initializing"),
+            session_start_time_iso=data.get("session_start_time_iso", ""),
+            session_duration=data.get("session_duration", 0),
+            parent_session_id=data.get("parent_session_id", ""),
+            last_checkpoint_hash=data.get("last_checkpoint_hash", ""),
+            # v7.1.0: Mycelium Arc fields
+            mycelium_enabled=data.get("mycelium_enabled", True),
+            mycelium_peer_id=data.get("mycelium_peer_id", ""),
+            mycelium_peer_count=data.get("mycelium_peer_count", 0),
+            mycelium_aggregated_burnout=data.get("mycelium_aggregated_burnout", "green"),
+            mycelium_aggregated_tension=data.get("mycelium_aggregated_tension", 0.0),
+            mycelium_last_sync=data.get("mycelium_last_sync", 0.0),
             seed=data.get("seed", 42)
         )
 
@@ -585,12 +727,23 @@ class CognitiveStateManager:
         # v7.0.0: BCM fields are NOT reset (trail persists across sessions)
         # Only reset plasticity state
         self._state.bcm_plasticity_active = False
+        self._state.bcm_plasticity_sigma = 0.0
+        self._state.bcm_plasticity_trigger = ""
+
+        # v7.1.0: Reset session lifecycle fields
+        self._state.session_lifecycle_state = "initializing"
+        self._state.session_duration = 0
+        self._state.deterministic_hash = ""
+        self._state.last_checkpoint_hash = ""
+        # Note: session_id, temporal_epoch, schema_version are preserved
 
         # Reset burnout to healthy (don't carry RED across sessions)
         if self._state.burnout_level in (BurnoutLevel.ORANGE, BurnoutLevel.RED):
             self._state.burnout_level = BurnoutLevel.GREEN
 
         # Preserve: focus_level, urgency, seed, energy_level, mode, altitude
+        # Preserve: cognitive_tile_size, determinism_mode, aggregation_strategy (v7.1.0 config)
+        # Preserve: session_id, schema_version, template_version, migration_path (v7.1.0 coherence)
         self.save()
 
     def save(self) -> None:

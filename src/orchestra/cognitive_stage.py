@@ -67,9 +67,13 @@ class LayerPriority(Enum):
     LIVRPS layer priority for cognitive state resolution.
 
     Higher priority (lower value) wins in composition.
+
+    v7.1.0: Added MYCELIUM (2.5) for peer-to-peer horizontal composition.
+    Mycelium sits between INHERITS (vertical) and VARIANTS (mode switching).
     """
     LOCAL = 1       # Session state - highest priority (mutable)
-    INHERITS = 2    # Inherited from parent context
+    INHERITS = 2    # Inherited from parent context (vertical)
+    MYCELIUM = 2.5  # Peer state (horizontal) - v7.1.0 Patent Claim 5
     VARIANTS = 3    # Mode variants (focused/exploring/etc)
     REFERENCES = 4  # Calibration data
     PAYLOADS = 5    # Domain knowledge
@@ -261,10 +265,11 @@ class MockCognitiveBackend(CognitiveStageBackend):
 
     def create_stage(self) -> None:
         """Create cognitive stage with all layers."""
-        # Initialize layers in LIVRPS order
+        # Initialize layers in LIVRPS order (including MYCELIUM for peer-to-peer)
         self.layers = {
             LayerPriority.LOCAL: CognitiveLayer("session", LayerPriority.LOCAL),
             LayerPriority.INHERITS: CognitiveLayer("inherited", LayerPriority.INHERITS),
+            LayerPriority.MYCELIUM: CognitiveLayer("mycelium", LayerPriority.MYCELIUM),
             LayerPriority.VARIANTS: CognitiveLayer("variants", LayerPriority.VARIANTS),
             LayerPriority.REFERENCES: CognitiveLayer("calibration", LayerPriority.REFERENCES),
             LayerPriority.PAYLOADS: CognitiveLayer("domain", LayerPriority.PAYLOADS),

@@ -3,8 +3,8 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v7.0.0-Production%2FStable-success" alt="Production"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-1047%20passed-brightgreen" alt="Tests"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v7.1.0-Production%2FStable-success" alt="Production"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-1494%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
 </p>
@@ -77,6 +77,31 @@ orchestra install-hook
 ```
 
 That's it. Every message now passes through the cognitive engine.
+
+---
+
+## What's New in v7.1.0
+
+### Cognitive Batch Invariance
+
+Orchestra now implements **full ThinkingMachines [He2025] batch invariance** at the application layer:
+
+- **Fixed tile size**: `COGNITIVE_TILE_SIZE = 32` for all memory operations
+- **Kahan summation**: Numerically stable, order-independent accumulation
+- **5 aggregation strategies**: MAX, MEAN, WEIGHTED_MEAN, DECAY_MEAN, THRESHOLD_FILTER
+- **Verification tools**: `verify_round_trip()`, `verify_determinism()`, `verify_batch_invariance()`
+- **18 new state fields**: Temporal coherence, session lifecycle, deterministic hashing
+
+```python
+from orchestra import kahan_sum, BatchInvariantAggregator, AggregationStrategy
+
+# Deterministic summation regardless of order
+result = kahan_sum([1e10, 1.0, -1e10, 2.0])  # Always 3.0
+
+# Batch-invariant aggregation
+aggregator = BatchInvariantAggregator(strategy=AggregationStrategy.MAX)
+confidence = aggregator.aggregate(instances)  # Same result regardless of batch size
+```
 
 ---
 
@@ -323,10 +348,12 @@ pytest --cov=src/orchestra --cov-report=html
 |----------|-------|-------------|
 | Core | 799 | Cognitive engine, routing, state |
 | BCM Integration | 66 | Trail, routing, locking, convergence |
+| Batch Invariance | 84 | Kahan summation, aggregation, determinism (v7.1.0) |
 | Hook Integration | 17 | ThinkingMachines compliance through hook |
 | Distillation | 118 | Pipeline, schemas, checkpointing, Frontier AI |
 | Grounding | 48 | Oracle routing, evidence tracking |
-| **Total** | **1047** | All passing |
+| Other | 362 | Validation, state, CLI, TUI, chaos |
+| **Total** | **1494** | All passing |
 
 ### Direct API Usage
 
@@ -441,6 +468,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Orchestra v7.0.0 - Cognitive Safety Layer for Claude Code*
+*Orchestra v7.1.0 - Cognitive Safety Layer for Claude Code*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

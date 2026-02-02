@@ -54,7 +54,7 @@ Environment Variables:
     FO_LOG_LEVEL - DEBUG, INFO, WARNING, ERROR
 """
 
-__version__ = "7.0.0"
+__version__ = "7.1.0"
 __author__ = "Framework Ecosystem Integration"
 
 # Core orchestrator
@@ -411,6 +411,44 @@ from .bcm_integration import (
     BCM_STATE_DIR,
 )
 
+# ============================================================================
+# v7.1.0 Cognitive Batch Invariance
+# ============================================================================
+
+# Batch Invariance (ThinkingMachines [He2025] compliance)
+from .batch_invariance import (
+    # Constants
+    COGNITIVE_TILE_SIZE,
+    DETERMINISM_SEED,
+    HASH_ALGORITHM,
+    # Enums
+    AggregationStrategy,
+    DeterminismMode,
+    AggregationOrder,
+    ConflictResolution,
+    # Core functions
+    kahan_sum,
+    kahan_mean,
+    kahan_weighted_mean,
+    chunk,
+    tile_process,
+    compute_state_hash,
+    # Classes
+    Instance,
+    BatchInvariantAggregator,
+    ConfidenceScore,
+    BatchInvarianceConfig,
+    # Verification
+    verify_round_trip,
+    verify_determinism,
+    verify_batch_invariance,
+    # Scoring
+    score_confidence,
+    # Config
+    get_batch_config,
+    set_batch_config,
+)
+
 # Substrate Runtime (extracted from cognitive-orchestrator)
 from .substrate import (
     # Knowledge - O(1) factual retrieval
@@ -745,4 +783,39 @@ __all__ = [
     "StateResult",
     "get_handoff_manager",
     "get_state_manager",
+
+    # ========================================
+    # v7.1.0 Cognitive Batch Invariance
+    # ========================================
+
+    # Constants
+    "COGNITIVE_TILE_SIZE",
+    "DETERMINISM_SEED",
+    "HASH_ALGORITHM",
+    # Enums
+    "AggregationStrategy",
+    "DeterminismMode",
+    "AggregationOrder",
+    "ConflictResolution",
+    # Core functions
+    "kahan_sum",
+    "kahan_mean",
+    "kahan_weighted_mean",
+    "chunk",
+    "tile_process",
+    "compute_state_hash",
+    # Classes
+    "Instance",
+    "BatchInvariantAggregator",
+    "ConfidenceScore",
+    "BatchInvarianceConfig",
+    # Verification
+    "verify_round_trip",
+    "verify_determinism",
+    "verify_batch_invariance",
+    # Scoring
+    "score_confidence",
+    # Config
+    "get_batch_config",
+    "set_batch_config",
 ]

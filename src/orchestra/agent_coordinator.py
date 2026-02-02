@@ -136,13 +136,24 @@ class QueuedResult:
 
 @dataclass
 class AgentContext:
-    """Context to propagate to child agents (LIVRPS INHERITS layer)."""
+    """
+    Context to propagate to child agents (LIVRPS INHERITS layer).
+
+    v7.1.0: Added peer awareness for Mycelium Arc (Patent Claim 5).
+    Agents can now share cognitive state horizontally with peers,
+    not just vertically with parent/child.
+    """
     parent_session_id: str
     burnout_level: str          # MUST propagate for safety
     energy_level: str           # MUST propagate for pacing
     active_project: str         # Context continuity
     original_goal: str          # Goal alignment
     depth: int                  # Agent chain depth
+
+    # v7.1.0: Mycelium Arc peer awareness
+    mycelium_peer_id: str = ""  # This agent's peer ID
+    mycelium_enabled: bool = True  # Is horizontal composition enabled
+    mycelium_aggregated_burnout: str = "green"  # SAFETY-MAX from peers
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -151,8 +162,30 @@ class AgentContext:
             "energy_level": self.energy_level,
             "active_project": self.active_project,
             "original_goal": self.original_goal,
-            "depth": self.depth
+            "depth": self.depth,
+            # v7.1.0: Mycelium Arc fields
+            "mycelium_peer_id": self.mycelium_peer_id,
+            "mycelium_enabled": self.mycelium_enabled,
+            "mycelium_aggregated_burnout": self.mycelium_aggregated_burnout
         }
+
+    def get_effective_burnout(self) -> str:
+        """
+        Get effective burnout level considering both local and peer state.
+
+        SAFETY-MAX: Returns the higher (more severe) of local burnout
+        and aggregated peer burnout. This ensures that if ANY peer
+        is in a severe burnout state, all connected agents respect it.
+
+        Returns:
+            The more severe burnout level
+        """
+        burnout_order = {"green": 0, "yellow": 1, "orange": 2, "red": 3}
+        local = burnout_order.get(self.burnout_level.lower(), 0)
+        peer = burnout_order.get(self.mycelium_aggregated_burnout.lower(), 0)
+        max_level = max(local, peer)
+        reverse_order = {0: "green", 1: "yellow", 2: "orange", 3: "red"}
+        return reverse_order[max_level]
 
 
 class AgentCoordinator:
@@ -328,8 +361,24 @@ class AgentCoordinator:
         return 1
 
     def create_agent_context(self, session_id: str, goal: str, project: str = "") -> AgentContext:
-        """Create context to propagate to child agents."""
+        """
+        Create context to propagate to child agents.
+
+        v7.1.0: Now includes Mycelium Arc peer awareness.
+        """
         context = self.get_cognitive_context()
+
+        # Get mycelium state if available
+        mycelium_peer_id = ""
+        mycelium_enabled = True
+        mycelium_aggregated_burnout = "green"
+
+        if self.cognitive_stage:
+            mycelium_peer_id = self.cognitive_stage.get_resolved_value("mycelium_peer_id", "")
+            mycelium_enabled = self.cognitive_stage.get_resolved_value("mycelium_enabled", True)
+            mycelium_aggregated_burnout = self.cognitive_stage.get_resolved_value(
+                "mycelium_aggregated_burnout", "green"
+            )
 
         return AgentContext(
             parent_session_id=session_id,
@@ -337,7 +386,10 @@ class AgentCoordinator:
             energy_level=context.energy_level,
             active_project=project,
             original_goal=goal,
-            depth=1  # Will be incremented for nested agents
+            depth=1,  # Will be incremented for nested agents
+            mycelium_peer_id=mycelium_peer_id,
+            mycelium_enabled=mycelium_enabled,
+            mycelium_aggregated_burnout=mycelium_aggregated_burnout
         )
 
     def register_agent(self, agent_id: str, agent_type: AgentType, task_description: str):

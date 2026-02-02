@@ -18,11 +18,16 @@ ThinkingMachines [He2025] Compliance:
 - Fixed attractor definitions
 - Deterministic tension calculation
 - Reproducible convergence detection
+- v7.1.0: Kahan summation for batch-invariant distance calculation
 
 v7.0.0 BCM Integration:
 - Trail can provide attractor preference history
 - Preferences are METADATA ONLY - do NOT change attractor detection
 - Recording outcomes for trail learning
+
+v7.1.0 Batch Invariance Integration:
+- Uses kahan_sum for L2 distance calculation
+- Ensures deterministic results regardless of accumulation order
 """
 
 import math
@@ -34,6 +39,7 @@ import logging
 from .expert_router import Expert
 from .parameter_locker import Paradigm
 from .cognitive_state import BurnoutLevel, MomentumPhase, Altitude
+from .batch_invariance import kahan_sum
 
 if TYPE_CHECKING:
     from .bcm_trail import OrchestraTrail
@@ -172,10 +178,17 @@ class StateVector:
         Calculate L2 distance between two state vectors.
 
         Formula: ||A - B||_2 = sqrt(sum((a_i - b_i)^2))
+
+        v7.1.0: Uses kahan_sum for batch-invariant accumulation.
+        This ensures deterministic results regardless of floating-point
+        accumulation order, per ThinkingMachines [He2025] compliance.
         """
         arr_a = a.to_array()
         arr_b = b.to_array()
-        return math.sqrt(sum((x - y) ** 2 for x, y in zip(arr_a, arr_b)))
+        # Calculate squared differences
+        squared_diffs = [(x - y) ** 2 for x, y in zip(arr_a, arr_b)]
+        # Use kahan_sum for batch-invariant accumulation
+        return math.sqrt(kahan_sum(squared_diffs))
 
 
 # =============================================================================

@@ -348,6 +348,32 @@ class OrchestratorConfig:
         'FO_RETRY_JITTER', 0.1  # 10% jitter by default; set to 0.0 for full determinism
     ))
 
+    # === Batch Invariance (v7.1.0) ===
+    # Per [He2025]: "Fixed tile sizes + deterministic ordering"
+    cognitive_tile_size: int = field(default_factory=lambda: _get_env_int(
+        'FO_COGNITIVE_TILE_SIZE', 32  # FIXED, matches CLAUDE.md spec
+    ))
+
+    batch_determinism_seed: int = field(default_factory=lambda: _get_env_int(
+        'FO_BATCH_DETERMINISM_SEED', 0xCAFEBABE  # Fixed seed for batch operations
+    ))
+
+    determinism_mode: str = field(default_factory=lambda: os.environ.get(
+        'FO_DETERMINISM_MODE', 'strict'  # strict | relaxed | none
+    ).lower())
+
+    aggregation_strategy: str = field(default_factory=lambda: os.environ.get(
+        'FO_AGGREGATION_STRATEGY', 'max'  # max | mean | weighted_mean | decay_mean | threshold_filter
+    ).lower())
+
+    aggregation_order: str = field(default_factory=lambda: os.environ.get(
+        'FO_AGGREGATION_ORDER', 'id_ascending'  # id_ascending | confidence_descending | chronological | hash
+    ).lower())
+
+    conflict_resolution: str = field(default_factory=lambda: os.environ.get(
+        'FO_CONFLICT_RESOLUTION', 'newest_wins'  # newest_wins | highest_confidence | manual | merge
+    ).lower())
+
     def ensure_directories(self) -> None:
         """Create required directories if they don't exist."""
         self.workspace.mkdir(parents=True, exist_ok=True)
@@ -400,6 +426,31 @@ class OrchestratorConfig:
         if self.log_format not in ('text', 'json'):
             errors.append(f"log_format must be 'text' or 'json', got {self.log_format}")
 
+        # Batch Invariance validation (v7.1.0)
+        if self.cognitive_tile_size < 1:
+            errors.append(f"cognitive_tile_size must be >= 1, got {self.cognitive_tile_size}")
+        if self.cognitive_tile_size != 32:
+            # Warn but don't error - spec says FIXED at 32
+            _config_warnings.append(
+                f"cognitive_tile_size should be 32 per CLAUDE.md spec, got {self.cognitive_tile_size}"
+            )
+
+        valid_determinism_modes = {'strict', 'relaxed', 'none'}
+        if self.determinism_mode not in valid_determinism_modes:
+            errors.append(f"determinism_mode must be one of {valid_determinism_modes}, got {self.determinism_mode}")
+
+        valid_aggregation_strategies = {'max', 'mean', 'weighted_mean', 'decay_mean', 'threshold_filter'}
+        if self.aggregation_strategy not in valid_aggregation_strategies:
+            errors.append(f"aggregation_strategy must be one of {valid_aggregation_strategies}, got {self.aggregation_strategy}")
+
+        valid_orders = {'id_ascending', 'confidence_descending', 'chronological', 'hash'}
+        if self.aggregation_order not in valid_orders:
+            errors.append(f"aggregation_order must be one of {valid_orders}, got {self.aggregation_order}")
+
+        valid_resolutions = {'newest_wins', 'highest_confidence', 'manual', 'merge'}
+        if self.conflict_resolution not in valid_resolutions:
+            errors.append(f"conflict_resolution must be one of {valid_resolutions}, got {self.conflict_resolution}")
+
         return errors
 
     def to_dict(self) -> dict:
@@ -438,6 +489,13 @@ class OrchestratorConfig:
             'reproducibility_mode': self.reproducibility_mode,
             'determinism_seed': self.determinism_seed,
             'retry_jitter': self.retry_jitter,
+            # Batch Invariance (v7.1.0)
+            'cognitive_tile_size': self.cognitive_tile_size,
+            'batch_determinism_seed': self.batch_determinism_seed,
+            'determinism_mode': self.determinism_mode,
+            'aggregation_strategy': self.aggregation_strategy,
+            'aggregation_order': self.aggregation_order,
+            'conflict_resolution': self.conflict_resolution,
         }
 
 
