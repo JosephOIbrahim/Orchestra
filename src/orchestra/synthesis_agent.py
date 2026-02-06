@@ -50,6 +50,10 @@ class SynthesisMode(Enum):
 # LIVRPS Priority for Conflict Resolution
 # =============================================================================
 
+# Context budget: max items per list key during _combine() accumulation.
+# Prevents unbounded list growth when many agents return large lists.
+MAX_COMBINE_LIST_SIZE = 200
+
 # Agent categories for LIVRPS-style priority resolution
 AGENT_PRIORITY = {
     # LOCAL (session state - highest priority)
@@ -201,9 +205,12 @@ class SynthesisAgent:
         Combine agent outputs into unified response.
 
         Uses LIVRPS priority for overlay order.
+        List accumulation is bounded by MAX_COMBINE_LIST_SIZE to prevent
+        context budget overflow when many agents return large lists.
         """
         result = SynthesisResult(mode=SynthesisMode.COMBINE)
         combined = {}
+        truncated_keys: List[str] = []
 
         # Sort agents by priority (lowest number = highest priority)
         sorted_agents = sorted(
@@ -224,19 +231,38 @@ class SynthesisAgent:
                 continue
 
             if isinstance(output, dict):
-                # Merge output into combined
-                for key, value in output.items():
+                # Merge output into combined (sorted keys for He2025 batch-invariance)
+                for key in sorted(output.keys()):
+                    value = output[key]
                     if key not in combined:
-                        combined[key] = value
+                        # Cap initial list assignment
+                        if isinstance(value, list) and len(value) > MAX_COMBINE_LIST_SIZE:
+                            combined[key] = value[:MAX_COMBINE_LIST_SIZE]
+                            if key not in truncated_keys:
+                                truncated_keys.append(key)
+                        else:
+                            combined[key] = value
                     elif isinstance(combined[key], dict) and isinstance(value, dict):
                         # Deep merge for dicts
                         combined[key].update(value)
                     elif isinstance(combined[key], list) and isinstance(value, list):
-                        # Extend lists
-                        combined[key].extend(value)
+                        # Bounded list extension
+                        remaining = MAX_COMBINE_LIST_SIZE - len(combined[key])
+                        if remaining > 0:
+                            combined[key].extend(value[:remaining])
+                        if len(value) > remaining:
+                            if key not in truncated_keys:
+                                truncated_keys.append(key)
                     else:
                         # Higher priority wins (don't overwrite)
                         pass
+
+        if truncated_keys:
+            combined["_truncated_lists"] = truncated_keys
+            self.logger.info(
+                f"Context budget: truncated {len(truncated_keys)} list(s) "
+                f"at {MAX_COMBINE_LIST_SIZE} items: {truncated_keys}"
+            )
 
         result.combined_output = combined
 
@@ -315,14 +341,15 @@ class SynthesisAgent:
         all_keys = set()
         agent_outputs = {}
 
-        for agent_name, agent_output in agent_results.items():
+        for agent_name in sorted(agent_results.keys()):
+            agent_output = agent_results[agent_name]
             output = agent_output.output if hasattr(agent_output, 'output') else agent_output.get('output', {})
             if isinstance(output, dict):
                 agent_outputs[agent_name] = output
                 all_keys.update(output.keys())
 
-        # Check each key for conflicts
-        for key in all_keys:
+        # Check each key for conflicts (sorted for He2025 batch-invariance)
+        for key in sorted(all_keys):
             values = {}
             for agent_name, output in agent_outputs.items():
                 if key in output:
