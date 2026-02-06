@@ -25,6 +25,7 @@ Output:
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -35,9 +36,9 @@ try:
 except ImportError:
     # Fallback for direct execution during development
     try:
-        from orchestra.cognitive_orchestrator import CognitiveOrchestrator, create_orchestrator
-        from orchestra.dashboard_bridge import DashboardBridge, create_bridge
-        from orchestra.parameter_locker import ThinkDepth
+        from orchestra.cognitive_orchestrator import CognitiveOrchestrator, create_orchestrator  # noqa: F401
+        from orchestra.dashboard_bridge import DashboardBridge, create_bridge  # noqa: F401
+        from orchestra.parameter_locker import ThinkDepth  # noqa: F401
     except ImportError as e:
         # Output minimal response if imports fail
         error_result = {
@@ -46,6 +47,13 @@ except ImportError:
         print(json.dumps(error_result))
         sys.exit(0)
 
+
+# Agent mode detection (L2↔L3 wire)
+# When running inside Docker (ORCHESTRA_AGENT_MODE=true):
+# - Skip interactive safety gates (burnout prompts) — agents run autonomously
+# - Still apply deterministic routing cascade
+# - Still enforce MAX3 limits
+AGENT_MODE = os.environ.get("ORCHESTRA_AGENT_MODE", "").lower() == "true"
 
 # Singleton instances
 _orchestrator = None
@@ -99,7 +107,12 @@ def get_bridge():
 
 
 def build_guidance(result):
-    """Build expert-specific guidance."""
+    """Build expert-specific guidance.
+
+    In agent mode (ORCHESTRA_AGENT_MODE=true), skip interactive safety gates
+    like burnout prompts. Agents run autonomously but still get deterministic
+    routing and expert selection.
+    """
     expert = result.routing.expert.value
     paradigm = result.lock.params.paradigm
 
@@ -115,8 +128,13 @@ def build_guidance(result):
 
     guidance = expert_guidance.get(expert, "Proceed with standard response.")
 
-    if not result.routing.safety_gate_pass:
-        guidance = f"SAFETY GATE TRIGGERED. " + guidance
+    # Agent mode: skip interactive safety prompts but preserve routing decision
+    if AGENT_MODE:
+        if not result.routing.safety_gate_pass:
+            guidance = "AGENT MODE: Safety gate noted (non-interactive). " + guidance
+    else:
+        if not result.routing.safety_gate_pass:
+            guidance = "SAFETY GATE TRIGGERED. " + guidance
 
     if paradigm == "Mycelium":
         guidance += " Follow associative threads."

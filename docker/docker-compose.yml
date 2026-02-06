@@ -1,0 +1,58 @@
+# He2025-aligned Multi-Agent Orchestration
+#
+# 3 agents max (constitutional limit from agent_coordinator.py)
+# Shared /workspace for deterministic task queue coordination
+# Read-only substrate mount (agents don't modify the spec)
+#
+# Usage:
+#   docker compose build
+#   docker compose up agent-0          # Single agent
+#   docker compose up                  # All 3 agents
+#   docker compose up --scale agent-1=0 --scale agent-2=0  # Just agent-0
+
+services:
+  agent-0:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - AGENT_ID=agent_0
+      - NUM_AGENTS=3
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ORCHESTRA_AGENT_MODE=true
+    volumes:
+      - workspace:/workspace
+      - ${HOME}/.claude:/root/.claude:ro  # Read-only substrate access
+    restart: unless-stopped
+
+  agent-1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - AGENT_ID=agent_1
+      - NUM_AGENTS=3
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ORCHESTRA_AGENT_MODE=true
+    volumes:
+      - workspace:/workspace
+      - ${HOME}/.claude:/root/.claude:ro
+    restart: unless-stopped
+
+  agent-2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - AGENT_ID=agent_2
+      - NUM_AGENTS=3
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ORCHESTRA_AGENT_MODE=true
+    volumes:
+      - workspace:/workspace
+      - ${HOME}/.claude:/root/.claude:ro
+    restart: unless-stopped
+
+volumes:
+  workspace:
+    driver: local

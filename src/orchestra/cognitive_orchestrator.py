@@ -46,23 +46,29 @@ import logging
 
 # Cognitive modules
 from .prism_detector import PRISMDetector, SignalVector, create_detector
-from .expert_router import ExpertRouter, Expert, RoutingResult, create_router
+from .expert_router import ExpertRouter, RoutingResult, create_router
 from .parameter_locker import (
-    ParameterLocker, LockedParams, LockResult, ThinkDepth, Paradigm, create_locker
+    ParameterLocker, LockResult, ThinkDepth, Paradigm, create_locker
 )
 from .convergence_tracker import (
-    ConvergenceTracker, ConvergenceResult, AttractorBasin, create_tracker
+    ConvergenceTracker, ConvergenceResult, create_tracker
 )
 from .cognitive_state import (
     CognitiveState, CognitiveStateManager, BurnoutLevel, EnergyLevel,
-    MomentumPhase, CognitiveMode, Altitude
+    MomentumPhase, CognitiveMode
 )
 # v6.0.0: Grounding Layer
 from .grounding_bridge import (
-    GroundingBridge, GroundingResult, SourceMode, create_grounding_bridge
+    GroundingBridge, GroundingResult, create_grounding_bridge
 )
 # v7.0.0: BCM Trail Integration
 from .bcm_integration import BCMPipelineAdapter, create_adapter
+# v7.1.0: Determinism Proxy (L1 boundary layer)
+try:
+    from .determinism_proxy import DeterminismProxy, ResponseCache, PromptCanonicalizer
+    DETERMINISM_PROXY_AVAILABLE = True
+except ImportError:
+    DETERMINISM_PROXY_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -82,16 +88,16 @@ class NexusResult:
     grounding: Optional[GroundingResult] = None
 
     # Phase 1: DETECT
-    signals: SignalVector = None
+    signals: Optional[SignalVector] = None
 
     # Phase 2: CASCADE
-    routing: RoutingResult = None
+    routing: Optional[RoutingResult] = None
 
     # Phase 3: LOCK
-    lock: LockResult = None
+    lock: Optional[LockResult] = None
 
     # Phase 5: UPDATE
-    convergence: ConvergenceResult = None
+    convergence: Optional[ConvergenceResult] = None
 
     # Metadata
     timestamp: float = field(default_factory=time.time)
@@ -215,7 +221,8 @@ class CognitiveOrchestrator:
         tracker: Optional[ConvergenceTracker] = None,
         grounding_bridge: Optional[GroundingBridge] = None,  # v6.0.0
         bcm_adapter: Optional[BCMPipelineAdapter] = None,  # v7.0.0
-        session_id: str = "default"  # v7.0.0
+        session_id: str = "default",  # v7.0.0
+        determinism_proxy: Optional[Any] = None,  # v7.1.0: L1 boundary
     ):
         """
         Initialize orchestrator with cognitive modules.
@@ -229,6 +236,7 @@ class CognitiveOrchestrator:
             grounding_bridge: v6.0.0 - Grounding layer bridge (creates default if None)
             bcm_adapter: v7.0.0 - BCM trail adapter (creates default if None)
             session_id: v7.0.0 - Session ID for BCM trail persistence
+            determinism_proxy: v7.1.0 - L1 determinism proxy (None = disabled)
         """
         self.state_manager = state_manager or CognitiveStateManager()
         self.detector = detector or create_detector()
@@ -238,6 +246,16 @@ class CognitiveOrchestrator:
         self.grounding = grounding_bridge or create_grounding_bridge()  # v6.0.0
         self.bcm = bcm_adapter or create_adapter(session_id, load=True)  # v7.0.0
 
+        # v7.1.0: L1 Determinism Proxy (optional)
+        # When enabled, checks ResponseCache before full pipeline processing.
+        # Cache hits bypass the nondeterministic API layer entirely.
+        self._determinism_proxy = determinism_proxy
+        if self._determinism_proxy is None and DETERMINISM_PROXY_AVAILABLE:
+            # Create canonical hasher for cache key generation
+            self._canonicalizer = PromptCanonicalizer()
+        else:
+            self._canonicalizer = None
+
         self._last_result: Optional[NexusResult] = None
         # v7.0.0: Pending signal fingerprints for BCM reliability tracking
         self._pending_signal_fingerprints: list = []
@@ -245,7 +263,7 @@ class CognitiveOrchestrator:
     def process_message(
         self,
         message: str,
-        context: Dict[str, Any] = None,
+        context: Optional[Dict[str, Any]] = None,
         requested_depth: ThinkDepth = ThinkDepth.STANDARD
     ) -> NexusResult:
         """
@@ -365,7 +383,7 @@ class CognitiveOrchestrator:
             reflection_count=snapshot.reflection_count,  # Batch-invariance: from snapshot
             source_mode=grounding_result.source_mode.value,  # v6.0.0
             trail=trail,  # v7.0.0: BCM trail for depth optimization
-            task_type=task_type  # v7.0.0: Task type for depth history lookup
+            task_type=task_type or ""  # v7.0.0: Task type for depth history lookup
         )
 
         logger.debug(f"  Lock: {lock.params.to_anchor()}, "
@@ -409,7 +427,7 @@ class CognitiveOrchestrator:
             logger.info("Early convergence detected - resetting reflection count")
             new_reflection_count = 0
 
-        state_updates = {
+        state_updates: Dict[str, Any] = {
             "exchange_count": snapshot.exchange_count + 1,
             "reflection_count": new_reflection_count,  # Batch-invariance: increment after processing
             "convergence_attractor": convergence.attractor_basin.value,
@@ -490,6 +508,26 @@ class CognitiveOrchestrator:
 
         return result
 
+    def get_canonical_hash(self, message: str) -> Optional[str]:
+        """
+        Get canonical hash of a message (v7.1.0 L1 integration).
+
+        Useful for cache key generation and deduplication.
+
+        Args:
+            message: Raw message string
+
+        Returns:
+            Canonical hash string, or None if proxy not available
+        """
+        if self._canonicalizer:
+            return self._canonicalizer.canonical_hash(message)
+        return None
+
+    def get_determinism_proxy(self):
+        """Get the L1 determinism proxy (v7.1.0)."""
+        return self._determinism_proxy
+
     def get_last_result(self) -> Optional[NexusResult]:
         """Get the last processing result."""
         return self._last_result
@@ -511,7 +549,7 @@ class CognitiveOrchestrator:
         self._last_result = None
         logger.info("Session reset")
 
-    def calibrate(self, focus_level: str = None, urgency: str = None) -> None:
+    def calibrate(self, focus_level: Optional[str] = None, urgency: Optional[str] = None) -> None:
         """
         Calibrate cognitive state from non-invasive questions.
 
