@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Orchestra is a cognitive safety layer for AI-assisted development (v7.0.0). It sits between the user and Claude Code, tracking energy, momentum, and burnout to adapt AI behavior to actual user capacity.
+Orchestra is a cognitive safety layer for AI-assisted development (v7.1.0). It sits between the user and Claude Code, tracking energy, momentum, and burnout to adapt AI behavior to actual user capacity.
 
 **Core principle:** Same signals → Same routing → Same behavior (ThinkingMachines [He2025] batch-invariance)
 
@@ -17,7 +17,7 @@ pip install -e ".[dev,tui]"       # With TUI dashboard
 pip install -e ".[distillation]"  # With knowledge distillation
 
 # Test
-pytest                                    # All 1,047 tests
+pytest                                    # All 1,494 tests
 pytest tests/test_cognitive_engine.py -v  # Single file
 pytest tests/test_cognitive_engine.py::test_routing_determinism -v  # Single test
 pytest -k "routing"                       # Tests matching pattern
@@ -25,6 +25,7 @@ pytest -m unit                            # Fast, isolated tests
 pytest -m integration                     # Full workflow tests
 pytest -m chaos                           # Fault injection tests
 pytest -m performance                     # SLA verification
+pytest -m contracts                       # Contract and schema validation
 pytest tests/distillation/ -v             # Knowledge distillation (118 tests)
 pytest --cov=src/orchestra --cov-report=html  # Coverage report
 
@@ -47,16 +48,14 @@ orchestra install-hook       # Install Claude Code integration
 orchestra init bash          # Get bash prompt config
 orchestra init zsh           # Get zsh prompt config
 
-# Lint
-ruff check .                 # Fast linting
-black src/ tests/            # Format code
-isort src/ tests/            # Sort imports
-mypy src/                    # Type checking
+# Lint (advisory in CI, not blocking)
+ruff check src/orchestra/    # Linting (matches CI target)
+mypy src/orchestra/ --ignore-missing-imports  # Type checking
 ```
 
 ## CI/CD
 
-Tests run on GitHub Actions across Python 3.10, 3.11, 3.12 on Ubuntu and Windows (9 matrix jobs). All tests must pass before merge.
+Tests run on GitHub Actions across Python 3.10, 3.11, 3.12 on Ubuntu and Windows (6 test matrix jobs + lint + type-check). All tests must pass before merge. Ruff and mypy run with `continue-on-error: true` (advisory). CI skips `test_integration.py`, `test_performance.py`, and `test_chaos.py` (these run locally only). CI uses `-x` (fail-fast) flag. Coverage uploads to Codecov from ubuntu/3.11 only.
 
 ## Architecture: 8-Phase NEXUS Pipeline
 
@@ -85,32 +84,24 @@ Phase 5:  UPDATE    → RC^+xi convergence tracking + BCM trail updates (queued,
 | `bcm_trail.py` | BCM stigmergic learning (v7.0.0) - trail confidence |
 | `bcm_integration.py` | BCM pipeline adapter - plasticity triggers |
 | `convergence_tracker.py` | RC^+xi epistemic tension tracking |
-| `cognitive_state.py` | State persistence (37 core + 7 BCM = 44 fields) |
+| `batch_invariance.py` | Kahan summation, fixed tile size, aggregation strategies (v7.1.0) |
+| `cognitive_state.py` | State persistence (37 core + 7 BCM + 18 batch = 62 fields) |
+| `framework_orchestrator.py` | 7-agent async task orchestrator (separate system, not the NEXUS pipeline) |
 
-### ADHD_MoE: 7 Intervention Experts (Fixed Priority Order)
+### Two Orchestrators
 
-1. **Validator** - frustrated/RED/caps → Empathy first
-2. **Scaffolder** - overwhelmed/stuck → Break down scope
-3. **Restorer** - depleted/ORANGE → Easy wins
-4. **Refocuser** - tangent/distracted → Redirect
-5. **Celebrator** - task_complete → Acknowledge
-6. **Socratic** - exploring/what_if → Guide discovery
-7. **Direct** - focused/flow → Minimal friction
+`CognitiveOrchestrator` and `FrameworkOrchestrator` are **different systems**:
 
-### GROUNDING_MoE: 4 Grounding Experts
+- **`CognitiveOrchestrator`** — The NEXUS pipeline. Processes signals → routes to experts → locks params. This is what the Claude Code hook calls via `cognitive_hook.py`.
+- **`FrameworkOrchestrator`** — A 7-agent async task orchestrator (ECHO, DomainIntelligence, MoE, WorldModeler, CodeGenerator, DeterminismGuard, SelfReflector) with filesystem-based state, circuit breakers, and agent coordination. Used for multi-agent workflows.
 
-1. **OracleResolver** - oracle_conflict/mismatch → Reconcile sources
-2. **EvidenceBuilder** - cite_needed/source_request → Build evidence chain
-3. **ConfidenceAdj** - hallucination_detected → Adjust confidence
-4. **AccessGatekeeper** - oracle_required/fresh_need → Route to grounding layer
+When modifying "the orchestrator," confirm which one.
 
-### BCM Stigmergic Learning (v7.0.0)
+### Expert Routing
 
-Trail-based expert confidence that learns from outcomes:
-- **Trail confidence** tracks expert success rates
-- **Plasticity windows** boost learning during crash recovery
-- **Auto-triggers**: `momentum=crashed + burnout=ORANGE` or `burnout=RED`
-- **Critical**: BCM is metadata-only—never changes routing order
+7 ADHD_MoE experts + 4 GROUNDING_MoE experts in **fixed priority order** — see `expert_router.py`. Priority order (Validator > Scaffolder > ... > Direct, OracleResolver > ... > AccessGatekeeper) is a determinism invariant. First match wins.
+
+**BCM constraint**: BCM trail confidence is metadata-only — it never changes routing order.
 
 ### Safety Gating
 
@@ -135,17 +126,48 @@ EXPERT_PRIORITY = [Expert.VALIDATOR, Expert.SCAFFOLDER, ...]
 experts = sorted(experts, key=lambda e: compute_priority(e, state))
 ```
 
+## Substrate Subpackage
+
+`src/orchestra/substrate/` contains three subsystems extracted from the cognitive orchestrator:
+
+| Subpackage | Purpose |
+|------------|---------|
+| `substrate/knowledge/` | O(1) factual retrieval (`KnowledgeRetriever`), plus `distillation/` pipeline (18 modules) for LLM-based knowledge extraction |
+| `substrate/ewm/` | External Working Memory — session anchors, time beacons, project friction tracking |
+| `substrate/hardening/` | Graceful degradation, backup/restore, handoff documents, state file management |
+
+## MCP Subpackage
+
+`packages/orchestra-mcp/` is a separate MCP (Model Context Protocol) server package with its own `pyproject.toml`. Published independently via `.github/workflows/publish-mcp.yml`.
+
+## Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `FO_WORKSPACE` | Workspace directory |
+| `FO_AGENT_TIMEOUT` | Per-agent timeout (seconds) |
+| `FO_LOG_FORMAT` | `text` or `json` |
+| `FO_LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING`, `ERROR` |
+
 ## Key Paths
 
 ```
 src/orchestra/hooks/cognitive_hook.py     # Claude Code integration entry point
 src/orchestra/bcm_trail.py                # BCM trail system (v7.0.0)
-~/.orchestra/state/cognitive_state.json   # Runtime state (44 fields)
+src/orchestra/substrate/                  # Knowledge, EWM, hardening subsystems
+packages/orchestra-mcp/                   # MCP server (separate package)
+~/.orchestra/state/cognitive_state.json   # Runtime state (62 fields)
 ~/.orchestra/bcm/trail_{session}.json     # BCM trail persistence
 ~/.orchestra/config/orchestra.json        # User preferences
 ```
 
+**Hook data flow:** Claude Code calls `python -m orchestra.hooks` → stdin `{"user_prompt": "..."}` → `CognitiveOrchestrator.process_message()` → stdout `{"systemMessage": "[EXEC:...]"}`. Empty prompt → empty JSON `{}`.
+
 **Critical for determinism:** `expert_router.py` — Expert selection must maintain FIXED priority order.
+
+## Adding New State Fields
+
+New fields on `CognitiveState` **must have dataclass defaults**. Old state files won't contain them — deserialization uses `get_resolved_value(key, default)` for graceful fallback. Tests pass (fresh state), production breaks (loaded state) if defaults are missing.
 
 ## Adding New Experts
 
@@ -158,16 +180,6 @@ src/orchestra/bcm_trail.py                # BCM trail system (v7.0.0)
 
 Signal priority order (emotional > grounding > mode > domain > task > energy) is core specification. Changes require careful consideration. Modify `SignalCategory` enum, `SIGNAL_PATTERNS`, `SignalVector` dataclass, and `PRISMDetector.detect()`.
 
-## Test Categories
-
-| Category | Tests | Marker |
-|----------|-------|--------|
-| Core orchestration | 799 | `-m unit` or `-m integration` |
-| BCM integration | 66 | `tests/test_bcm_integration.py` |
-| Knowledge distillation | 118 | `tests/distillation/` |
-| Grounding | 48 | `tests/test_grounding_integration.py` |
-| Hook compliance | 17 | `tests/test_hook_bcm_integration.py` |
-
 ## Anti-Patterns
 
 - **Never reorder** phase execution or priority lists
@@ -176,3 +188,4 @@ Signal priority order (emotional > grounding > mode > domain > task > energy) is
 - **Never break** parameter locking before generation
 - **Never spawn agents** when burnout >= ORANGE (simplify instead)
 - **Never apply BCM updates** during processing (queue for FLUSH phase)
+- **Never remove** `conftest.py` module aliases (`sys.modules['framework_orchestrator']`, etc.) — these are intentional backward-compat shims that tests depend on

@@ -30,13 +30,12 @@ from typing import Dict, Any, Optional
 try:
     from .cognitive_orchestrator import CognitiveOrchestrator, NexusResult, create_orchestrator
     from .dashboard_bridge import DashboardBridge, create_bridge
-    from .cognitive_state import BurnoutLevel, EnergyLevel
+    from .cognitive_state import BurnoutLevel, EnergyLevel  # noqa: F401
 except ImportError:
     # When running as standalone script
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from orchestra.cognitive_orchestrator import CognitiveOrchestrator, NexusResult, create_orchestrator
     from orchestra.dashboard_bridge import DashboardBridge, create_bridge
-    from orchestra.cognitive_state import BurnoutLevel, EnergyLevel
 
 
 # Singleton instances for session persistence
@@ -139,7 +138,6 @@ def build_guidance(result: NexusResult) -> str:
     This provides Claude with expert-specific instructions.
     """
     expert = result.routing.expert.value
-    trigger = result.routing.trigger
     paradigm = result.lock.params.paradigm
 
     # Expert-specific guidance

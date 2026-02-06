@@ -532,6 +532,9 @@ __all__ = [
     "get_logger",
     "JSONFormatter",
     "TextFormatter",
+    "log_execution",
+    "log_orchestration_start",
+    "log_orchestration_complete",
 
     # Health
     "HealthChecker",
@@ -552,6 +555,10 @@ __all__ = [
     "validate_principles",
     "validate_state_file",
     "validate_agent_result",
+    "DOMAIN_CONFIG_SCHEMA",
+    "PRINCIPLES_SCHEMA",
+    "STATE_FILE_SCHEMA",
+    "AGENT_RESULT_SCHEMA",
 
     # ========================================
     # v3.0 Production Excellence
