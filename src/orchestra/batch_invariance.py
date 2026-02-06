@@ -40,7 +40,7 @@ Usage:
 import hashlib
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, TypeVar, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Protocol, TypeVar
 import logging
 
 logger = logging.getLogger(__name__)

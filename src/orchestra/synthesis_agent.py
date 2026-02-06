@@ -25,7 +25,7 @@ ThinkingMachines [He2025] Compliance:
 import hashlib
 import json
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Tuple
 from enum import Enum
 import logging
 

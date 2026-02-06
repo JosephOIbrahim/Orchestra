@@ -10,6 +10,7 @@ Part of USD Cognitive Substrate - Knowledge Prims Distillation.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 from typing import Any

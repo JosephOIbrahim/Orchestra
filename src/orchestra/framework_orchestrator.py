@@ -39,13 +39,13 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable, Deque
+from typing import Dict, List, Any, Optional, Deque, Union
 from enum import Enum
 import logging
 
 # Production hardening modules
 from .config import OrchestratorConfig, get_config
-from .file_ops import atomic_write_json, safe_read_json
+from .file_ops import atomic_write_json
 from .resilience import (
     CircuitBreaker, CircuitBreakerOpen, ResilientExecutor,
     TimeoutError as AgentTimeoutError
@@ -55,34 +55,31 @@ from .validation import (
     truncate_for_logging, ValidationError
 )
 from .logging_setup import setup_logging, log_execution, log_orchestration_start, log_orchestration_complete
-from .health import HealthChecker, HealthStatus, format_health_report
-from .lifecycle import LifecycleManager, LifecycleState, ShutdownContext
-from .schemas import validate_domain_config, validate_state_file
+from .health import HealthChecker, format_health_report
+from .lifecycle import LifecycleManager, ShutdownContext
 
 # Cognitive state modules (v4.0 - Hybrid Orchestra)
 from .cognitive_state import (
-    CognitiveState, CognitiveStateManager,
-    BurnoutLevel, MomentumPhase, EnergyLevel, CognitiveMode, Altitude
+    CognitiveStateManager,
+    BurnoutLevel
 )
-from .prism_detector import PRISMDetector, SignalVector, SignalCategory
+from .prism_detector import PRISMDetector
 from .adhd_support import (
-    CognitiveSafetyManager, CognitiveSafetyCheckResult, create_cognitive_safety_manager,
-    # Backward compatibility aliases
-    ADHDSupportManager, ADHDCheckResult, create_adhd_manager
+    CognitiveSafetyManager, create_cognitive_safety_manager
 )
 
 # Decision engine (v4.3.0 - Work/Delegate/Protect)
 from .decision_engine import (
-    DecisionEngine, TaskRequest, TaskCategory, ExecutionPlan
+    DecisionEngine, TaskRequest, TaskCategory
 )
 from .agent_coordinator import DecisionMode
 
 # Production excellence modules (v3.0)
-from .metrics import OrchestratorMetrics, get_metrics
-from .tracing import DistributedTracer, get_tracer, configure_tracer, SpanStatus
+from .metrics import OrchestratorMetrics
+from .tracing import configure_tracer, SpanStatus
 from .bulkhead import BulkheadExecutor, BulkheadRejected, BulkheadTimeout
-from .checkpoint import OrchestrationCheckpoint, CheckpointStatus, recover_from_crash
-from .fallback import FallbackRegistry, FallbackResult, GracefulDegradation
+from .checkpoint import OrchestrationCheckpoint
+from .fallback import FallbackRegistry
 from .rate_limit import RateLimiter, RateLimitExceeded
 from .idempotency import IdempotencyManager, generate_idempotency_key
 
@@ -202,7 +199,7 @@ class ECHOCuratorAgent(BaseAgent):
         "archive": "references"
     }
 
-    def __init__(self, principles_path: Path = None):
+    def __init__(self, principles_path: Optional[Path] = None):
         super().__init__(
             name="echo_curator",
             framework="ECHO 2.0 + LIVRPS",
@@ -210,7 +207,7 @@ class ECHOCuratorAgent(BaseAgent):
         )
 
         # LIVRPS memory layers
-        self.memory_layers = {
+        self.memory_layers: Dict[str, Dict[str, Any]] = {
             "specializes": {},   # Principles - NEVER compressed
             "payloads": {},      # Domain memory - unloadable
             "references": {},    # Calibration - persistent
@@ -286,7 +283,7 @@ class ECHOCuratorAgent(BaseAgent):
         5. PAYLOADS (domain) - domain expertise
         6. SPECIALIZES (principles) - FOUNDATIONAL, referenced on uncertainty
         """
-        resolution = {
+        resolution: Dict[str, Any] = {
             "query": query,
             "resolved_from": None,
             "resolution_path": [],
@@ -325,7 +322,7 @@ class ECHOCuratorAgent(BaseAgent):
         total_items = sum(len(layer) if isinstance(layer, dict) else 0
                          for layer in self.memory_layers.values())
 
-        compression_state = {
+        compression_state: Dict[str, Any] = {
             "total_memory_items": total_items,
             "layers_status": {},
             "compression_applied": [],
@@ -467,7 +464,7 @@ class DomainIntelligenceAgent(BaseAgent):
     # Default domains path (user home directory)
     DEFAULT_DOMAINS_PATH = Path.home() / "Orchestra" / "config" / "domains"
 
-    def __init__(self, domains_path: Path = None):
+    def __init__(self, domains_path: Optional[Path] = None):
         super().__init__(
             name="domain_intelligence",
             framework="Phoenix v6 + PRISM",
@@ -516,7 +513,7 @@ class DomainIntelligenceAgent(BaseAgent):
 
     def _build_keyword_index(self) -> Dict[str, List[Dict]]:
         """Build reverse index: keyword -> [{domain, specialist}]."""
-        index = {}
+        index: Dict[str, List[Dict[str, Any]]] = {}
         for domain_name, domain in self.domains.items():
             for specialist_name, specialist in domain.get("specialists", {}).items():
                 for keyword in specialist.get("keywords", []):
@@ -570,9 +567,9 @@ class DomainIntelligenceAgent(BaseAgent):
         keyword_index = self._build_keyword_index()
 
         # Domain detection
-        detected_domains = {}
-        detected_specialists = {}
-        matched_keywords = []
+        detected_domains: Dict[str, Dict[str, Any]] = {}
+        detected_specialists: Dict[str, Dict[str, Any]] = {}
+        matched_keywords: List[str] = []
 
         for keyword, mappings in keyword_index.items():
             if keyword in task_lower:
@@ -618,12 +615,12 @@ class DomainIntelligenceAgent(BaseAgent):
 
         # Determine primary domain and specialist (highest keyword hits, or first if fallback)
         if detected_domains:
-            primary_domain = max(detected_domains, key=lambda d: detected_domains[d]["hits"])
+            primary_domain = max(detected_domains, key=lambda d: int(detected_domains[d]["hits"]))
         else:
             primary_domain = "general"
 
         if detected_specialists:
-            primary_specialist = max(detected_specialists, key=lambda s: detected_specialists[s]["hits"])
+            primary_specialist = max(detected_specialists, key=lambda s: int(detected_specialists[s]["hits"]))
         else:
             primary_specialist = "general.analysis"
 
@@ -867,7 +864,7 @@ class MoERouterAgent(BaseAgent):
         # Fallback: Original keyword matching (if no PRISM signals)
         if not prism_signals or sum(activation.values()) == 0:
             for expert, config in self.EXPERTS.items():
-                triggers = config["triggers"]
+                triggers: List[str] = config["triggers"]  # type: ignore[assignment]
                 matches = sum(1 for t in triggers if t in task_lower)
                 activation[expert] = max(activation[expert], min(matches / max(len(triggers), 1), 1.0))
 
@@ -970,7 +967,7 @@ class MoERouterAgent(BaseAgent):
         selected = self._select(bounded)
 
         # Compute who would have won WITHOUT safety floors (for transparency)
-        raw_winner = max(weighted.items(), key=lambda x: (x[1], -self.EXPERTS[x[0]]["priority"]))[0] if any(weighted.values()) else "protector"
+        raw_winner = max(weighted.items(), key=lambda x: (x[1], -int(self.EXPERTS[x[0]]["priority"])))[0] if any(weighted.values()) else "protector"
         safety_intervention = (selected != raw_winner) and (weighted.get(raw_winner, 0) > weighted.get(selected, 0))
 
         # PHASE 5: UPDATE - Prepare for Hebbian learning
@@ -1174,7 +1171,7 @@ def _apply_determinism_settings(seed: int) -> Dict[str, Any]:
     Returns:
         Dict showing which settings were successfully applied
     """
-    applied = {"seed": seed, "sources": []}
+    applied: Dict[str, Any] = {"seed": seed, "sources": []}
 
     # Python's built-in random
     import random
@@ -1388,7 +1385,7 @@ class FrameworkOrchestrator:
     - Graceful shutdown handling
     """
 
-    def __init__(self, workspace: Path = None, config: OrchestratorConfig = None):
+    def __init__(self, workspace: Optional[Path] = None, config: Optional[OrchestratorConfig] = None):
         # Load configuration
         self.config = config or get_config()
 
@@ -1893,7 +1890,7 @@ class FrameworkOrchestrator:
                 wait_time = await self.rate_limiter.acquire()
                 if wait_time > 0:
                     logger.info(f"Rate limited, waited {wait_time:.2f}s")
-            except RateLimitExceeded as e:
+            except RateLimitExceeded:
                 if self.metrics:
                     self.metrics.tasks_failed.inc()
                 raise
@@ -1943,7 +1940,7 @@ class FrameworkOrchestrator:
                     self.rate_limiter.record_failure()
             raise AgentTimeoutError("orchestration", self.config.orchestration_timeout)
 
-        except Exception as e:
+        except Exception:
             if self.metrics:
                 self.metrics.increment_task_failed()
                 if self.rate_limiter and self.config.rate_limit_adaptive:
@@ -2576,7 +2573,7 @@ Examples:
 
     # Handle --health
     if args.health:
-        health = orchestrator.get_health()
+        orchestrator.get_health()
         report = orchestrator.health_checker.check_health()
         print(format_health_report(report))
         return 0 if report.is_healthy else 1

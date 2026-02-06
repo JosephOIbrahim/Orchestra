@@ -189,7 +189,7 @@ class USDAWriter:
             # Atomic rename (on POSIX; on Windows this replaces)
             temp_path.replace(output_path)
 
-        except Exception as e:
+        except Exception:
             # Clean up temp file if it exists
             if "temp_path" in locals() and temp_path.exists():
                 temp_path.unlink()
@@ -340,7 +340,7 @@ class USDAWriter:
 
             temp_path.replace(output_path)
 
-        except Exception as e:
+        except Exception:
             if "temp_path" in locals() and temp_path.exists():
                 temp_path.unlink()
             raise

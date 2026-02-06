@@ -22,8 +22,8 @@ Usage:
 import asyncio
 import time
 import logging
-from dataclasses import dataclass, field
-from typing import Optional, Dict, Any
+from dataclasses import dataclass
+from typing import Dict, Any
 import threading
 
 logger = logging.getLogger(__name__)

@@ -395,12 +395,18 @@ class ConvergenceTracker:
 
         for attractor, definition in ATTRACTOR_DEFINITIONS.items():
             # Create target state vector
+            # Cast from Any to specific enum types (ATTRACTOR_DEFINITIONS stores typed values)
+            target_expert: Expert = definition["expert"]
+            target_paradigm: Paradigm = definition["paradigm"]
+            target_burnout: BurnoutLevel = definition["burnout"]
+            target_momentum: MomentumPhase = definition["momentum"]
+            target_altitude: Altitude = definition.get("altitude", Altitude.VISION)
             target = self._normalize_state(
-                definition["expert"],
-                definition["paradigm"],
-                definition["burnout"],
-                definition["momentum"],
-                definition.get("altitude", Altitude.VISION)
+                target_expert,
+                target_paradigm,
+                target_burnout,
+                target_momentum,
+                target_altitude
             )
 
             distance = StateVector.distance(current, target)
@@ -478,12 +484,16 @@ class ConvergenceTracker:
     def get_attractor_info(self, attractor: AttractorBasin) -> Dict[str, Any]:
         """Get information about an attractor basin."""
         definition = ATTRACTOR_DEFINITIONS.get(attractor, {})
+        expert: Expert = definition.get("expert", Expert.DIRECT)
+        paradigm: Paradigm = definition.get("paradigm", Paradigm.CORTEX)
+        burnout: BurnoutLevel = definition.get("burnout", BurnoutLevel.GREEN)
+        momentum: MomentumPhase = definition.get("momentum", MomentumPhase.ROLLING)
         return {
             "name": attractor.value,
-            "expert": definition.get("expert", Expert.DIRECT).value,
-            "paradigm": definition.get("paradigm", Paradigm.CORTEX).value,
-            "burnout": definition.get("burnout", BurnoutLevel.GREEN).value,
-            "momentum": definition.get("momentum", MomentumPhase.ROLLING).value,
+            "expert": expert.value,
+            "paradigm": paradigm.value,
+            "burnout": burnout.value,
+            "momentum": momentum.value,
             "description": definition.get("description", "")
         }
 

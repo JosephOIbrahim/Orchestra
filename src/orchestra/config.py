@@ -539,5 +539,5 @@ def validate_config_strict() -> None:
 
     if all_errors:
         raise ConfigurationError(
-            f"Configuration errors:\n" + "\n".join(f"  - {e}" for e in all_errors)
+            "Configuration errors:\n" + "\n".join(f"  - {e}" for e in all_errors)
         )

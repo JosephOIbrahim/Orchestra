@@ -24,13 +24,12 @@ Constitutional Principles:
 - User knows best: Their signal trumps our guess
 """
 
-import hashlib
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Tuple, List, Union, TYPE_CHECKING
+from typing import Optional, Dict, Any, Tuple, TYPE_CHECKING
 from enum import Enum
 import logging
 
-from .prism_detector import SignalVector, SignalCategory
+from .prism_detector import SignalVector
 from .cognitive_state import BurnoutLevel, EnergyLevel, MomentumPhase
 
 if TYPE_CHECKING:

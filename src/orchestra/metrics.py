@@ -54,14 +54,14 @@ class Counter:
         """Create tuple key from label values."""
         if not self.labels:
             return ()
-        return tuple(str(label_values.get(l, "")) for l in self.labels)
+        return tuple(str(label_values.get(lbl, "")) for lbl in self.labels)
 
     def export(self) -> str:
         """Export in Prometheus text format."""
         lines = [f"# HELP {self.name} {self.help}", f"# TYPE {self.name} counter"]
         for key, value in self._values.items():
             if key:
-                labels_str = ",".join(f'{l}="{v}"' for l, v in zip(self.labels, key))
+                labels_str = ",".join(f'{lbl}="{v}"' for lbl, v in zip(self.labels, key))
                 lines.append(f"{self.name}{{{labels_str}}} {value}")
             else:
                 lines.append(f"{self.name} {value}")
@@ -124,7 +124,7 @@ class Histogram:
         """Create tuple key from label values."""
         if not self.labels:
             return ()
-        return tuple(str(label_values.get(l, "")) for l in self.labels)
+        return tuple(str(label_values.get(lbl, "")) for lbl in self.labels)
 
     def export(self) -> str:
         """Export in Prometheus text format."""
@@ -133,7 +133,7 @@ class Histogram:
         for key in set(self._count.keys()) | set(self._bucket_counts.keys()):
             label_prefix = ""
             if key:
-                labels_str = ",".join(f'{l}="{v}"' for l, v in zip(self.labels, key))
+                labels_str = ",".join(f'{lbl}="{v}"' for lbl, v in zip(self.labels, key))
                 label_prefix = labels_str + ","
 
             # Export bucket counts
@@ -197,14 +197,14 @@ class Gauge:
         """Create tuple key from label values."""
         if not self.labels:
             return ()
-        return tuple(str(label_values.get(l, "")) for l in self.labels)
+        return tuple(str(label_values.get(lbl, "")) for lbl in self.labels)
 
     def export(self) -> str:
         """Export in Prometheus text format."""
         lines = [f"# HELP {self.name} {self.help}", f"# TYPE {self.name} gauge"]
         for key, value in self._values.items():
             if key:
-                labels_str = ",".join(f'{l}="{v}"' for l, v in zip(self.labels, key))
+                labels_str = ",".join(f'{lbl}="{v}"' for lbl, v in zip(self.labels, key))
                 lines.append(f"{self.name}{{{labels_str}}} {value}")
             else:
                 lines.append(f"{self.name} {value}")
@@ -370,8 +370,8 @@ class OrchestratorMetrics:
 
         # Add uptime metric
         uptime = time.time() - self._start_time
-        sections.append(f"# HELP fo_uptime_seconds Time since metrics started")
-        sections.append(f"# TYPE fo_uptime_seconds gauge")
+        sections.append("# HELP fo_uptime_seconds Time since metrics started")
+        sections.append("# TYPE fo_uptime_seconds gauge")
         sections.append(f"fo_uptime_seconds {uptime}")
 
         return "\n\n".join(sections)

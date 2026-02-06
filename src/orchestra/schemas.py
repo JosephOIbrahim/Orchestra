@@ -9,7 +9,7 @@ Provides schemas for:
 """
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 # Schema definitions using a simplified format
 # (jsonschema library can be added later for full validation)
@@ -228,7 +228,7 @@ def validate_type(value: Any, expected_type: str, path: str) -> List[ValidationE
         return errors
 
     expected_python_type = type_map.get(expected_type)
-    if expected_python_type and not isinstance(value, expected_python_type):
+    if expected_python_type and not isinstance(value, expected_python_type):  # type: ignore[arg-type]
         errors.append(ValidationError(
             path=path,
             message=f"Expected {expected_type}, got {type(value).__name__}",

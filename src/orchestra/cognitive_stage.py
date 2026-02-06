@@ -34,11 +34,6 @@ from enum import Enum
 from .cognitive_state import (
     CognitiveState,
     CognitiveStateManager,
-    BurnoutLevel,
-    MomentumPhase,
-    EnergyLevel,
-    CognitiveMode,
-    Altitude,
     ATTRACTOR_BASINS,
 )
 
@@ -50,7 +45,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 
 try:
-    from pxr import Usd, Sdf, Vt, Gf
+    from pxr import Usd, Sdf, Vt, Gf  # noqa: F401
     PXR_AVAILABLE = True
     logger.info("USD Python bindings (pxr) available - using native implementation")
 except ImportError:
@@ -211,7 +206,7 @@ class CognitiveStageBackend(ABC):
         pass
 
     @abstractmethod
-    def get_layer(self, priority: LayerPriority) -> CognitiveLayer:
+    def get_layer(self, priority: LayerPriority) -> Optional[CognitiveLayer]:
         """Get layer by priority."""
         pass
 
@@ -370,8 +365,8 @@ class MockCognitiveBackend(CognitiveStageBackend):
             logger.error(f"Failed to save cognitive stage to {path}: {e}")
             raise
 
-    def get_layer(self, priority: LayerPriority) -> CognitiveLayer:
-        """Get layer by priority."""
+    def get_layer(self, priority: LayerPriority) -> Optional[CognitiveLayer]:
+        """Get layer by priority (may return None if priority not found)."""
         return self.layers.get(priority)
 
     def set_attribute(self, layer: LayerPriority, name: str, value: Any) -> None:
@@ -574,12 +569,14 @@ if PXR_AVAILABLE:
 
         def save_stage(self, path: Path) -> None:
             """Save stage to USD file."""
+            assert self.stage is not None, "Stage not created. Call create_stage() first."
             path.parent.mkdir(parents=True, exist_ok=True)
             self.stage.Export(str(path))
             logger.debug(f"Saved pxr cognitive stage to {path}")
 
-        def get_layer(self, priority: LayerPriority) -> CognitiveLayer:
+        def get_layer(self, priority: LayerPriority) -> Optional[CognitiveLayer]:
             """Get layer as CognitiveLayer wrapper."""
+            assert self.stage is not None, "Stage not created. Call create_stage() first."
             prim_path = f"/CognitiveRoot/{priority.name.lower()}"
             prim = self.stage.GetPrimAtPath(prim_path)
 
@@ -594,10 +591,12 @@ if PXR_AVAILABLE:
 
         def set_attribute(self, layer: LayerPriority, name: str, value: Any) -> None:
             """Set attribute on session layer (for local) or root layer."""
+            assert self.stage is not None, "Stage not created. Call create_stage() first."
             prim_path = f"/CognitiveRoot/{layer.name.lower()}"
 
             if layer == LayerPriority.LOCAL:
                 # Session layer edits for local/mutable state
+                assert self.session_layer is not None
                 with Sdf.ChangeBlock():
                     spec = self.session_layer.GetPrimAtPath(prim_path)
                     if not spec:
@@ -614,8 +613,6 @@ if PXR_AVAILABLE:
 
             This uses USD's native composition engine - LIVRPS happens automatically.
             """
-            root_prim = self.stage.GetPrimAtPath("/CognitiveRoot")
-
             # Check each layer prim in priority order
             for priority in LayerPriority:
                 prim_path = f"/CognitiveRoot/{priority.name.lower()}"
@@ -692,7 +689,7 @@ class CognitiveStage:
 
     DEFAULT_STAGE_FILE = "cognitive_stage.json"
 
-    def __init__(self, state_dir: Path = None):
+    def __init__(self, state_dir: Optional[Path] = None):
         """
         Initialize cognitive stage.
 
@@ -798,8 +795,8 @@ class CognitiveStage:
         """
         self._backend.set_attribute(LayerPriority.REFERENCES, name, value)
 
-    def calibrate(self, focus_level: str = None, urgency: str = None,
-                  energy_estimate: str = None) -> None:
+    def calibrate(self, focus_level: Optional[str] = None, urgency: Optional[str] = None,
+                  energy_estimate: Optional[str] = None) -> None:
         """
         Calibrate from non-invasive questions.
 
@@ -895,9 +892,7 @@ class CognitiveStage:
         """
         corrections = {}
 
-        # Check working memory limit
-        wm_limit = self.get_safety_floor("working_memory_limit")
-        # Working memory is typically enforced in cognitive support
+        # Working memory limit is enforced in cognitive support
 
         # Check thinking depth based on energy/burnout
         energy = self.get_resolved("energy_level")
@@ -923,8 +918,8 @@ class CognitiveStage:
         """Get underlying CognitiveState."""
         return self._state_manager.get_state()
 
-    def update_from_signals(self, burnout: str = None, momentum: str = None,
-                            energy: str = None) -> None:
+    def update_from_signals(self, burnout: Optional[str] = None, momentum: Optional[str] = None,
+                            energy: Optional[str] = None) -> None:
         """
         Update state from detected signals.
 
@@ -943,7 +938,7 @@ class CognitiveStage:
     # Export & Debug
     # =========================================================================
 
-    def export(self, filename: str = None) -> Path:
+    def export(self, filename: Optional[str] = None) -> Path:
         """
         Export stage to .usda file for debugging.
 
@@ -1007,7 +1002,7 @@ epistemic_tension={tension:.2f}
 # Factory Function
 # =============================================================================
 
-def create_cognitive_stage(state_dir: Path = None) -> CognitiveStage:
+def create_cognitive_stage(state_dir: Optional[Path] = None) -> CognitiveStage:
     """
     Create and initialize a cognitive stage.
 

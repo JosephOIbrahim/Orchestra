@@ -38,7 +38,7 @@ import random
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -545,7 +545,7 @@ class ResilientExecutor:
                 if self.enable_circuit_breaker:
                     self.circuit_breaker.record_success(name)
                 return result
-            except Exception as e:
+            except Exception:
                 if self.enable_circuit_breaker:
                     self.circuit_breaker.record_failure(name)
                 raise

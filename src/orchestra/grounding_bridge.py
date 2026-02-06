@@ -242,10 +242,10 @@ class GroundingBridge:
 
         if self._available:
             try:
-                self._registry = _oracle_registry.OracleRegistry()
-                self._warehouse = _evidence_warehouse.EvidenceWarehouse()
-                self._router = _source_router.SourceRouter()
-                self._detector = _hallucination_detector.HallucinationDetector()
+                self._registry = _oracle_registry.OracleRegistry()  # type: ignore[union-attr]
+                self._warehouse = _evidence_warehouse.EvidenceWarehouse()  # type: ignore[union-attr]
+                self._router = _source_router.SourceRouter()  # type: ignore[union-attr]
+                self._detector = _hallucination_detector.HallucinationDetector()  # type: ignore[union-attr]
                 logger.info("Grounding bridge initialized with full subsystem")
             except Exception as e:
                 logger.warning(f"Grounding subsystem init failed: {e}")
@@ -262,7 +262,7 @@ class GroundingBridge:
     def classify_query(
         self,
         message: str,
-        context: Dict[str, Any] = None
+        context: Optional[Dict[str, Any]] = None
     ) -> Tuple[SourceMode, str, List[str]]:
         """
         Phase 0b: Classify query to determine source mode.
@@ -311,7 +311,7 @@ class GroundingBridge:
         if self._available and self._registry:
             try:
                 # Use router for more sophisticated classification
-                routing_decision = self._router.classify(message)
+                routing_decision = self._router.classify(message)  # type: ignore[union-attr]
                 mode = SourceMode(routing_decision.mode.value)
                 return (mode, f"router_{routing_decision.reason}", detected_signals)
             except Exception as e:
@@ -537,7 +537,7 @@ class GroundingBridge:
     def process_grounding(
         self,
         message: str,
-        context: Dict[str, Any] = None
+        context: Optional[Dict[str, Any]] = None
     ) -> GroundingResult:
         """
         Combined Phase 0b + 0c grounding flow.

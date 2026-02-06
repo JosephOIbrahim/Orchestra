@@ -32,7 +32,7 @@ import asyncio
 import time
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Optional, Awaitable
+from typing import Any, Dict, Optional, Awaitable
 from collections import defaultdict
 import threading
 

@@ -59,11 +59,7 @@ except ImportError:
     logger.debug("OTLP exporter not installed. Install with: pip install opentelemetry-exporter-otlp")
 
 
-# Import our internal tracer for fallback
-from .tracing import (
-    DistributedTracer,
-    Span as InternalSpan,
-    SpanStatus as InternalSpanStatus,
+from .tracing import (  # noqa: E402
     get_tracer as get_internal_tracer,
 )
 
@@ -95,7 +91,7 @@ class OTelAdapter:
         self.service_name = service_name
         self.endpoint = endpoint
         self.enabled = enabled and _otel_available
-        self._tracer = None
+        self._tracer: Optional[Any] = None
         self._internal_tracer = get_internal_tracer()
 
         if self.enabled:
@@ -139,7 +135,7 @@ class OTelAdapter:
         self,
         operation_name: str,
         parent: Any = None,
-        attributes: Dict[str, Any] = None,
+        attributes: Optional[Dict[str, Any]] = None,
         **kwargs
     ):
         """
@@ -184,7 +180,7 @@ class OTelAdapter:
         self,
         operation_name: str,
         parent: Any = None,
-        attributes: Dict[str, Any] = None
+        attributes: Optional[Dict[str, Any]] = None
     ):
         """
         Start a new span (manual management).
@@ -236,11 +232,11 @@ class OTelSpanWrapper:
         for key, value in attributes.items():
             self._span.set_attribute(key, value)
 
-    def add_event(self, name: str, attributes: Dict[str, Any] = None) -> None:
+    def add_event(self, name: str, attributes: Optional[Dict[str, Any]] = None) -> None:
         """Add a timestamped event."""
         self._span.add_event(name, attributes or {})
 
-    def set_status(self, status: str, message: str = None) -> None:
+    def set_status(self, status: str, message: Optional[str] = None) -> None:
         """Set span status."""
         if not _otel_available:
             # OTel not installed, just log

@@ -24,7 +24,6 @@ Usage:
     interrupted = checkpoint.get_interrupted_orchestrations()
 """
 
-import asyncio
 import json
 import time
 import hashlib
@@ -33,7 +32,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 from enum import Enum
-import shutil
 
 logger = logging.getLogger(__name__)
 

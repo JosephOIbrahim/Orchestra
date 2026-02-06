@@ -20,7 +20,7 @@ from typing import Optional, Dict, Any
 import logging
 
 from .cognitive_orchestrator import CognitiveOrchestrator, NexusResult, create_orchestrator
-from .cognitive_state import CognitiveState, BurnoutLevel, EnergyLevel, MomentumPhase
+from .cognitive_state import CognitiveState, BurnoutLevel, EnergyLevel
 from .expert_router import Expert
 
 logger = logging.getLogger(__name__)

@@ -18,12 +18,11 @@ Or tmux:
 import json
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Enable UTF-8 and ANSI on Windows
 if sys.platform == "win32":
     try:
-        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')  # type: ignore[union-attr]
     except Exception:
         pass
     # Enable ANSI escape sequences on Windows 10+

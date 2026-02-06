@@ -30,7 +30,7 @@ v7.0.0 BCM Integration:
 
 import hashlib
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional, Dict, Any, TYPE_CHECKING
 from enum import Enum
 import logging
@@ -317,7 +317,6 @@ class ParameterLocker:
             if suggested in depth_map:
                 suggested_depth = depth_map[suggested]
                 suggested_idx = depth_order.index(suggested_depth)
-                current_idx = depth_order.index(actual_depth)
                 cap_idx = depth_order.index(self._get_max_depth(burnout, energy))
 
                 # Trail can adjust within safety bounds (never exceed cap)
@@ -478,7 +477,7 @@ class ParameterLocker:
         depth_key = f"{expert}:{task_type}" if task_type else expert
 
         # Check if trail has depth history for this expert
-        if not trail.has_depth_data(expert, task_type if task_type else None):
+        if not trail.has_depth_data(expert, task_type or None):
             return result
 
         # Get depth history count

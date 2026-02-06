@@ -300,7 +300,7 @@ class PRISMDetector:
         SignalCategory.ENERGY
     ]
 
-    def __init__(self, custom_patterns: Dict[SignalCategory, Dict[str, List[str]]] = None):
+    def __init__(self, custom_patterns: Optional[Dict[SignalCategory, Dict[str, List[str]]]] = None):
         """
         Initialize detector with optional custom patterns.
 
@@ -330,7 +330,7 @@ class PRISMDetector:
                     pattern, re.IGNORECASE
                 )
 
-    def detect(self, text: str, context: Dict[str, Any] = None) -> SignalVector:
+    def detect(self, text: str, context: Optional[Dict[str, Any]] = None) -> SignalVector:
         """
         Detect signals in text using FIXED evaluation order.
 

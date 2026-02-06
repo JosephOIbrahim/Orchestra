@@ -19,20 +19,14 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 from pathlib import Path
-from typing import Dict, Any, Optional
-from datetime import datetime
 
 from .cognitive_state import (
-    CognitiveStateManager, CognitiveState,
-    BurnoutLevel, MomentumPhase, EnergyLevel, CognitiveMode
+    CognitiveStateManager, BurnoutLevel, EnergyLevel
 )
 from .adhd_support import (
-    CognitiveSafetyManager, RECOVERY_OPTIONS, RecoveryOption,
-    # Backward compatibility alias
-    ADHDSupportManager
+    RECOVERY_OPTIONS
 )
 from .agent_coordinator import AgentCoordinator, DecisionMode
 
@@ -265,7 +259,7 @@ class Dashboard:
         state = self.state_manager.get_state()
 
         if state.burnout_level != BurnoutLevel.RED:
-            print(f"Recovery menu is for RED burnout state.")
+            print("Recovery menu is for RED burnout state.")
             print(f"Current burnout level: {self._format_burnout(state.burnout_level)}")
             return
 
@@ -404,7 +398,7 @@ class Dashboard:
         print("-" * 40)
         print(f"  Mode: {self._color('TABLE-DRIVEN', 'green')} (ThinkingMachines [He2025])")
         print(f"  Deterministic: {self._color('YES', 'green')}")
-        print(f"  Decision modes: WORK | DELEGATE | PROTECT")
+        print("  Decision modes: WORK | DELEGATE | PROTECT")
         print()
 
         print(self._color("=" * 60, "cyan"))
@@ -466,7 +460,7 @@ Examples:
     elif args.command == "calibrate":
         if not args.args:
             state = dashboard.state_manager.get_state()
-            print(f"Current calibration:")
+            print("Current calibration:")
             print(f"  Focus level: {state.focus_level}")
             print(f"  Urgency: {state.urgency}")
             print()

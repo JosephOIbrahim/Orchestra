@@ -28,12 +28,9 @@ from enum import Enum
 
 from .cognitive_stage import (
     CognitiveStage,
-    AttributeOpinion,
-    LayerPriority,
     CONSTITUTIONAL_VALUES,
 )
-from .cognitive_state import BurnoutLevel, EnergyLevel, CognitiveMode
-from .prism_detector import SignalVector, SignalCategory
+from .prism_detector import SignalVector
 
 logger = logging.getLogger(__name__)
 
@@ -313,14 +310,6 @@ class TensionSurfacer:
             return tensions
 
         current_mode = self.stage.get_mode()
-
-        # Signal to mode mapping
-        mode_signals = {
-            "exploring": SignalCategory.MODE,
-            "focused": SignalCategory.MODE,
-            "teaching": SignalCategory.MODE,
-            "recovery": SignalCategory.ENERGY,
-        }
 
         # Check for mismatch
         if signals.mode_detected and signals.mode_detected != current_mode:

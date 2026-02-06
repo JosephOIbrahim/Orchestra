@@ -26,7 +26,6 @@ ThinkingMachines [He2025] Compliance:
 from dataclasses import dataclass, field
 from typing import Dict, List, Any, Optional, Tuple
 from enum import Enum
-import time
 import logging
 
 from .cognitive_state import CognitiveState, BurnoutLevel, EnergyLevel

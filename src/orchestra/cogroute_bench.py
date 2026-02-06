@@ -23,14 +23,13 @@ Version: 1.0.0
 import asyncio
 import time
 import json
-import hashlib
 from dataclasses import dataclass, field
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from pathlib import Path
 import logging
 
 # Import the orchestrator components
-from framework_orchestrator import MoERouterAgent, Mycelium, ContextRestorer
+from framework_orchestrator import MoERouterAgent
 
 logging.basicConfig(level=logging.WARNING)  # Suppress info logs during benchmark
 logger = logging.getLogger("CogRouteBench")
@@ -590,7 +589,7 @@ class CogRouteBench:
         print("CogRoute-Bench Results")
         print("=" * 60)
 
-        print(f"\nOverall Metrics:")
+        print("\nOverall Metrics:")
         print(f"  Total Tasks:        {summary.total_tasks}")
         print(f"  Correct:            {summary.correct}")
         print(f"  Accuracy:           {summary.accuracy:.1%}")
@@ -598,11 +597,11 @@ class CogRouteBench:
         print(f"  Determinism:        {summary.determinism_score:.1%}")
         print(f"  Explainability:     {summary.explainability_score:.1%}")
 
-        print(f"\nBy Category:")
+        print("\nBy Category:")
         for cat, stats in summary.by_category.items():
             print(f"  {cat:20} {stats['correct']}/{stats['total']} ({stats['accuracy']:.0%})")
 
-        print(f"\nBy Expected Expert:")
+        print("\nBy Expected Expert:")
         for expert, stats in summary.by_expert.items():
             print(f"  {expert:15} {stats['correct']}/{stats['expected']} ({stats['accuracy']:.0%})")
 

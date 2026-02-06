@@ -16,9 +16,9 @@ ThinkingMachines [He2025] Compliance:
 """
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, List, Dict, Any, Callable, Deque
+from typing import Optional, List, Dict, Any, Deque
 from datetime import datetime
 from pathlib import Path
 import hashlib
@@ -201,7 +201,7 @@ class AgentCoordinator:
     MAX_RESULT_QUEUE = 500
     RESULT_TTL_SECONDS = 3600  # 1 hour
 
-    def __init__(self, cognitive_stage=None, state_dir: Path = None):
+    def __init__(self, cognitive_stage=None, state_dir: Optional[Path] = None):
         self.cognitive_stage = cognitive_stage
         self.active_agents: Dict[str, Dict[str, Any]] = {}
         # Bounded queues for production safety [He2025]
@@ -254,17 +254,6 @@ class AgentCoordinator:
         4. Default to WORK
         """
         context = self.get_cognitive_context()
-
-        # Snapshot state for determinism
-        state_snapshot = {
-            "energy": context.energy_level,
-            "burnout": context.burnout_level,
-            "momentum": context.momentum_phase,
-            "agents": context.active_agents,
-            "memory": context.working_memory_used,
-            "flow": context.in_flow_state,
-            "task_complexity": task.complexity_score()
-        }
 
         # === Phase 1: PROTECT check ===
         if context.in_flow_state and context.momentum_phase == "peak":

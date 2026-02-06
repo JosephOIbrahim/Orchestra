@@ -20,12 +20,11 @@ ThinkingMachines [He2025] Compliance:
 - Fixed evaluation patterns
 """
 
-import asyncio
 import hashlib
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Dict, List, Any, Optional
 import logging
 import json
 
@@ -112,7 +111,7 @@ class ResearchAgent:
     produces real, actionable research output.
     """
 
-    def __init__(self, workspace: Path = None):
+    def __init__(self, workspace: Optional[Path] = None):
         """
         Initialize research agent.
 
@@ -326,7 +325,7 @@ class ResearchAgent:
         workspace = Path(context.get("workspace", self.workspace))
 
         findings = []
-        patterns_found = {}
+        patterns_found: Dict[str, Any] = {}
 
         # Analyze Python files for patterns
         for py_file in workspace.rglob("*.py"):
@@ -569,7 +568,7 @@ class ResearchAgent:
         if not findings:
             return f"No results found for: {query}"
 
-        categories = {}
+        categories: Dict[str, int] = {}
         for f in findings:
             categories[f.category] = categories.get(f.category, 0) + 1
 
@@ -593,7 +592,7 @@ class ResearchAgent:
             return recs
 
         # Recommend files with most findings
-        file_counts = {}
+        file_counts: Dict[str, int] = {}
         for f in findings:
             if f.source:
                 file_counts[f.source] = file_counts.get(f.source, 0) + 1

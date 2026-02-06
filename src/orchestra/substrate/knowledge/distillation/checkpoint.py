@@ -20,7 +20,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from .errors import CheckpointError, ErrorContext
+from .errors import CheckpointError
 
 logger = logging.getLogger(__name__)
 

@@ -29,7 +29,7 @@ import json
 import time
 import hashlib
 import random
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Any, Optional, List
@@ -214,7 +214,7 @@ class CognitiveState:
     seed: int = 42
 
     # Internal RNG (not serialized)
-    _rng: random.Random = field(default=None, repr=False, compare=False)
+    _rng: Optional[random.Random] = field(default=None, repr=False, compare=False)
 
     def __post_init__(self):
         """Initialize seeded RNG."""
@@ -637,7 +637,7 @@ class CognitiveStateManager:
     # Session staleness threshold: 2 hours
     STALE_SESSION_SECONDS = 2 * 60 * 60
 
-    def __init__(self, state_dir: Path = None):
+    def __init__(self, state_dir: Optional[Path] = None):
         """
         Initialize state manager.
 
@@ -811,7 +811,7 @@ class CognitiveStateManager:
         state.batch_update(updates)
         self.save()
 
-    def calibrate(self, focus_level: str = None, urgency: str = None) -> None:
+    def calibrate(self, focus_level: Optional[str] = None, urgency: Optional[str] = None) -> None:
         """
         Calibrate cognitive state from non-invasive questions.
 

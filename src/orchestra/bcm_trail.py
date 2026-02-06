@@ -32,9 +32,7 @@ import json
 import hashlib
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from enum import Enum
-from pathlib import Path
+from datetime import datetime
 from typing import Dict, List, Optional, Any, Tuple
 import logging
 
@@ -320,7 +318,7 @@ class OrchestraTrail:
             return depth_order[min(fallback_idx, cap_idx)]
 
         # Find depth with best success rate
-        depth_success = {}
+        depth_success: Dict[str, List[bool]] = {}
         for depth, success in history[-20:]:  # Recent 20
             if depth not in depth_success:
                 depth_success[depth] = []
@@ -339,7 +337,7 @@ class OrchestraTrail:
         cap_idx = depth_order.index(safety_cap) if safety_cap in depth_order else 3
         return depth_order[min(best_idx, cap_idx)]
 
-    def has_depth_data(self, expert: str, task_type: str = None) -> bool:
+    def has_depth_data(self, expert: str, task_type: Optional[str] = None) -> bool:
         """Check if we have depth optimization data for expert."""
         if task_type:
             key = f"{expert}:{task_type}"

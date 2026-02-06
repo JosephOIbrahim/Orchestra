@@ -832,7 +832,6 @@ class DistillationPipeline:
         self, prims: list[KnowledgePrim]
     ) -> BenchmarkResult:
         """Stage 9: Run hypothesis benchmark."""
-        from ..retriever import KnowledgeRetriever
 
         # Create a temporary retriever with the new prims
         # For now, just do a quick benchmark

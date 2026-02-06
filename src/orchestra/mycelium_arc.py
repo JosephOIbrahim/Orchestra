@@ -29,7 +29,7 @@ Patent Claim 5 Support:
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any
 import hashlib
 import json
 import logging
@@ -38,13 +38,11 @@ import time
 from .mycelium_aggregator import (
     MyceliumState,
     MyceliumAggregator,
-    AggregationStrategy,
     FIELD_STRATEGIES,
 )
 from .peer_registry import (
     PeerRegistry,
     PeerInfo,
-    PeerStatus,
     FlowConfig,
     FlowPolicy,
 )

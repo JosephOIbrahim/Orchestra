@@ -18,7 +18,7 @@ class ValidationResult:
     """Result of a validation operation."""
     valid: bool
     sanitized: Optional[str] = None
-    errors: List[str] = None
+    errors: Optional[List[str]] = None
 
     def __post_init__(self):
         if self.errors is None:

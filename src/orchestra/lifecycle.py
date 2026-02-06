@@ -12,7 +12,7 @@ import asyncio
 import logging
 import signal
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Callable, Coroutine, Dict, List, Optional
 
@@ -292,7 +292,7 @@ class LifecycleManager:
         """
         self._shutdown_event.set()
         try:
-            loop = asyncio.get_running_loop()
+            asyncio.get_running_loop()
             asyncio.create_task(self.shutdown(reason=reason))
         except RuntimeError:
             # No running loop

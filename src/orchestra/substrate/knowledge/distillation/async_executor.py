@@ -16,7 +16,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine, Generic, TypeVar
 
-from .errors import DistillationError, ErrorContext, ErrorSeverity
+from .errors import DistillationError
 
 logger = logging.getLogger(__name__)
 

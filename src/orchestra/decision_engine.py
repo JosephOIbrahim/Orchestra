@@ -15,15 +15,13 @@ ThinkingMachines [He2025] Compliance:
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any, Callable, Tuple
-import warnings
+from typing import Optional, List, Dict, Any, Tuple
 from enum import Enum
-from datetime import datetime
 import hashlib
 
 from .agent_coordinator import (
     AgentCoordinator, FlowProtector, Decision, DecisionMode,
-    TaskProfile, AgentType, CognitiveContext, AgentContext
+    TaskProfile, AgentType
 )
 
 

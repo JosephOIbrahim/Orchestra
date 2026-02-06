@@ -174,7 +174,7 @@ class Span:
         """Set multiple attributes."""
         self.attributes.update(attributes)
 
-    def add_event(self, name: str, attributes: Dict[str, Any] = None) -> None:
+    def add_event(self, name: str, attributes: Optional[Dict[str, Any]] = None) -> None:
         """Add a timestamped event to this span."""
         self.events.append({
             "name": name,
@@ -182,12 +182,12 @@ class Span:
             "attributes": attributes or {}
         })
 
-    def set_status(self, status: SpanStatus, message: str = None) -> None:
+    def set_status(self, status: SpanStatus, message: Optional[str] = None) -> None:
         """Set the span status."""
         self.status = status
         self.status_message = message
 
-    def end(self, status: SpanStatus = None, error: str = None) -> None:
+    def end(self, status: Optional[SpanStatus] = None, error: Optional[str] = None) -> None:
         """End this span."""
         self.end_time = time.time()
         if status:
@@ -283,7 +283,7 @@ class SpanStore:
 
         # Remove oldest traces if over capacity
         while len(self._traces) > self.max_traces:
-            oldest = min(self._trace_timestamps, key=self._trace_timestamps.get)
+            oldest = min(self._trace_timestamps, key=lambda tid: self._trace_timestamps.get(tid, 0.0))
             del self._traces[oldest]
             del self._trace_timestamps[oldest]
 
@@ -341,7 +341,7 @@ class DistributedTracer:
         operation_name: str,
         parent: Optional[Span] = None,
         context: Optional[TraceContext] = None,
-        attributes: Dict[str, Any] = None
+        attributes: Optional[Dict[str, Any]] = None
     ) -> Span:
         """
         Start a new span.
@@ -393,7 +393,7 @@ class DistributedTracer:
 
         return span
 
-    def end_span(self, span: Span, status: SpanStatus = None, error: str = None) -> None:
+    def end_span(self, span: Span, status: Optional[SpanStatus] = None, error: Optional[str] = None) -> None:
         """End a span."""
         span.end(status=status, error=error)
 
@@ -481,7 +481,8 @@ class DistributedTracer:
 
             # Add parent reference
             if span.parent_span_id:
-                jaeger_span["references"].append({
+                references: List[Dict[str, str]] = jaeger_span["references"]
+                references.append({
                     "refType": "CHILD_OF",
                     "traceID": span.trace_id,
                     "spanID": span.parent_span_id

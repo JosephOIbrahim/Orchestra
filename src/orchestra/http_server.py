@@ -26,7 +26,7 @@ import logging
 from dataclasses import dataclass
 from http import HTTPStatus
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

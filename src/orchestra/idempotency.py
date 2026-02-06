@@ -29,7 +29,7 @@ import time
 import hashlib
 import json
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Optional, Awaitable, Union
 from enum import Enum
 import threading
@@ -170,7 +170,6 @@ class IdempotencyManager:
             return
 
         # Sort by time, remove oldest
-        now = time.time()
         entries = list(self._executions.items())
         entries.sort(key=lambda x: x[1].started_at)
 
@@ -338,7 +337,7 @@ def generate_idempotency_key(
     agent_name: str,
     task: str,
     iteration: int,
-    extra: Dict[str, Any] = None
+    extra: Optional[Dict[str, Any]] = None
 ) -> str:
     """
     Generate a deterministic idempotency key.

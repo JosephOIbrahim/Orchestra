@@ -23,13 +23,13 @@ Version: 0.1.0
 import time
 import logging
 from pathlib import Path
-from typing import Optional, Dict, Any, TYPE_CHECKING
+from typing import Optional, Dict, Any, Tuple, TYPE_CHECKING
 
 from .bcm_trail import OrchestraTrail
 from .file_ops import atomic_write_json, safe_read_json
 
 if TYPE_CHECKING:
-    from .cognitive_orchestrator import CognitiveOrchestrator
+    pass
 
 logger = logging.getLogger(__name__)
 
@@ -399,7 +399,6 @@ class BCMPipelineAdapter:
 
 
 # Import Tuple for type hint
-from typing import Tuple
 
 
 # =============================================================================

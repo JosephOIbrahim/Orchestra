@@ -9,12 +9,10 @@ Part of USD Cognitive Substrate - Knowledge Prims Distillation.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import statistics
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Any
 
 from ..schemas import KnowledgePrim
