@@ -28,6 +28,8 @@ from http import HTTPStatus
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
 
+from .state_store import StateStore, get_default_store
+
 logger = logging.getLogger(__name__)
 
 
@@ -83,11 +85,12 @@ class OperationalHTTPServer:
 
     def __init__(
         self,
-        host: str = '0.0.0.0',
+        host: str = '127.0.0.1',
         port: int = 8080,
         health_checker: Optional[Any] = None,
         metrics: Optional[Any] = None,
-        decision_engine: Optional[Any] = None
+        decision_engine: Optional[Any] = None,
+        store: Optional[StateStore] = None,
     ):
         """
         Initialize HTTP server.
@@ -104,6 +107,10 @@ class OperationalHTTPServer:
         self.health_checker = health_checker
         self.metrics = metrics
         self.decision_engine = decision_engine
+        # Single owner of cognitive_state.json. Defaults to the
+        # process-wide StateStore so this server and the WebSocket
+        # server agree on what they're reading.
+        self._store = store or get_default_store()
         self._server: Optional[asyncio.Server] = None
         self._running = False
 
@@ -463,19 +470,23 @@ class OperationalHTTPServer:
             except Exception as e:
                 logger.warning(f"Error fetching decision engine state: {e}")
 
-        # Try to get state from cognitive state file
-        state_file = Path.home() / ".orchestra" / "state" / "cognitive_state.json"
-        if state_file.exists():
-            try:
-                with open(state_file) as f:
-                    saved_state = json.load(f)
-                    state_data.update({
-                        'burnout_level': saved_state.get('burnout_level', state_data['burnout_level']),
-                        'momentum_phase': saved_state.get('momentum_phase', state_data['momentum_phase']),
-                        'energy_level': saved_state.get('energy_level', state_data['energy_level']),
-                    })
-            except Exception:
-                pass  # Use defaults
+        # Pull persisted state via the StateStore (single owner of
+        # ~/.orchestra/state/cognitive_state.json). Replaces the previous
+        # inline open()/json.load() with a try/except: pass that hid
+        # corrupted-file errors silently.
+        try:
+            saved_state = self._store.load()
+        except Exception as e:
+            # Surface unexpected failures (e.g. non-object JSON) instead
+            # of silently falling back to defaults.
+            logger.warning("State load via StateStore failed: %s", e)
+            saved_state = {}
+        if saved_state:
+            state_data.update({
+                'burnout_level': saved_state.get('burnout_level', state_data['burnout_level']),
+                'momentum_phase': saved_state.get('momentum_phase', state_data['momentum_phase']),
+                'energy_level': saved_state.get('energy_level', state_data['energy_level']),
+            })
 
         return HTTPResponse(
             status=200,
@@ -495,10 +506,11 @@ class OperationalHTTPServer:
 
 async def start_server(
     port: int = 8080,
-    host: str = '0.0.0.0',
+    host: str = '127.0.0.1',
     health_checker: Optional[Any] = None,
     metrics: Optional[Any] = None,
-    decision_engine: Optional[Any] = None
+    decision_engine: Optional[Any] = None,
+    store: Optional[StateStore] = None,
 ) -> OperationalHTTPServer:
     """
     Start the operational HTTP server.
@@ -518,7 +530,8 @@ async def start_server(
         port=port,
         health_checker=health_checker,
         metrics=metrics,
-        decision_engine=decision_engine
+        decision_engine=decision_engine,
+        store=store,
     )
     await server.start()
     return server
@@ -534,7 +547,12 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Framework Orchestrator HTTP Server')
     parser.add_argument('--port', type=int, default=8080, help='Port to listen on')
-    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to bind to')
+    parser.add_argument(
+        '--host', type=str, default='127.0.0.1',
+        help='Host to bind to (default: 127.0.0.1; use 0.0.0.0 to expose on '
+             'the network — only do this if you have set ORCHESTRA_TOKEN and '
+             'you understand the auth model)',
+    )
     args = parser.parse_args()
 
     async def main():

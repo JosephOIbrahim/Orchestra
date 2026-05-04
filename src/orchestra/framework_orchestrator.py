@@ -1493,8 +1493,40 @@ class FrameworkOrchestrator:
                 checkpoint_dir=self.config.checkpoint_dir,
                 retention_seconds=self.config.checkpoint_retention
             )
+            # Wire crash recovery: scan for interrupted orchestrations from
+            # prior runs. Without this, recover_from_crash() exists but is
+            # never called, and crashes are silently abandoned.
+            try:
+                self.startup_interrupted = self.checkpoint.get_interrupted_orchestrations()
+            except Exception as e:
+                # Schema-incompatible or corrupted checkpoint files: surface
+                # rather than swallow. Caller can clear the checkpoint dir
+                # explicitly if recovery is not desired.
+                logger.error(
+                    "Checkpoint scan failed at startup (%s): %s. "
+                    "Resolve manually before restarting.",
+                    self.config.checkpoint_dir, e,
+                )
+                raise
+            if self.startup_interrupted:
+                logger.warning(
+                    "Found %d interrupted orchestration(s) from prior runs:",
+                    len(self.startup_interrupted),
+                )
+                for cp in self.startup_interrupted:
+                    logger.warning(
+                        "  - id=%s status=%s iteration=%d agents_completed=%d started_at=%s",
+                        cp.checkpoint_id, cp.status.value, cp.iteration,
+                        len(cp.agents_completed), cp.started_at,
+                    )
+                logger.warning(
+                    "Call orchestrator.recover_orchestration(<id>) to resume, "
+                    "or they will be cleaned up after retention_seconds=%s.",
+                    self.config.checkpoint_retention,
+                )
         else:
             self.checkpoint = None
+            self.startup_interrupted = []
 
         # Fallback registry for graceful degradation
         if self.config.enable_fallback:

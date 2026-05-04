@@ -19,16 +19,87 @@ Usage:
 """
 
 import asyncio
+import hmac
 import json
 import hashlib
+import os
 import struct
 import base64
 import logging
 from dataclasses import dataclass, asdict
 from pathlib import Path
-from typing import Set, Optional, Dict, Any, List
+from typing import Annotated, Any, Dict, List, Literal, Optional, Set
+
+from pydantic import Field, TypeAdapter, ValidationError
+
+from .state_store import StateStore, get_default_store
 
 logger = logging.getLogger(__name__)
+
+
+# Strict per-field validators for the `override` command.
+#
+# Each entry is a Pydantic TypeAdapter compiled once at import time; the
+# override handler consults this table and rejects anything not in it.
+# This replaces the previous `validate_field` which fell through to
+# `hasattr(self, field)` for any field not in VALID_VALUES — that
+# fallback meant unbounded strings, lists, and floats could be injected
+# via `setattr`. See websocket_server.py change in claude/expert-codebase-
+# review-21b7B for the full rationale.
+_BoundedStr64 = Annotated[str, Field(max_length=64)]
+_BoundedStr256 = Annotated[str, Field(max_length=256)]
+_DomainList = Annotated[List[Annotated[str, Field(max_length=64)]], Field(max_length=16)]
+
+_OVERRIDE_FIELD_TYPES: Dict[str, Any] = {
+    # Enums
+    "burnout_level": Literal["GREEN", "YELLOW", "ORANGE", "RED"],
+    "decision_mode": Literal["work", "delegate", "protect"],
+    "momentum_phase": Literal["cold_start", "building", "rolling", "peak", "crashed"],
+    "energy_level": Literal["high", "medium", "low", "depleted"],
+    "altitude": Literal["30000ft", "15000ft", "5000ft", "Ground"],
+    "paradigm": Literal["Cortex", "Mycelium"],
+    "current_phase": Literal["detect", "cascade", "lock", "execute", "update"],
+    "selected_expert": Literal[
+        "validator", "scaffolder", "restorer", "refocuser",
+        "celebrator", "socratic", "direct",
+    ],
+    "lock_status": Literal["unlocked", "locking", "locked"],
+    "locked_think_depth": Literal["minimal", "standard", "deep", "ultradeep"],
+    "attractor_basin": Literal["focused", "exploring", "recovery", "teaching"],
+    # Bounded ints
+    "working_memory_used": Annotated[int, Field(ge=0, le=16)],
+    "tangent_budget": Annotated[int, Field(ge=0, le=32)],
+    "tasks_completed": Annotated[int, Field(ge=0, le=1_000_000)],
+    "session_minutes": Annotated[int, Field(ge=0, le=24 * 60)],
+    "reflection_iteration": Annotated[int, Field(ge=0, le=3)],
+    "stable_exchanges": Annotated[int, Field(ge=0, le=100)],
+    # Bounded floats
+    "epistemic_tension": Annotated[float, Field(ge=0.0, le=1.0)],
+    "epsilon": Annotated[float, Field(ge=0.0, le=1.0)],
+    # Bounded strings (Optional where field defaults to None)
+    "current_task": Optional[_BoundedStr256],
+    "signals_emotional": Optional[_BoundedStr64],
+    "signals_mode": Optional[_BoundedStr64],
+    "signals_task": Optional[_BoundedStr256],
+    "safety_redirect": Optional[_BoundedStr64],
+    "expert_trigger": Optional[_BoundedStr256],
+    "locked_expert": _BoundedStr64,
+    "locked_paradigm": _BoundedStr64,
+    "locked_altitude": Annotated[str, Field(max_length=32)],
+    "lock_checksum": Optional[Annotated[str, Field(max_length=16)]],
+    # Bounded list
+    "signals_domain": Optional[_DomainList],
+    # Bools
+    "body_check_needed": bool,
+    "constitutional_pass": bool,
+    "safety_gate_pass": bool,
+    "converged": bool,
+    "feedback_active": bool,
+}
+
+_OVERRIDE_VALIDATORS: Dict[str, TypeAdapter] = {
+    name: TypeAdapter(typ) for name, typ in _OVERRIDE_FIELD_TYPES.items()
+}
 
 
 @dataclass
@@ -121,10 +192,26 @@ class CognitiveState:
         return hashlib.md5(data.encode()).hexdigest()[:8]
 
     def validate_field(self, field: str, value: Any) -> bool:
-        """Validate a field value against allowed values."""
-        if field in self.VALID_VALUES:
-            return value in self.VALID_VALUES[field]
-        return hasattr(self, field)
+        """Validate a field value for an `override` command.
+
+        Backed by a Pydantic TypeAdapter per field (see
+        ``_OVERRIDE_VALIDATORS``). Fields not in the allowlist are
+        rejected; values that fail the adapter's type/range/length
+        check are rejected. This replaces the previous fallback
+        ``hasattr(self, field)`` which permitted unbounded strings,
+        lists, and floats to be injected via ``setattr``.
+        """
+        adapter = _OVERRIDE_VALIDATORS.get(field)
+        if adapter is None:
+            return False
+        try:
+            # strict=True prevents type coercion (e.g. "true" -> True,
+            # "5" -> 5). The override path takes JSON-typed values; the
+            # adapter must reject mistyped inputs rather than coerce them.
+            adapter.validate_python(value, strict=True)
+            return True
+        except ValidationError:
+            return False
 
 
 class WebSocketServer:
@@ -139,17 +226,30 @@ class WebSocketServer:
 
     def __init__(
         self,
-        host: str = "0.0.0.0",
+        host: str = "127.0.0.1",
         port: int = 8081,
-        update_interval: float = 1.0
+        update_interval: float = 1.0,
+        auth_token: Optional[str] = None,
+        store: Optional[StateStore] = None,
     ):
         self.host = host
         self.port = port
         self.update_interval = update_interval
+        # Auth token gates state-mutating commands ("override"). Read-only
+        # broadcast is unauthenticated, but mutation requires the token.
+        # Sourced from explicit arg or ORCHESTRA_TOKEN env var. If neither
+        # is set, override is rejected — i.e. the dashboard cannot mutate
+        # state without an explicit operator decision.
+        self._auth_token = auth_token or os.environ.get("ORCHESTRA_TOKEN")
+        # Single owner of the state file. Defaults to the process-wide
+        # store so HTTP and WS servers in the same process share state.
+        self._store = store or get_default_store()
         self._server: Optional[asyncio.Server] = None
         self._clients: Set[asyncio.StreamWriter] = set()
         self._running = False
         self._state = CognitiveState()
+        # Hydrate from existing state file, if any.
+        self._apply_state_dict(self._store.load())
         self._broadcast_task: Optional[asyncio.Task] = None
 
     async def start(self) -> None:
@@ -384,10 +484,31 @@ class WebSocketServer:
             cmd_type = cmd.get('type')
 
             if cmd_type == 'override':
+                # Auth gate: require ORCHESTRA_TOKEN. Without a configured
+                # token, no override is ever accepted — fail closed.
+                token = cmd.get('token', '')
+                if not self._auth_token or not isinstance(token, str) or \
+                        not hmac.compare_digest(token, self._auth_token):
+                    logger.warning(
+                        "Override rejected: missing or invalid token "
+                        "(client=%s)",
+                        writer.get_extra_info("peername"),
+                    )
+                    return
+
                 field = cmd.get('field')
                 value = cmd.get('value')
 
-                if field and value and self._state.validate_field(field, value):
+                # Note: the prior `field and value` test rejected legitimate
+                # falsy values like False / 0 / ""; tighten to "field is a
+                # non-empty string AND value passes the typed allowlist."
+                # validate_field now consults the Pydantic TypeAdapter
+                # table — fields outside that allowlist are rejected.
+                if (
+                    isinstance(field, str)
+                    and field
+                    and self._state.validate_field(field, value)
+                ):
                     setattr(self._state, field, value)
                     self._save_state_to_file()
                     logger.info(f"Override applied: {field} = {value}")
@@ -396,23 +517,27 @@ class WebSocketServer:
                     for client in list(self._clients):
                         await self._send_state(client)
                 else:
-                    logger.warning(f"Invalid override: {field} = {value}")
+                    logger.warning(f"Invalid override: field=%r", field)
 
         except json.JSONDecodeError:
             logger.warning(f"Invalid command JSON: {message}")
         except Exception as e:
             logger.error(f"Command handling error: {e}")
 
-    # Shared state location (must match CognitiveStateManager)
-    STATE_DIR = Path.home() / ".orchestra" / "state"
-    STATE_FILE = STATE_DIR / "cognitive_state.json"
+    # Backwards-compat path attribute. The actual file is owned by
+    # StateStore; reading these here keeps any external callers working.
+    @property
+    def STATE_FILE(self) -> Path:  # noqa: N802 (legacy shape preserved)
+        return self._store.path
+
+    @property
+    def STATE_DIR(self) -> Path:  # noqa: N802
+        return self._store.path.parent
 
     def _save_state_to_file(self) -> None:
-        """Save cognitive state to file for persistence."""
-        self.STATE_DIR.mkdir(parents=True, exist_ok=True)
+        """Persist current cognitive state via the StateStore (atomic)."""
         try:
-            with open(self.STATE_FILE, 'w') as f:
-                json.dump(self._state.to_dict(), f, indent=2)
+            self._store.save(self._state.to_dict())
         except Exception as e:
             logger.error(f"Error saving state: {e}")
 
@@ -421,79 +546,65 @@ class WebSocketServer:
         while self._running:
             await asyncio.sleep(self.update_interval)
 
-            # Load state from file if available
-            self._load_state_from_file()
+            # Refresh state from the store (in case another process or
+            # the orchestrator wrote it).
+            try:
+                self._apply_state_dict(self._store.reload())
+            except Exception as e:
+                # Surface load failures rather than silently fall through
+                # to the previous behavior. The store will retain the last
+                # known good cache, so we proceed with what we have.
+                logger.warning("State reload failed during broadcast: %s", e)
 
             # Broadcast to all clients
             for writer in list(self._clients):
                 await self._send_state(writer)
 
     def _load_state_from_file(self) -> None:
-        """Load cognitive state from file."""
-        if self.STATE_FILE.exists():
-            try:
-                with open(self.STATE_FILE) as f:
-                    data = json.load(f)
-                    # === EXISTING FIELDS ===
-                    self._state.burnout_level = data.get('burnout_level', self._state.burnout_level)
-                    self._state.decision_mode = data.get('decision_mode', self._state.decision_mode)
-                    self._state.momentum_phase = data.get('momentum_phase', self._state.momentum_phase)
-                    self._state.energy_level = data.get('energy_level', self._state.energy_level)
-                    self._state.working_memory_used = data.get('working_memory_used', self._state.working_memory_used)
-                    self._state.tangent_budget = data.get('tangent_budget', self._state.tangent_budget)
-                    self._state.altitude = data.get('altitude', self._state.altitude)
-                    self._state.paradigm = data.get('paradigm', self._state.paradigm)
-                    self._state.current_task = data.get('current_task', self._state.current_task)
+        """Load cognitive state from the StateStore."""
+        try:
+            self._apply_state_dict(self._store.load())
+        except Exception as e:
+            logger.warning("State load failed: %s", e)
 
-                    # === PHASE 1: DETECT - PRISM Signals ===
-                    self._state.signals_emotional = data.get('signals_emotional', self._state.signals_emotional)
-                    self._state.signals_mode = data.get('signals_mode', self._state.signals_mode)
-                    self._state.signals_domain = data.get('signals_domain', self._state.signals_domain)
-                    self._state.signals_task = data.get('signals_task', self._state.signals_task)
-                    self._state.current_phase = data.get('current_phase', self._state.current_phase)
+    def _apply_state_dict(self, data: Dict[str, Any]) -> None:
+        """Apply a dict of fields to the in-memory state.
 
-                    # === PHASE 2: CASCADE - Expert Routing ===
-                    self._state.constitutional_pass = data.get('constitutional_pass', self._state.constitutional_pass)
-                    self._state.safety_gate_pass = data.get('safety_gate_pass', self._state.safety_gate_pass)
-                    self._state.safety_redirect = data.get('safety_redirect', self._state.safety_redirect)
-                    self._state.selected_expert = data.get('selected_expert', self._state.selected_expert)
-                    self._state.expert_trigger = data.get('expert_trigger', self._state.expert_trigger)
-
-                    # === PHASE 3: LOCK - Parameter Locking ===
-                    self._state.lock_status = data.get('lock_status', self._state.lock_status)
-                    self._state.reflection_iteration = data.get('reflection_iteration', self._state.reflection_iteration)
-                    self._state.locked_expert = data.get('locked_expert', self._state.locked_expert)
-                    self._state.locked_paradigm = data.get('locked_paradigm', self._state.locked_paradigm)
-                    self._state.locked_altitude = data.get('locked_altitude', self._state.locked_altitude)
-                    self._state.locked_think_depth = data.get('locked_think_depth', self._state.locked_think_depth)
-                    self._state.lock_checksum = data.get('lock_checksum', self._state.lock_checksum)
-
-                    # === PHASE 5: UPDATE - RC^+xi Convergence ===
-                    self._state.epistemic_tension = data.get('epistemic_tension', self._state.epistemic_tension)
-                    self._state.epsilon = data.get('epsilon', self._state.epsilon)
-                    self._state.attractor_basin = data.get('attractor_basin', self._state.attractor_basin)
-                    self._state.stable_exchanges = data.get('stable_exchanges', self._state.stable_exchanges)
-                    self._state.converged = data.get('converged', self._state.converged)
-                    self._state.feedback_active = data.get('feedback_active', self._state.feedback_active)
-            except Exception:
-                pass
+        Only known dataclass fields are applied; unknown keys in the
+        on-disk payload are ignored (so future schema additions don't
+        crash older readers, and stray keys can't inject attributes).
+        """
+        if not data:
+            return
+        # Build the allowlist from the dataclass field set, excluding the
+        # validation-only VALID_VALUES marker. setattr is bounded to this
+        # set of declared fields — no hasattr fallback.
+        from dataclasses import fields as _fields
+        allowed = {f.name for f in _fields(self._state)} - {"VALID_VALUES"}
+        for key, value in data.items():
+            if key in allowed:
+                setattr(self._state, key, value)
 
 
 async def start_websocket_server(
     port: int = 8081,
-    host: str = "0.0.0.0"
+    host: str = "127.0.0.1",
+    auth_token: Optional[str] = None,
 ) -> WebSocketServer:
     """
     Start the WebSocket server.
 
     Args:
         port: Port to listen on
-        host: Host to bind to
+        host: Host to bind to (default 127.0.0.1; bind to 0.0.0.0 only with
+            an explicit ORCHESTRA_TOKEN set)
+        auth_token: Optional shared-secret for state-mutating commands.
+            Falls back to the ORCHESTRA_TOKEN env var.
 
     Returns:
         Running WebSocketServer instance
     """
-    server = WebSocketServer(host=host, port=port)
+    server = WebSocketServer(host=host, port=port, auth_token=auth_token)
     await server.start()
     return server
 
@@ -503,7 +614,11 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Orchestra WebSocket Server')
     parser.add_argument('--port', type=int, default=8081, help='Port to listen on')
-    parser.add_argument('--host', type=str, default='0.0.0.0', help='Host to bind to')
+    parser.add_argument(
+        '--host', type=str, default='127.0.0.1',
+        help='Host to bind to (default: 127.0.0.1; use 0.0.0.0 only with '
+             'ORCHESTRA_TOKEN set in env)',
+    )
     args = parser.parse_args()
 
     async def main():

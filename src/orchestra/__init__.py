@@ -102,6 +102,13 @@ from .file_ops import (
     AtomicWriteError,
 )
 
+# State persistence (single owner of cognitive_state.json)
+from .state_store import (
+    StateStore,
+    DEFAULT_STATE_PATH,
+    get_default_store,
+)
+
 # Validation
 from .validation import (
     validate_task,
@@ -454,6 +461,11 @@ __all__ = [
     "atomic_write_text",
     "safe_read_json",
     "AtomicWriteError",
+
+    # State persistence
+    "StateStore",
+    "DEFAULT_STATE_PATH",
+    "get_default_store",
 
     # Validation
     "validate_task",

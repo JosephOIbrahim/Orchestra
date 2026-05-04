@@ -90,10 +90,12 @@ class TestOperationalHTTPServer:
     """Test OperationalHTTPServer class."""
 
     def test_initialization(self):
-        """Should initialize with correct defaults."""
+        """Should initialize with secure defaults: localhost-only bind."""
         server = OperationalHTTPServer()
 
-        assert server.host == "0.0.0.0"
+        # Default bind is loopback, not 0.0.0.0 — exposing the server on
+        # the network must be an explicit operator decision.
+        assert server.host == "127.0.0.1"
         assert server.port == 8080
         assert server.health_checker is None
         assert server.metrics is None
