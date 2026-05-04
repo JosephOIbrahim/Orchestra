@@ -4,7 +4,7 @@
 
 <p align="center">
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.1-Production%2FStable-success" alt="Production"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-777%20passed-brightgreen" alt="Tests"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-806%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
 </p>
@@ -76,35 +76,29 @@ That's it. Every message now passes through the cognitive engine.
 
 ## What It Does
 
-Every message you send to Claude Code:
+Every message you send to Claude Code traverses the **5-Phase NEXUS Pipeline**.
+Slate nodes are the core machinery; amber nodes are the boundaries — what
+flows in, what flows out, and what's persisted.
 
+```mermaid
+flowchart TD
+    classDef core fill:#1e293b,stroke:#0f172a,color:#f8fafc,stroke-width:1px;
+    classDef io   fill:#fbbf24,stroke:#b45309,color:#0f172a,stroke-width:1px;
+
+    M[/"User message"/]:::io --> P1
+    P1["<b>1. DETECT</b><br/>PRISM signals<br/>emotional ▸ mode ▸ domain ▸ task"]:::core --> P2
+    P2["<b>2. CASCADE</b><br/>Safety gates<br/>MoE routing · 7 experts · first-match"]:::core --> P3
+    P3["<b>3. LOCK</b><br/>MAX3 reflection<br/>Deterministic checksum"]:::core --> P4
+    P4["<b>4. EXECUTE</b><br/>Generate with locked parameters"]:::core --> P5
+    P5["<b>5. UPDATE</b><br/>RC⁺ξ convergence<br/>Attractor basins"]:::core --> A
+    A[/"Anchor · [EXEC:a3f2b8|direct|Cortex|30000ft|standard]"/]:::io
+
+    S[("~/.orchestra/state/<br/>cognitive_state.json")]:::io
+    S -. read .-> P1
+    P5 -. atomic write .-> S
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 1: DETECT                                                             │
-│   PRISM extracts signals: emotional > mode > domain > task                  │
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 2: CASCADE                                                            │
-│   Safety gates + Cognitive Safety MoE routing (7 experts, first-match-wins) │
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 3: LOCK                                                               │
-│   MAX3 bounded reflection + cognitive safety gating + deterministic checksum│
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 4: EXECUTE                                                            │
-│   Claude generates response with locked parameters                          │
-│   Anchor: [EXEC:a3f2b8|direct|Cortex|30000ft|standard]                      │
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 5: UPDATE                                                             │
-│   RC^+xi convergence tracking → attractor basins                            │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+
+Same signals → same routing → same checksum, every time.
 
 ---
 
@@ -232,6 +226,47 @@ echo '{"user_prompt": "test"}' | python -m orchestra.hooks
 
 ## Architecture
 
+Same two-tone palette: slate for the runtime, amber for everything that
+sits at a trust boundary or persists to disk. The dashed lines are the
+persistence edges — every byte of state goes through a single
+`StateStore` (atomic writes + lock); transports never touch the file
+directly.
+
+```mermaid
+flowchart LR
+    classDef core fill:#1e293b,stroke:#0f172a,color:#f8fafc,stroke-width:1px;
+    classDef io   fill:#fbbf24,stroke:#b45309,color:#0f172a,stroke-width:1px;
+
+    subgraph BND[" "]
+        direction TB
+        CC[/"Claude Code"/]:::io
+        DASH[/"Dashboard (React)<br/>token-gated overrides"/]:::io
+        FS[("~/.orchestra/<br/>state · checkpoints")]:::io
+    end
+
+    subgraph RT[" Runtime "]
+        direction TB
+        HK["cognitive_hook"]:::core
+        ORCH["FrameworkOrchestrator<br/>(crash-recovery scan on startup)"]:::core
+        NEXUS["5-Phase NEXUS Pipeline"]:::core
+        AC["AgentCoordinator<br/>work · delegate · protect"]:::core
+        RES["Resilience<br/>CircuitBreaker · Bulkhead · RateLimiter · Checkpoint"]:::core
+        SS["StateStore<br/>atomic_write_json + Lock"]:::core
+        WS["WebSocket server<br/>127.0.0.1 default · ORCHESTRA_TOKEN"]:::core
+        HTTP["HTTP server<br/>/health · /metrics · /api/state"]:::core
+    end
+
+    CC --> HK --> ORCH --> NEXUS --> AC
+    ORCH --> RES
+    NEXUS -.-> SS
+    DASH <--> WS
+    DASH <--> HTTP
+    WS  -.-> SS
+    HTTP -.-> SS
+    SS  -.-> FS
+    RES -.-> FS
+```
+
 ```
 Orchestra/
 ├── src/orchestra/
@@ -241,19 +276,49 @@ Orchestra/
 │   ├── convergence_tracker.py     # RC^+xi tracking
 │   ├── prism_detector.py          # Signal detection
 │   ├── cognitive_state.py         # State management
+│   ├── state_store.py             # Single owner of state file (atomic + lock)
 │   ├── dashboard_bridge.py        # WebSocket sync
-│   ├── websocket_server.py        # Real-time dashboard
+│   ├── websocket_server.py        # Real-time dashboard (token-gated overrides)
+│   ├── http_server.py             # /health · /metrics · /api/state
+│   ├── checkpoint.py              # Crash recovery (wired into orchestrator startup)
 │   ├── hooks/
 │   │   └── cognitive_hook.py      # Claude Code hook
 │   └── cli/
 │       └── main.py                # CLI entry point
-├── tests/                         # 766 tests (100% pass)
+├── tests/                         # 806 tests (100% pass)
 │   ├── test_cognitive_engine.py   # Core orchestration
 │   ├── test_parameter_locker.py   # Safety gating
+│   ├── test_state_store.py        # Atomic persistence
+│   ├── test_websocket_security.py # Token auth · override allowlist
+│   ├── test_crash_recovery_wireup.py
 │   ├── test_otel_adapter.py       # Observability
 │   └── ...                        # Integration, chaos, resilience
 └── pyproject.toml                 # v5.0.1
 ```
+
+---
+
+## Hardening
+
+Recent first-principles review closed four classes of defect:
+
+- **Loopback by default.** HTTP and WebSocket servers bind `127.0.0.1`
+  unless the operator opts in. State-mutating WebSocket commands
+  require a shared secret (`ORCHESTRA_TOKEN`) compared with
+  `hmac.compare_digest`; without a token, every override is rejected.
+- **Typed allowlist replaces `setattr` injection.** The override path
+  consults a Pydantic `TypeAdapter` per field in `strict=True` mode —
+  no coercion, no `hasattr` fallback. 35 fields in scope; oversized
+  strings/lists, out-of-range numerics, and unknown attributes are all
+  rejected.
+- **Single `StateStore` for `cognitive_state.json`.** Atomic
+  write-then-rename via `file_ops.atomic_write_json`, threaded lock,
+  cached load. Three previous writers (WS, HTTP, cognitive_state)
+  collapse to one consumer surface.
+- **Crash recovery is now actually called.** `recover_from_crash()`
+  was exported but never invoked; `FrameworkOrchestrator.__init__` now
+  scans for interrupted orchestrations on startup, logs each one, and
+  exposes them as `self.startup_interrupted` for metrics.
 
 ---
 
