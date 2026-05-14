@@ -47,12 +47,25 @@ class ThinkDepth(Enum):
     ULTRADEEP = "ultradeep"  # 128K tokens (Opus only)
 
 
-# Depth budgets
+# Depth budgets (legacy — designed for Opus 4.5/4.6 `thinking.budget_tokens`).
+# Retained for backward compatibility; downstream consumers may still import this.
 DEPTH_BUDGETS = {
     ThinkDepth.MINIMAL: 1_000,
     ThinkDepth.STANDARD: 8_000,
     ThinkDepth.DEEP: 32_000,
     ThinkDepth.ULTRADEEP: 128_000
+}
+
+# Opus 4.7+ vocabulary alignment (added v5.0.3).
+# Maps Orchestra's depth tiers to Anthropic's `output_config.effort` levels.
+# On Opus 4.7, `thinking.budget_tokens` is removed (400 error); `effort` is the
+# correct knob. `xhigh` is new on 4.7 — recommended default for coding/agentic
+# work and used by Claude Code itself.
+DEPTH_TO_EFFORT = {
+    ThinkDepth.MINIMAL:   "low",
+    ThinkDepth.STANDARD:  "medium",
+    ThinkDepth.DEEP:      "high",
+    ThinkDepth.ULTRADEEP: "xhigh",
 }
 
 

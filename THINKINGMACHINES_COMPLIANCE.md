@@ -23,6 +23,32 @@ Orchestra demonstrates **STRONG** batch-invariance compliance with a few minor v
 
 ---
 
+## Scope of Determinism
+
+*Added in v5.0.3.* This section clarifies what Orchestra's "He2025 compliance" claim actually covers — and what it doesn't.
+
+### What IS deterministic
+
+- **Routing decisions** — signal detection (PRISM) → expert selection (MoE) → locked parameters. Given identical state and input, Orchestra produces identical routing every time.
+- **Routing checksum** — the 6-character hex checksum in `LockedParams` is batch-invariant per [He2025]. It excludes `reflection_iteration` by design so the same routing decision yields the same checksum across MAX3 reflection cycles.
+- **Persisted cognitive state** — atomic writes via `file_ops.atomic_write_json()` with `sort_keys=True`. Same state → same on-disk bytes.
+- **Anchor format** — `[EXEC:checksum|expert|paradigm|altitude|depth]` is constructed by a single function (`LockedParams.to_anchor()`) and the field count is contract.
+
+### What IS NOT deterministic
+
+- **Claude's response text.** The Anthropic API does not guarantee bitwise reproducibility, particularly under adaptive thinking (`thinking: {type: "adaptive"}`) which is the only on-mode on Opus 4.7. Tests that assert on exact response strings will be flaky by design.
+- **Wall-clock timestamps** in observability logs.
+- **Compaction outputs** (when context compaction is enabled — beta on Opus 4.7).
+- **Token counts.** Opus 4.7 counts tokens differently from Opus 4.6 for the same input; do not assume `count_tokens()` results are stable across model versions.
+
+### What this means in practice
+
+Orchestra's anchor provides **session continuity and routing reproducibility**, not bit-for-bit output reproducibility. The He2025 batch-invariance claim is about Orchestra's kernel selection (which expert fires, which params get locked), not about what Claude says in response.
+
+If you're building tests that need to compare Claude's output across runs, use Orchestra's checksum for routing identity. Do not assert on response text — use structural or semantic checks instead.
+
+---
+
 ## Compliance Analysis
 
 ### COMPLIANT Components

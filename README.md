@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.1-Production%2FStable-success" alt="Production"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.3-Production%2FStable-success" alt="Production"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/tests-777%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
@@ -252,7 +252,7 @@ Orchestra/
 │   ├── test_parameter_locker.py   # Safety gating
 │   ├── test_otel_adapter.py       # Observability
 │   └── ...                        # Integration, chaos, resilience
-└── pyproject.toml                 # v5.0.1
+└── pyproject.toml                 # v5.0.3
 ```
 
 ---
@@ -308,7 +308,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Orchestra v5.0.1 - Cognitive Engine for Claude Code*
+*Orchestra v5.0.3 - Cognitive Engine for Claude Code*
 
 [![PyPI](https://img.shields.io/pypi/v/cognitive-orchestra)](https://pypi.org/project/cognitive-orchestra/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

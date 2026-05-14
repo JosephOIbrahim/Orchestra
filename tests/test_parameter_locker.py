@@ -24,6 +24,7 @@ from orchestra.parameter_locker import (
     LockResult,
     ParameterLocker,
     DEPTH_BUDGETS,
+    DEPTH_TO_EFFORT,
     create_locker,
 )
 from orchestra.expert_router import Expert, RoutingResult
@@ -46,6 +47,32 @@ class TestThinkDepth:
         assert DEPTH_BUDGETS[ThinkDepth.STANDARD] == 8_000
         assert DEPTH_BUDGETS[ThinkDepth.DEEP] == 32_000
         assert DEPTH_BUDGETS[ThinkDepth.ULTRADEEP] == 128_000
+
+
+class TestDepthToEffort:
+    """v5.0.3: Opus 4.7 vocabulary alignment.
+
+    DEPTH_TO_EFFORT maps Orchestra's depth tiers to Anthropic's
+    `output_config.effort` levels. On Opus 4.7, `thinking.budget_tokens`
+    is removed (400 error); `effort` is the correct knob.
+    """
+
+    def test_effort_mapping(self):
+        """Should map each ThinkDepth tier to the correct effort level."""
+        assert DEPTH_TO_EFFORT[ThinkDepth.MINIMAL] == "low"
+        assert DEPTH_TO_EFFORT[ThinkDepth.STANDARD] == "medium"
+        assert DEPTH_TO_EFFORT[ThinkDepth.DEEP] == "high"
+        assert DEPTH_TO_EFFORT[ThinkDepth.ULTRADEEP] == "xhigh"
+
+    def test_legacy_budgets_still_exported(self):
+        """v5.0.3 is an additive change — DEPTH_BUDGETS must stay on public API."""
+        from orchestra import DEPTH_BUDGETS as legacy_budgets
+        assert legacy_budgets[ThinkDepth.STANDARD] == 8_000
+
+    def test_new_mapping_publicly_exported(self):
+        """DEPTH_TO_EFFORT should be importable from orchestra top-level."""
+        from orchestra import DEPTH_TO_EFFORT as effort_map
+        assert effort_map[ThinkDepth.ULTRADEEP] == "xhigh"
 
 
 class TestParadigm:

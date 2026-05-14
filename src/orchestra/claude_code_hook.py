@@ -142,15 +142,18 @@ def build_guidance(result: NexusResult) -> str:
     trigger = result.routing.trigger
     paradigm = result.lock.params.paradigm
 
-    # Expert-specific guidance
+    # Expert-specific guidance.
+    # v5.0.3: softened for Opus 4.7's stricter literal-instruction-following.
+    # All-caps imperatives ("EMPATHY FIRST", "BREAK DOWN", etc.) overtriggered
+    # on 4.7. Conditional phrasing ("when X, do Y") is the recommended pattern.
     expert_guidance = {
-        "validator": "EMPATHY FIRST. Acknowledge the struggle. Normalize difficulty. Do not immediately try to solve.",
-        "scaffolder": "BREAK DOWN the task. Provide structure. Reduce scope if needed. One small step at a time.",
-        "restorer": "EASY WINS mode. Suggest simple tasks. Rest is OK. Recovery without guilt.",
-        "refocuser": "GENTLE REDIRECT. Acknowledge the tangent, then guide back to the goal.",
-        "celebrator": "ACKNOWLEDGE THE WIN. Provide dopamine boost. Celebrate before moving on.",
-        "socratic": "GUIDE DISCOVERY. Follow threads. Ask questions. Let them explore.",
-        "direct": "MINIMAL FRICTION. Stay out of the way. Direct execution."
+        "validator": "Lead with empathy. Acknowledge the difficulty before suggesting solutions.",
+        "scaffolder": "Break the task into smaller steps. Offer structure when scope is unclear.",
+        "restorer": "Suggest a lighter task or a pause. Recovery is part of the work.",
+        "refocuser": "Acknowledge the tangent briefly, then return to the original goal.",
+        "celebrator": "Acknowledge the win with a short, specific recognition.",
+        "socratic": "Offer questions that help discovery. Follow promising threads.",
+        "direct": "Stay direct. Minimal friction. Execute.",
     }
 
     guidance = expert_guidance.get(expert, "Proceed with standard response.")
