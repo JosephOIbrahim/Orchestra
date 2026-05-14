@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.1-Production%2FStable-success" alt="Production"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/v5.0.3-Production%2FStable-success" alt="Production"></a>
   <a href="tests/"><img src="https://img.shields.io/badge/tests-777%20passed-brightgreen" alt="Tests"></a>
   <a href="https://python.org"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python"></a>
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/license-MIT-yellow" alt="License"></a>
@@ -78,32 +78,21 @@ That's it. Every message now passes through the cognitive engine.
 
 Every message you send to Claude Code:
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 1: DETECT                                                             │
-│   PRISM extracts signals: emotional > mode > domain > task                  │
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 2: CASCADE                                                            │
-│   Safety gates + Cognitive Safety MoE routing (7 experts, first-match-wins) │
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 3: LOCK                                                               │
-│   MAX3 bounded reflection + cognitive safety gating + deterministic checksum│
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 4: EXECUTE                                                            │
-│   Claude generates response with locked parameters                          │
-│   Anchor: [EXEC:a3f2b8|direct|Cortex|30000ft|standard]                      │
-└───────────────────────────┬─────────────────────────────────────────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ PHASE 5: UPDATE                                                             │
-│   RC^+xi convergence tracking → attractor basins                            │
-└─────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1F2937','primaryTextColor':'#F5F1EA','primaryBorderColor':'#1F2937','lineColor':'#1F2937','secondaryColor':'#F5F1EA','tertiaryColor':'#F5F1EA','fontFamily':'system-ui, -apple-system, sans-serif'}}}%%
+flowchart TD
+    In(["User message to Claude Code"])
+    A["<b>1 · DETECT</b><br/>PRISM signal extraction<br/>emotional → mode → domain → task"]
+    B["<b>2 · CASCADE</b><br/>Safety gates + 7-expert MoE<br/>first-match-wins"]
+    C["<b>3 · LOCK</b><br/>MAX3 reflection · safety gate<br/>deterministic checksum"]
+    D["<b>4 · EXECUTE</b><br/>Locked-parameter generation<br/>EXEC:checksum · expert · paradigm · altitude · depth"]
+    E["<b>5 · UPDATE</b><br/>RC^+ξ convergence tracking<br/>attractor basins"]
+    Out(["Response + persisted state"])
+    In --> A --> B --> C --> D --> E --> Out
+    classDef phase fill:#1F2937,stroke:#1F2937,color:#F5F1EA,stroke-width:0px
+    classDef io fill:#F5F1EA,stroke:#1F2937,color:#1F2937,stroke-width:2px
+    class A,B,C,D,E phase
+    class In,Out io
 ```
 
 ---
@@ -139,6 +128,32 @@ The system protects you from yourself:
 | `energy=high` | ultradeep (if requested) |
 
 **Rule:** Safety state ALWAYS overrides user requests. Can reduce depth, never increase.
+
+---
+
+## Burnout Escalation
+
+Cognitive state moves between four levels. Escalation tracks observable signals; recovery is always available and is body-first, not productivity-driven.
+
+```mermaid
+%%{init: {'theme':'base','themeVariables':{'primaryColor':'#1F2937','primaryTextColor':'#F5F1EA','primaryBorderColor':'#1F2937','lineColor':'#1F2937','fontFamily':'system-ui, -apple-system, sans-serif'}}}%%
+stateDiagram-v2
+    direction LR
+    [*] --> GREEN
+    GREEN --> YELLOW: typos rising,<br>shorter messages
+    YELLOW --> ORANGE: frustration,<br>declining coherence
+    ORANGE --> RED: ALL CAPS,<br>spiral, incoherence
+    YELLOW --> GREEN: rest, water, break
+    ORANGE --> GREEN: walk, family,<br>body-first
+    RED --> GREEN: full stop,<br>body-first protocol
+
+    classDef calm fill:#F5F1EA,stroke:#1F2937,color:#1F2937,stroke-width:2px
+    classDef alert fill:#1F2937,stroke:#1F2937,color:#F5F1EA,stroke-width:0px
+    class GREEN calm
+    class YELLOW,ORANGE,RED alert
+```
+
+Recovery from RED is always **body before brain**: water, walking, family, outside — then back to work when (and only when) the body says so.
 
 ---
 
@@ -252,7 +267,7 @@ Orchestra/
 │   ├── test_parameter_locker.py   # Safety gating
 │   ├── test_otel_adapter.py       # Observability
 │   └── ...                        # Integration, chaos, resilience
-└── pyproject.toml                 # v5.0.1
+└── pyproject.toml                 # v5.0.3
 ```
 
 ---
@@ -308,7 +323,7 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-*Orchestra v5.0.1 - Cognitive Engine for Claude Code*
+*Orchestra v5.0.3 - Cognitive Engine for Claude Code*
 
 [![PyPI](https://img.shields.io/pypi/v/cognitive-orchestra)](https://pypi.org/project/cognitive-orchestra/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

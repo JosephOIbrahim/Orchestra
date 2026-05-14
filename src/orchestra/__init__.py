@@ -54,7 +54,7 @@ Environment Variables:
     FO_LOG_LEVEL - DEBUG, INFO, WARNING, ERROR
 """
 
-__version__ = "5.0.1"
+__version__ = "5.0.3"
 __author__ = "Framework Ecosystem Integration"
 
 # Core orchestrator
@@ -356,6 +356,7 @@ from .parameter_locker import (
     LockResult,
     ParameterLocker,
     DEPTH_BUDGETS,
+    DEPTH_TO_EFFORT,
     create_locker,
 )
 
@@ -655,6 +656,7 @@ __all__ = [
     "LockResult",
     "ParameterLocker",
     "DEPTH_BUDGETS",
+    "DEPTH_TO_EFFORT",
     "create_locker",
 
     # Convergence Tracker (RC^+xi)
